@@ -1,0 +1,168 @@
+[tool.poetry]
+name = "netdeployonnx"
+version = "0.1.0"
+description = "netDeployONNX"
+authors = []
+readme = "README.md"
+packages = [
+    {include = "netdeployonnx", from = "." },
+    {include = "izer", from = "external", to = "."},
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+grpcio = "^1.64.1"
+protobuf = "^5.27.2"
+pyyaml = "^6.0.1"
+pydantic = "^2.8.0"
+pytest-grpc = "^0.8.0"
+onnx = "^1.16.1"
+# torch = "2.3"
+torch = "^2"
+matplotlib = "^3.9.1"
+anyio = "^4.4.0"
+black = "^24.4.2"
+click = "^8.1.7"
+mypy = "^1.10.1"
+# networkx = "^3.3"
+# ai8x_synthesis = {path = "../ai8x-synthesis", develop = true}
+gitpython = "^3.1.43"
+pygithub = "^2.3.0"
+xxhash = "^3"
+fs = "^2"
+onnxruntime = "^1.18.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.2"
+grpcio = "^1.64.1"
+grpcio-tools = "^1.64.1"
+debugpy = "^1.8.2"
+pytest-asyncio = "^0.23.7"
+ruff = "^0.5.2"
+pre-commit = "^3.7.1"
+pytest-cov = "^5.0.0"
+rich = "^13.7.1"
+
+[tool.poetry.scripts]
+server = "netdeployonnx.cli:server"
+client = "netdeployonnx.cli:client"
+test = "pytest:main"
+# cov = "pytest:main:--cov=netdeployonnx --cov-report=term-missing"
+mypy = "mypy.main:main"
+max78000_helper = "scripts.helper_max78000_cnn:main"
+max78000_analyze = "scripts.analyze_cnn:main"
+max78000_synth = "test.test_max78000_synthesize_cifar10:main"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+log_cli=true
+log_level="DEBUG"
+log_format = "[+%(relativeCreated).2fms] [%(name)s] %(levelname)s: (%(funcName)-10s) %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+python_files = [
+    "tests/*.py",
+    "test/*.py"
+]
+
+[tool.mypy]
+warn_return_any=true
+warn_unused_configs=true
+exclude = [
+    '\.pyi$'  # files ending with ".pyi"
+]
+
+[tool.mypy-netdeployonnx.tests]
+no_site_packages=true
+no_namespace_packages=true
+
+
+[tool.black]
+line-length = 88
+
+# copied from https://github.com/cookiecutter/cookiecutter-django/blob/master/%7B%7Bcookiecutter.project_slug%7D%7D/pyproject.toml
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "*/migrations/*.py",
+    "staticfiles/*",
+    "external/*",
+    "netdeployonnx/common/device_pb2*",
+    "test/data/*",
+    "test/weights_convert.py",
+    "cnn_constants.py",
+    "cnn_registers.py",
+    "max78000_cnn.py",
+]
+# Same as Django: https://github.com/cookiecutter/cookiecutter-django/issues/4792.
+line-length = 88
+indent-width = 4
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+  "F",
+  "E",
+  "W",
+  "C90",
+  "I",
+  "N",
+  "UP",
+  # "ANN", # flake8-annotations: we should support this in the future but 100+ errors atm
+  "ASYNC",
+  "SIM",
+]
+ignore = [
+  "S101", # Use of assert detected https://docs.astral.sh/ruff/rules/assert/
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "SIM102", # sometimes it's better to nest
+  "UP038" # Checks for uses of isinstance/issubclass that take a tuple
+          # of types for comparison.
+          # Deactivated because it can make the code slow:
+          # https://github.com/astral-sh/ruff/issues/7871
+]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+# The fixes in extend-unsafe-fixes will require
+# provide the `--unsafe-fixes` flag when fixing.
+extend-unsafe-fixes = [
+    "UP038"
+]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+force-single-line = false

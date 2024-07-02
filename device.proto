@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package device;
+
+enum Payload_Datatype {
+    none = 0;
+    exception = 1;
+    onnx = 2;
+    onnxb = 3;
+    dict = 4;
+    json = 5;
+}
+
+message DeviceHandle {
+    string handle = 1;//uuid-128
+}
+
+message DeviceInfo {
+    string port = 1;
+    string model = 2;
+    string manufacturer = 3;
+    string firmware_version = 4;
+}
+
+message Payload {
+    string run_id = 1;
+    Payload_Datatype datatype = 2;
+    bytes data = 3;
+}
+
+
+//
+
+service DeviceService {
+    rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {}
+    rpc GetDeviceHandle(GetDeviceHandleRequest) returns (GetDeviceHandleResponse) {}
+    rpc FreeDeviceHandle(FreeDeviceHandleRequest) returns (FreeDeviceHandleResponse) {}
+    rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse) {}
+
+    # missing: prepare, profile
+
+    rpc RunPayloadSynchronous(RunPayloadRequest) returns (RunPayloadResponse) {}
+
+    rpc RunPayloadAsynchronous(RunPayloadRequest) returns (RunPayloadResponse) {}
+    rpc CheckPayloadAsynchronous(CheckPayloadRequest) returns (CheckPayloadResponse) {}
+
+}
+
+
+message ListDevicesRequest {
+}
+
+message ListDevicesResponse {
+    repeated DeviceInfo devices = 1;
+}
+
+message GetDeviceHandleRequest {
+    repeated DeviceInfo filters = 1;
+}
+
+message GetDeviceHandleResponse {
+    DeviceHandle deviceHandle = 1;
+}
+
+
+message FreeDeviceHandleRequest {
+    DeviceHandle deviceHandle = 1;
+}
+
+
+message FreeDeviceHandleResponse {
+    bool ok = 1;
+}
+
+message RunPayloadRequest {
+    // TODO: send a model?
+    DeviceHandle deviceHandle = 1;
+    Payload payload = 2;
+}
+
+message RunPayloadResponse {
+    Payload payload = 1;
+    string run_id = 2;
+}
+
+message CheckPayloadRequest {
+    string run_id = 1;
+}
+
+message CheckPayloadResponse {
+    Payload payload = 1;
+}
+
+message GetDeviceInfoRequest {
+    DeviceHandle deviceHandle = 1;
+}
+message GetDeviceInfoResponse {
+    DeviceInfo device = 1;
+}
