@@ -206,7 +206,7 @@ class DummyDevice(Device):
         return instructions
 
     async def execute(self, instructions: Any, metrics: Metrics) -> Any:
-        return []
+        return ["empty dummy result"]
 
     async def acquire_metrics(self) -> Metrics:
         """

@@ -10,6 +10,7 @@ All rights are reserved by the original author.
 
 from collections import defaultdict
 from collections.abc import Iterator
+from typing import Union
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, conint
@@ -381,7 +382,7 @@ class CNNx16_Layer(BaseModel):  # noqa: N801
         return self._unused
 
     def write_register(
-        self, register_name: str, fields: dict | int
+        self, register_name: str, fields: Union[dict, int]
     ) -> list[tuple[str, int]]:
         """
         Write a register with the given fields
@@ -714,7 +715,7 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
         return iter(self.layers.values())
 
     def write_register(
-        self, register_name: str, fields: dict | int
+        self, register_name: str, fields: Union[dict, int]
     ) -> list[tuple[str, int]]:
         """
         Write a register with the given fields
@@ -799,7 +800,7 @@ class CNNx16Core:
             quadrant: CNNx16_Quadrant(quadrant) for quadrant in range(quadrant_count)
         }
 
-    def __getitem__(self, key: tuple[int, int] | int) -> CNNx16_Layer:
+    def __getitem__(self, key: Union[tuple[int, int], int]) -> CNNx16_Layer:
         if isinstance(key, int):
             core = key
             return self.quadrants[core]
@@ -813,7 +814,7 @@ class CNNx16Core:
         return iter(self.quadrants.values())
 
     def write_register(
-        self, register_name: str, fields: dict | int
+        self, register_name: str, fields: Union[dict, int]
     ) -> list[tuple[str, int]]:
         """
         Write a register with the given fields

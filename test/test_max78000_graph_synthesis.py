@@ -323,11 +323,10 @@ def test_print_kernel_map(kernel_data_per_layer):
         result[f"layer_{layeridx}" + "_".join([str(x) for x in layer.shape])] = (
             layer_map
         )
-<<<<<<< Updated upstream
-    with open("kernel_map.yaml", "w") as fx:
-        fx.write(yaml.dump(result, Dumper=yaml.Dumper))
-=======
-    )
+    
+    # with open("kernel_map.yaml", "w") as fx:
+    #     fx.write(yaml.dump(result, Dumper=yaml.Dumper))
+    
     inputch = 3
     kernel_shape = (3, 3)
     packed = m.get_kernel_data(3, 9, packed72bit=True)
@@ -360,4 +359,3 @@ def test_memoryquadrant_kernel_reorder(inc, outc, expected):
 #         # now itereate over the procs again and find out which memory is used
 #         for p in range:
 #             ...
->>>>>>> Stashed changes

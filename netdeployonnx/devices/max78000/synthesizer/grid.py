@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 import onnx
@@ -73,7 +73,7 @@ class Node:
             self.attributes[attr.name] = onnx.helper.get_attribute_value(attr)
             self.attributes[attr.name] = self._get_io_value(self.attributes[attr.name])
 
-    def _get_io_value(self, value: Any) -> None | np.ndarray:
+    def _get_io_value(self, value: Any) -> Union[None, np.ndarray]:
         if type(value) in [dict, list, int, float, type(None), str, bool, bytes]:
             return value
         if isinstance(value, onnx.ValueInfoProto):
@@ -142,7 +142,7 @@ class NodeGrid:
         else:
             raise KeyError(f"key {key} is not a tuple[int, int]")
 
-    def __contains__(self, key: tuple[int, int] | str):
+    def __contains__(self, key: Union[tuple[int, int], str]):
         if isinstance(key, tuple) and len(key) == 2:
             return self.data[key[0], key[1]] is not None
         elif isinstance(key, str):

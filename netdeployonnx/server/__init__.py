@@ -26,6 +26,7 @@ from netdeployonnx.common.device_pb2 import (
 )
 from netdeployonnx.config import AppConfig
 from netdeployonnx.devices import Device, DummyDevice
+from netdeployonnx.devices.max78000.ai8xize import MAX78000_ai8xize
 
 
 def get_device_by_devinfo(devinfo: DeviceInfo) -> Device:
@@ -48,7 +49,7 @@ def get_device_by_devinfo(devinfo: DeviceInfo) -> Device:
 
 def list_devices() -> dict[str, Device]:
     devices = [
-        DummyDevice("EvKit_V1", "MAXIM", "?"),
+        MAX78000_ai8xize("EvKit_V1", "MAXIM", "?"),
         DummyDevice("FTHR_RevA", "MAXIM", "?"),
         DummyDevice("Test", "test", "."),
     ]

@@ -1,4 +1,4 @@
-from netDeployONNX.cli import main
+from netdeployonnx.cli import main
 
 if __name__ == "__main__":
     main()
