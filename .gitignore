@@ -168,7 +168,7 @@ cnn.c
 cifar10_cnn.c
 
 dist/
-external/
+#external/
 
 # for now:
 *.onnx
