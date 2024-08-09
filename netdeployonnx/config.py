@@ -5,7 +5,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
-DEFAULT_CONFIG_FILE = "config.yaml"
+DEFAULT_CONFIG_FILE = "netdeployonnx.yaml"
 
 
 class ServerConfig(BaseModel):
@@ -22,6 +22,17 @@ class ClientConfig(BaseModel):
     )
 
 
+class DeviceConfig(BaseModel):
+    name: str = Field(default="MAX78000", description="Device name")
+    class_name: str = Field(default="DummyDevice")
+    communication_port: str | None = Field(
+        default="/dev/ttyACM0", description="Communication port"
+    )
+    energy_port: str | None = Field(
+        default="/dev/ttyACM1", description="Energy Info port"
+    )
+
+
 class LoggingConfig(BaseModel):
     level: str = Field(
         default="INFO",
@@ -34,19 +45,20 @@ class AppConfig(BaseModel):
     server: ServerConfig = ServerConfig()
     client: ClientConfig = ClientConfig()
     logging: LoggingConfig = LoggingConfig()
+    devices: list[DeviceConfig] = [DeviceConfig(name="Dummy")]
 
     @classmethod
     def from_dict(cls, data):
         return cls(**data)
 
     def to_dict(self) -> dict[str, Any]:
-        config_dict = {
-            "server": self.server.model_dump(),
-            "client": self.client.model_dump(),
-            "logging": self.logging.model_dump(),
-        }
-        if self.client:
-            config_dict["client"] = self.client.model_dump()
+        config_dict = {}
+        for field_name, field in self.model_fields.items():
+            field_value = getattr(self, field_name)
+            if isinstance(field_value, list):
+                config_dict[field_name] = [item.model_dump() for item in field_value]
+            else:
+                config_dict[field_name] = field_value.model_dump()
         return config_dict
 
 
@@ -80,6 +92,8 @@ def load_config(config_file: Path) -> AppConfig:
     config = AppConfig().to_dict()
     with open(config_file) as f:
         config_update = yaml.safe_load(f)
+        if config_update is None:
+            config_update = create_default_config(config_file)
         config.update(config_update)
 
     return AppConfig.from_dict(config)
@@ -87,8 +101,10 @@ def load_config(config_file: Path) -> AppConfig:
 
 def create_default_config(config_file: Path) -> AppConfig:
     config = AppConfig()
+    default_config = config.to_dict()
     with open(config_file, "w") as f:
-        yaml.dump(config.to_dict(), f)
+        yaml.dump(default_config, f)
+    return default_config
 
 
 # Example usage:
