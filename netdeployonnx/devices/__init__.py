@@ -63,12 +63,20 @@ class Metrics:
 
 class Device(abc.ABC):
     def __init__(
-        self, model: str, manufacturer: str, firmware_version: str, port: str = ""
+        self,
+        model: str,
+        manufacturer: str,
+        firmware_version: str,
+        comm_port: str = "",
+        energy_port: str = "",
     ):
         self.model = model
         self.manufacturer = manufacturer
         self.firmware_version = firmware_version
-        self.port = port
+        self.port = comm_port
+        # energy_port is optional, as not every device has an energy monitoring
+        # (f.ex. FTHR has none)
+        self.energy_port = energy_port
 
     @abc.abstractmethod
     async def layout_transform(self, model: "onnx.ModelProto") -> Any:
@@ -99,6 +107,16 @@ class Device(abc.ABC):
         Start collecting metrics from the device
         """
         raise NotImplementedError("acquire_metrics not implemented")
+
+    @classmethod
+    @abc.abstractmethod
+    def create_device_from_name_and_ports(
+        cls,
+        model_name: str,
+        communication_port: str,
+        energy_port: str,
+    ) -> "Device":
+        raise NotImplementedError("create_device_from_name_and_ports not implemented")
 
     @asynccontextmanager
     async def collect_metrics(self) -> Metrics:
@@ -153,6 +171,9 @@ class Device(abc.ABC):
             }
             metrics.update(collected_metrics.as_dict())
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()
             metrics = {
                 "result": None,
                 "exception": f"{type(e).__name__}: {e}",
@@ -205,6 +226,15 @@ class DummyDevice(Device):
             instructions.append({"stage": stage, "instructions": []})
         return instructions
 
+    @classmethod
+    def create_device_from_name_and_ports(
+        cls,
+        model_name: str,
+        communication_port: str,
+        energy_port: str,
+    ) -> "Device":
+        return DummyDevice(model_name, "No Manufacturer", "unknown_firmware_version")
+
     async def execute(self, instructions: Any, metrics: Metrics) -> Any:
         return ["empty dummy result"]
 
@@ -222,3 +252,9 @@ class TestDevice(DummyDevice):
 
     def __init__(self):
         super().__init__("Test", "test", ".")
+
+    @classmethod
+    def create_device_from_name_and_ports(
+        cls, model_name: str, communication_port: str, energy_port: str
+    ) -> Device:
+        return TestDevice()

@@ -11,119 +11,23 @@ from netdeployonnx.devices.max78000.core import CNNx16Core
 
 
 class MAX78000_ai8xize(MAX78000):  # noqa: N801
+    @classmethod
+    def create_device_from_name_and_ports(
+        cls,
+        model_name: str,
+        communication_port: str,
+        energy_port: str,
+    ) -> MAX78000:
+        return MAX78000_ai8xize(
+            model_name,
+            "Maxim Integrated",
+            "?",
+            communication_port,
+            energy_port,
+        )
+
     async def layout_transform(self, model: onnx.ModelProto) -> any:
-        cfg = {
-            "arch": "ai85nascifarnet",
-            "dataset": "CIFAR10",
-            "layers": [
-                {
-                    "out_offset": 0x4000,
-                    "processors": 0x0000000000000007,  # 1_1
-                    "operation": "conv2d",
-                    "kernel_size": "3x3",
-                    "pad": 1,
-                    "activate": "ReLU",
-                    "data_format": "HWC",
-                },
-                {
-                    "out_offset": 0x0000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 1_2
-                    "operation": "conv2d",
-                    "kernel_size": "1x1",
-                    "pad": 0,
-                    "activate": "ReLU",
-                    "output_shift": -1,
-                },
-                {
-                    "out_offset": 0x4000,
-                    "processors": 0x00000000FFFFFFFF,  # 1_3
-                    "operation": "conv2d",
-                    "kernel_size": "3x3",
-                    "pad": 1,
-                    "activate": "ReLU",
-                    "output_shift": -1,
-                },
-                {
-                    "max_pool": 2,
-                    "pool_stride": 2,
-                    "out_offset": 0x0000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 2_1
-                    "operation": "conv2d",
-                    "kernel_size": "3x3",
-                    "pad": 1,
-                    "activate": "ReLU",
-                    "output_shift": -3,
-                },
-                {
-                    "out_offset": 0x4000,
-                    "processors": 0xFFFFFFFF00000000,  # 2_2
-                    "operation": "conv2d",
-                    "kernel_size": "1x1",
-                    "pad": 0,
-                    "activate": "ReLU",
-                },
-                {
-                    "max_pool": 2,
-                    "pool_stride": 2,
-                    "out_offset": 0x0000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 3_1
-                    "operation": "conv2d",
-                    "kernel_size": "3x3",
-                    "pad": 1,  # do 0?
-                    "activate": "ReLU",
-                    "output_shift": -3,
-                },
-                {
-                    "out_offset": 0x4000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 3_2
-                    "operation": "conv2d",
-                    "kernel_size": "1x1",
-                    "pad": 0,
-                    "activate": "ReLU",
-                    "output_shift": -1,
-                },
-                {
-                    "max_pool": 2,
-                    "pool_stride": 2,
-                    "out_offset": 0x0000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 4_1
-                    "operation": "conv2d",
-                    "kernel_size": "3x3",
-                    "pad": 1,
-                    "activate": "ReLU",
-                    "output_shift": -3,
-                },
-                {
-                    "out_offset": 0x4000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 4_2
-                    "operation": "conv2d",
-                    "kernel_size": "3x3",
-                    "pad": 1,
-                    "activate": "ReLU",
-                    "output_shift": -2,
-                },
-                {
-                    "max_pool": 2,
-                    "pool_stride": 2,
-                    "out_offset": 0x0000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,  # 5_1
-                    "operation": "conv2d",
-                    "kernel_size": "1x1",
-                    "pad": 0,
-                    "activate": "ReLU",
-                    "output_shift": -1,
-                },
-                {
-                    "flatten": True,
-                    "out_offset": 0x4000,
-                    "processors": 0xFFFFFFFFFFFFFFFF,
-                    "operation": "MLP",
-                    "output_width": 32,
-                    "activate": "none",
-                    "output_shift": 1,
-                },
-            ],
-        }
+        cfg = self.generate_config_from_model(model)
         list_of_results: list[any] = wrap_ai8ize_layout_transform(cfg, model)
 
         core = CNNx16Core()
@@ -132,6 +36,122 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             set_lregs_to_core(apb._lregs, core)
 
         return core
+
+    def generate_config_from_model(self, model: onnx.ModelProto) -> dict:
+        layers = [
+            {
+                "out_offset": 0x4000,
+                "processors": 0x0000000000000007,  # 1_1
+                "operation": "conv2d",
+                "kernel_size": "3x3",
+                "pad": 1,
+                "activate": "ReLU",
+                "data_format": "HWC",
+            },
+            {
+                "out_offset": 0x0000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 1_2
+                "operation": "conv2d",
+                "kernel_size": "1x1",
+                "pad": 0,
+                "activate": "ReLU",
+                "output_shift": -1,
+            },
+            {
+                "out_offset": 0x4000,
+                "processors": 0x00000000FFFFFFFF,  # 1_3
+                "operation": "conv2d",
+                "kernel_size": "3x3",
+                "pad": 1,
+                "activate": "ReLU",
+                "output_shift": -1,
+            },
+            {
+                "max_pool": 2,
+                "pool_stride": 2,
+                "out_offset": 0x0000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 2_1
+                "operation": "conv2d",
+                "kernel_size": "3x3",
+                "pad": 1,
+                "activate": "ReLU",
+                "output_shift": -3,
+            },
+            {
+                "out_offset": 0x4000,
+                "processors": 0xFFFFFFFF00000000,  # 2_2
+                "operation": "conv2d",
+                "kernel_size": "1x1",
+                "pad": 0,
+                "activate": "ReLU",
+            },
+            {
+                "max_pool": 2,
+                "pool_stride": 2,
+                "out_offset": 0x0000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 3_1
+                "operation": "conv2d",
+                "kernel_size": "3x3",
+                "pad": 1,  # do 0?
+                "activate": "ReLU",
+                "output_shift": -3,
+            },
+            {
+                "out_offset": 0x4000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 3_2
+                "operation": "conv2d",
+                "kernel_size": "1x1",
+                "pad": 0,
+                "activate": "ReLU",
+                "output_shift": -1,
+            },
+            {
+                "max_pool": 2,
+                "pool_stride": 2,
+                "out_offset": 0x0000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 4_1
+                "operation": "conv2d",
+                "kernel_size": "3x3",
+                "pad": 1,
+                "activate": "ReLU",
+                "output_shift": -3,
+            },
+            {
+                "out_offset": 0x4000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 4_2
+                "operation": "conv2d",
+                "kernel_size": "3x3",
+                "pad": 1,
+                "activate": "ReLU",
+                "output_shift": -2,
+            },
+            {
+                "max_pool": 2,
+                "pool_stride": 2,
+                "out_offset": 0x0000,
+                "processors": 0xFFFFFFFFFFFFFFFF,  # 5_1
+                "operation": "conv2d",
+                "kernel_size": "1x1",
+                "pad": 0,
+                "activate": "ReLU",
+                "output_shift": -1,
+            },
+            {
+                "flatten": True,
+                "out_offset": 0x4000,
+                "processors": 0xFFFFFFFFFFFFFFFF,
+                "operation": "MLP",
+                "output_width": 32,
+                "activate": "none",
+                "output_shift": 1,
+            },
+        ]
+        cfg = {
+            "arch": "ai85nascifarnet",  # where is this used?
+            "dataset": "CIFAR10",  # where is this used?
+            "layers": layers,
+        }
+        return cfg
 
 
 def set_lregs_to_core(lregs: list[any], core: CNNx16Core):

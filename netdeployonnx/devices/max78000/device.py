@@ -50,11 +50,30 @@ class MAX78000(Device):
         name: str = "MAX78000",
         manufacturer: str = "Maxim Integrated",
         firmware_version: str = "?",
+        communication_port: str = "",
+        energy_port: str = "",
     ):
         super().__init__(
             name,
             manufacturer,
             firmware_version,
+            comm_port=communication_port,
+            energy_port=energy_port,
+        )
+
+    @classmethod
+    def create_device_from_name_and_ports(
+        cls,
+        model_name: str,
+        communication_port: str,
+        energy_port: str,
+    ) -> Device:
+        return MAX78000(
+            model_name,
+            "Maxim Integrated",
+            "?",
+            communication_port,
+            energy_port,
         )
 
     async def layout_transform(self, model: onnx.ModelProto) -> Any:
@@ -218,4 +237,8 @@ class MAX78000(Device):
         assert isinstance(instructions, list)
         assert len(instructions) > 0 and isinstance(instructions[0], dict)
 
-        return "execution result readback"
+        return [
+            1,
+            2,
+            3,
+        ]

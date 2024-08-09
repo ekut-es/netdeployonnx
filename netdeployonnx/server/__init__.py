@@ -24,12 +24,13 @@ from netdeployonnx.common.device_pb2 import (
     Payload_Datatype,
     RunPayloadResponse,
 )
-from netdeployonnx.config import AppConfig
+from netdeployonnx.config import AppConfig, DeviceConfig
 from netdeployonnx.devices import Device, DummyDevice
+from netdeployonnx.devices.max78000 import MAX78000
 from netdeployonnx.devices.max78000.ai8xize import MAX78000_ai8xize
 
 
-def get_device_by_devinfo(devinfo: DeviceInfo) -> Device:
+def get_device_by_devinfo(config: AppConfig, devinfo: DeviceInfo) -> Device:
     def fields_match(dev: Device, devinfo: DeviceInfo) -> bool:
         return all(
             [
@@ -41,25 +42,45 @@ def get_device_by_devinfo(devinfo: DeviceInfo) -> Device:
         )
 
     # try a better variant to get the device for each field
-    for dev in list_devices().values():
+    for dev in list_devices(config).values():
         if fields_match(dev, devinfo):
             return dev
     raise ValueError("No device found for the provided device info")
 
 
-def list_devices() -> dict[str, Device]:
+def create_device_from_classname_and_ports(
+    model_name: str, device_classname: str, communication_port: str, energy_port: str
+) -> Device:
+    device_classnames = {
+        "MAX78000": MAX78000,
+        "MAX78000_ai8xize": MAX78000_ai8xize,
+        "DummyDevice": DummyDevice,
+    }
+    return device_classnames[device_classname].create_device_from_name_and_ports(
+        model_name, communication_port, energy_port
+    )
+
+
+def list_devices(config: AppConfig) -> dict[str, Device]:
+    devices_from_config: list[DeviceConfig] = config.devices
     devices = [
-        MAX78000_ai8xize("EvKit_V1", "MAXIM", "?"),
-        DummyDevice("FTHR_RevA", "MAXIM", "?"),
-        DummyDevice("Test", "test", "."),
+        create_device_from_classname_and_ports(
+            model_name=dev.name,
+            device_classname=dev.class_name,
+            communication_port=dev.communication_port,
+            energy_port=dev.energy_port,
+        )
+        for dev in devices_from_config
     ]
     return {dev.port: dev for dev in devices}
 
 
 class DeviceService(device_pb2_grpc.DeviceServiceServicer):
-    def __init__(self):
+    def __init__(self, config: AppConfig):
         self.device_handles: dict[(str | uuid.UUID), Device] = {}
         self.run_queue: dict[str, concurrent.futures.Future] = {}
+        self.config = config
+        self.devices = list_devices(config)
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
@@ -72,7 +93,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             return loop
 
     def ListDevices(self, request, context):  # noqa: N802
-        devices = list_devices()
+        devices = self.devices
         return ListDevicesResponse(
             devices=[
                 DeviceInfo(
@@ -132,6 +153,8 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                     assert isinstance(
                         result, dict
                     ), f"return value is not dict but {type(result)}"
+                    if "exception" in result:
+                        raise Exception(result["exception"])
                     if "json":
                         payload = Payload(
                             datatype="json",
@@ -184,7 +207,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                 manufacturer=dev.manufacturer,
                 firmware_version=dev.firmware_version,
             )
-            for devid, dev in list_devices().items()
+            for devid, dev in self.devices.items()
         ]
         # distill the result to only the devices that match the filters
         for f in filters:
@@ -209,7 +232,9 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
         if len(result) == 1:
             new_handle = f"devhandle-{uuid.uuid4()}"
             # this could fail
-            self.device_handles[new_handle] = get_device_by_devinfo(result[0])
+            self.device_handles[new_handle] = get_device_by_devinfo(
+                self.config, result[0]
+            )
             return GetDeviceHandleResponse(
                 deviceHandle=DeviceHandle(handle=new_handle),
             )
@@ -234,7 +259,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
 def listen(config: AppConfig):
     print(f"Listening on {config.server.host}:{config.server.port}")
     server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
-    device_pb2_grpc.add_DeviceServiceServicer_to_server(DeviceService(), server)
+    device_pb2_grpc.add_DeviceServiceServicer_to_server(DeviceService(config), server)
     server.add_insecure_port(f"{config.server.host}:{config.server.port}")
     server.start()
     server.wait_for_termination()
