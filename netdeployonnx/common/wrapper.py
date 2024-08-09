@@ -16,6 +16,8 @@ from netdeployonnx.common.device_pb2 import (
     DeviceInfo,
     FreeDeviceHandleRequest,
     GetDeviceHandleRequest,
+    ListDevicesRequest,
+    ListDevicesResponse,
     Payload,
     Payload_Datatype,
     RunPayloadRequest,
@@ -47,6 +49,16 @@ class NetClient:
         handle = self.client.GetDeviceHandle(
             GetDeviceHandleRequest(filters=filters)
         ).deviceHandle.handle
+
+        if not handle.startswith("devhandle"):
+            response: ListDevicesResponse = self.client.ListDevices(
+                ListDevicesRequest()
+            )
+            device_list = response.devices
+            raise ValueError(
+                "could not get handle, maybe device not found?\n"
+                f"Possible devices: [{device_list}]"
+            )
 
         yield RemoteDevice(client=self.client, handle=handle)
 
@@ -95,7 +107,7 @@ class RemoteDevice:
         )
 
         if not response.run_id.startswith("run"):
-            raise ValueError("run_id is not working")
+            raise ValueError("could not run")
 
         async def wait_for_result(run_id: str, interval: float = 0.01):
             # we stop with either return or timeout
