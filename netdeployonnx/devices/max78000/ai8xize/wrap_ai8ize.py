@@ -398,6 +398,7 @@ def layout_transform(
         "ARM_GCC_PATH": "path/to/arm_gcc",
         "XPACK_GCC_PATH": "path/to/xpack_gcc",
         "MAKE_PATH": "path/to/make",
+        "MSYS_PATH": "path/to/msys",
     }
 
     sample_input = np.zeros((3, 32, 32), dtype=np.int64)
