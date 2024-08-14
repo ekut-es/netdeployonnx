@@ -213,7 +213,7 @@ class GRPCBackend_(InferenceBackendBase):  # noqa: N801
         dummy_input = model.example_input_array
         self.model = model  # TODO:remove
         torch.onnx.export(model, dummy_input, memory_stream, verbose=False)
-
+        memory_stream.seek(0)
         self.modelbytes = memory_stream
 
     def run(self, *inputs):
