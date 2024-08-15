@@ -18,9 +18,9 @@ def set_kernel(layout):
     from .cifar10_weights import kernels as kernel_list_correct  # noqa
 
     reverse_maddr = {
-        cnn_constants.memory.get(f"CNNx16_{quad}_L{layer}_MRAM"): (quad, layer)
+        cnn_constants.memory.get(f"CNNx16_{quad}_P{proc}_MRAM"): (quad, proc)
         for quad in range(4)
-        for layer in range(16)
+        for proc in range(16)
     }
 
     for kernel_entry in kernel_list_correct:
@@ -29,8 +29,8 @@ def set_kernel(layout):
         mem_addr = kernel_addr - offs
 
         if mem_addr in reverse_maddr:
-            quad, layer = reverse_maddr[mem_addr]
-            layout[quad, layer].kernels[offs] = kernel_data
+            quad, proc = reverse_maddr[mem_addr]
+            layout[quad].processors[proc].kernels[offs] = kernel_data
 
 
 async def cifar10_layout():  # noqa: C901

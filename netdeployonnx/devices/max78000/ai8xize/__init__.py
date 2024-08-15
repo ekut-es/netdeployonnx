@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 
 import networkx as nx
 import numpy as np
@@ -18,7 +19,6 @@ from netdeployonnx.devices.max78000.cnn_registers import (
 )
 from netdeployonnx.devices.max78000.core import (
     CNNx16_Processor,
-    CNNx16_Quadrant,
     CNNx16Core,
 )
 from netdeployonnx.devices.max78000.graph_transformer import (
@@ -191,10 +191,25 @@ def set_lregs_to_core(lregs: list[any], core: CNNx16Core):
             )
 
 
-def set_bias_to_core(bias: list[any], core: CNNx16Core):
-    for quad, layeridx, val in bias:
-        quadrant: CNNx16_Quadrant = core[quad]
-        quadrant.bias = val
+def set_bias_to_core(bias: list[tuple[int, int, int]], core: CNNx16Core):
+    collected_bias_per_quad = defaultdict(dict)
+    maxoffs_per_quad = [0]*4
+    for quad, offs, val in bias:
+        if offs not in collected_bias_per_quad[quad]:
+            collected_bias_per_quad[quad][offs] = val
+            maxoffs_per_quad[quad] = max(maxoffs_per_quad[quad], offs)
+    quad_bias = [[] for _ in range(4)]
+    # iterate over the quads
+    for quad, bias_collection in collected_bias_per_quad.items():
+        # iterate over the layers
+        for i in range(
+            min(maxoffs_per_quad[quad] + 1, tc.dev.BIAS_SIZE)
+        ):  # iterate over all necessary bytes of bias
+            # append the bias value to the quad_bias list, if it exists
+            # if it doesn't exist, append 0
+            quad_bias[quad].append(bias_collection.get(i, 0))
+        # set the bias values to the core
+        core[quad].bias = bytes(quad_bias[quad])
 
 
 def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
@@ -240,4 +255,4 @@ def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
                             + naddr * 16
                         )
 
-                    processor.kernels[phys_addr] = weights_array
+                    processor.kernels[phys_addr] = weights_array.tobytes()

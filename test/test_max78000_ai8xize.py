@@ -17,7 +17,11 @@ from netdeployonnx.devices.max78000.ai8xize.config import (
     AI8XizeConfig,
     AI8XizeConfigLayer,
 )
-from netdeployonnx.devices.max78000.core import CNNx16Core, CNNx16_Layer, CNNx16_Processor
+from netdeployonnx.devices.max78000.core import (
+    CNNx16_Layer,
+    CNNx16_Processor,
+    CNNx16Core,
+)
 
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
 
@@ -147,8 +151,10 @@ def cifar10_layout():
 
 
 def core_layer_equal(
-    original_layer: CNNx16_Layer, layer_under_test: CNNx16_Layer,
-    quad: int, layeridx: int
+    original_layer: CNNx16_Layer,
+    layer_under_test: CNNx16_Layer,
+    quad: int,
+    layeridx: int,
 ) -> list:
     incorrect = []
     # iterate over fields of original layer
@@ -168,8 +174,10 @@ def core_layer_equal(
 
 
 def core_processor_equal(
-    original_proc: CNNx16_Processor, proc_under_test: CNNx16_Processor,
-    quad: int, proc: int
+    original_proc: CNNx16_Processor,
+    proc_under_test: CNNx16_Processor,
+    quad: int,
+    proc: int,
 ) -> list:
     incorrect = []
     for fieldname, field in original_proc.model_fields.items():
@@ -196,14 +204,17 @@ def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool:
 
             if origval != val_under_test:
                 incorrect.append(
-                    f"quad={quad}, field={fieldname}: " f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+                    f"quad={quad}, field={fieldname}: "
+                    f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
                 )
         # check layers
         for layeridx in range(16):
             incorrect.extend(
                 core_layer_equal(
-                    original_core[quad, layeridx], core_under_test[quad, layeridx],
-                    quad, layeridx
+                    original_core[quad, layeridx],
+                    core_under_test[quad, layeridx],
+                    quad,
+                    layeridx,
                 )
             )
 
@@ -213,7 +224,8 @@ def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool:
                 core_processor_equal(
                     original_core[quad].processors[proc],
                     core_under_test[quad].processors[proc],
-                    quad, proc
+                    quad,
+                    proc,
                 )
             )
     return incorrect
@@ -262,7 +274,8 @@ async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout)
         (layout_ir,) = mock_compile_instructions.await_args.args
         assert isinstance(layout_ir, CNNx16Core)
 
-        assert [] == core_equal(cifar10_layout, layout_ir)
+        core_equal_result = core_equal(cifar10_layout, layout_ir)
+        assert core_equal_result == [], f"layout mismatch (len={len(core_equal_result)})"
 
 
 @pytest.mark.asyncio
@@ -274,7 +287,9 @@ async def test_backend_ai8xize_layout(cifar10_layout):
     result = await dev.layout_transform(model)
     assert result
     assert isinstance(result, CNNx16Core)
-    assert [] == core_equal(cifar10_layout, result)
+
+    core_equal_result = core_equal(cifar10_layout, result)
+    assert core_equal_result == [], f"layout mismatch (len={len(core_equal_result)})"
 
 
 def test_ai8xconfig():

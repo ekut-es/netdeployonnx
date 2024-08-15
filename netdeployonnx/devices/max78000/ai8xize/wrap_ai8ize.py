@@ -65,7 +65,7 @@ def get_parser():
             "-f interface/cmsis-dap.cfg -f target/##__TARGET_LC__##.cfg"
         )
         eclipse_variables = ""
-        embedded_code = True
+        embedded_code = False  # was True, TODO: check
         enable_delay = None
         energy = False
         ext_rdy = False
