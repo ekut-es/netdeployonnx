@@ -3,8 +3,9 @@ import math
 import networkx as nx
 import numpy as np
 import onnx
+from izer import tornadocnn as tc  # noqa: E402
 
-from netdeployonnx.devices.max78000 import MAX78000, MAX_LAYERS_PER_QUADRANT
+from netdeployonnx.devices.max78000 import MAX78000
 from netdeployonnx.devices.max78000.ai8xize.config import (
     AI8XizeConfig,
     AI8XizeConfigLayer,
@@ -15,7 +16,11 @@ from netdeployonnx.devices.max78000.ai8xize.wrap_ai8ize import (
 from netdeployonnx.devices.max78000.cnn_registers import (
     register_class_by_address,
 )
-from netdeployonnx.devices.max78000.core import CNNx16Core
+from netdeployonnx.devices.max78000.core import (
+    CNNx16_Processor,
+    CNNx16_Quadrant,
+    CNNx16Core,
+)
 from netdeployonnx.devices.max78000.graph_transformer import (
     Graph,
     run_optimizer,
@@ -40,14 +45,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
         cfg, input_shape = self.generate_config_from_model(model)
-        layer0_is_not_gemm = (
-            cfg.get("layers", [{}])[
-                0
-            ].get("operation")
-            != "MLP"
-        )
-        # if the first layer is a CONV layer, then the input shape should be in_chan x H x W
+        layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
         if layer0_is_not_gemm:
+            # if the first layer is a CONV layer, then the input shape should be
+            # in_chan x H x W
             assert len(input_shape) == 3, f"unexpected input shape: {input_shape}"
         sample_input = np.zeros(input_shape, dtype=np.int64)
         list_of_results: list[any] = wrap_ai8ize_layout_transform(
@@ -58,6 +59,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
         for apb in list_of_results:
             set_lregs_to_core(apb._lregs, core)
+            set_bias_to_core(apb._bias, core)
+            set_weights_to_core(apb.kernel_mem, core)
 
         return core
 
@@ -87,9 +90,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     last_pass = True
         return graph
 
-    def generate_config_from_model(
+    def generate_config_from_model(  # noqa: C901
         self, model: onnx.ModelProto
-    ) -> tuple[dict, list[int]]:  # noqa: C901
+    ) -> tuple[dict, list[int]]:
         # the cfg is expected in the order of the nodes in the onnx model
         layers: list[AI8XizeConfigLayer] = []
         input_shape: list[int] = None
@@ -186,3 +189,55 @@ def set_lregs_to_core(lregs: list[any], core: CNNx16Core):
                 f"did not find register class for local_reg={local_reg:04X}"
                 f"global_reg={globalreg:04X}"
             )
+
+
+def set_bias_to_core(bias: list[any], core: CNNx16Core):
+    for quad, layeridx, val in bias:
+        quadrant: CNNx16_Quadrant = core[quad]
+        quadrant.bias = val
+
+
+def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
+    apb_base = 0
+
+    for group in range(len(weights)):
+        for proc in range(len(weights[group])):
+            processor: CNNx16_Processor = core[group].processors[proc]
+            memory_array = weights[group][proc]
+            for mem in range(len(memory_array)):
+                weights_array = memory_array[mem]
+                assert isinstance(weights_array, list)
+                for weights_entry in weights_array:
+                    if not isinstance(weights_entry, tuple):
+                        raise ValueError(f"unexpected type: {type(weights_entry)}")
+                    assert len(weights_entry) == 2
+                    naddr, weights_array = weights_entry
+
+                    # copied and modified from apbaccess.py in ai8xize (https://github.com/analogdevicesinc/ai8x-synthesis/blob/0f3dd3a3af464e1615722929a27363280281b31a/izer/apbaccess.py#L166)
+                    if mem >= tc.dev.MASK_INSTANCES_EACH:
+                        phys_addr = (
+                            apb_base
+                            # + tc.dev.C_GROUP_OFFS * group
+                            # + tc.dev.C_MRAM_BASE
+                            + proc * tc.dev.MASK_OFFS * 16
+                            + tc.dev.MASK_WIDTH_SMALL * 16
+                            + (mem - tc.dev.MASK_INSTANCES_EACH)
+                            * 16
+                            * (tc.dev.MASK_WIDTH_LARGE - tc.dev.MASK_WIDTH_SMALL)
+                            // tc.dev.MASK_INSTANCES_EACH
+                            + naddr * 16
+                        )
+                    else:
+                        phys_addr = (
+                            apb_base
+                            # + tc.dev.C_GROUP_OFFS * group
+                            # + tc.dev.C_MRAM_BASE
+                            + proc * tc.dev.MASK_OFFS * 16
+                            + mem
+                            * 16
+                            * tc.dev.MASK_WIDTH_SMALL
+                            // tc.dev.MASK_INSTANCES_EACH
+                            + naddr * 16
+                        )
+
+                    processor.kernels[phys_addr] = weights_array

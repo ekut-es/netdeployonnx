@@ -2,6 +2,7 @@ import asyncio
 import io
 import logging
 from pathlib import Path
+from unittest import mock
 
 import onnx
 import pydantic
@@ -16,7 +17,7 @@ from netdeployonnx.devices.max78000.ai8xize.config import (
     AI8XizeConfig,
     AI8XizeConfigLayer,
 )
-from netdeployonnx.devices.max78000.core import CNNx16Core
+from netdeployonnx.devices.max78000.core import CNNx16Core, CNNx16_Layer, CNNx16_Processor
 
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
 
@@ -140,6 +141,84 @@ c10_layers = [
 ]
 
 
+@pytest.fixture
+def cifar10_layout():
+    return asyncio.run(cifar10_layout_func())
+
+
+def core_layer_equal(
+    original_layer: CNNx16_Layer, layer_under_test: CNNx16_Layer,
+    quad: int, layeridx: int
+) -> list:
+    incorrect = []
+    # iterate over fields of original layer
+    for fieldname, field in original_layer.model_fields.items():
+        if fieldname in ["quadrant"]:  # skip these fields
+            continue
+        # get the values
+        origval = getattr(original_layer, fieldname)
+        val_under_test = getattr(layer_under_test, fieldname)
+        # compare only if the field is a simple type
+        if origval != val_under_test:
+            incorrect.append(
+                f"quad={quad}, layer={layeridx}, field={fieldname}: "
+                f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+            )
+    return incorrect
+
+
+def core_processor_equal(
+    original_proc: CNNx16_Processor, proc_under_test: CNNx16_Processor,
+    quad: int, proc: int
+) -> list:
+    incorrect = []
+    for fieldname, field in original_proc.model_fields.items():
+        if fieldname in ["quadrant", "layer"]:
+            continue  # skip these fields
+        origval = getattr(original_proc, fieldname)
+        val_under_test = getattr(proc_under_test, fieldname)
+        if origval != val_under_test:
+            incorrect.append(
+                f"quad={quad}, proc={proc}, field={fieldname}: "
+                f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+            )
+    return incorrect
+
+
+def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool:
+    incorrect = []
+    for quad in range(4):
+        for fieldname, field in original_core[quad].model_fields.items():
+            if fieldname in ["layers", "processors"]:
+                continue  # skip these fields
+            origval = getattr(original_core[quad], fieldname)
+            val_under_test = getattr(core_under_test[quad], fieldname)
+
+            if origval != val_under_test:
+                incorrect.append(
+                    f"quad={quad}, field={fieldname}: " f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+                )
+        # check layers
+        for layeridx in range(16):
+            incorrect.extend(
+                core_layer_equal(
+                    original_core[quad, layeridx], core_under_test[quad, layeridx],
+                    quad, layeridx
+                )
+            )
+
+        # check processors
+        for proc in range(16):
+            incorrect.extend(
+                core_processor_equal(
+                    original_core[quad].processors[proc],
+                    core_under_test[quad].processors[proc],
+                    quad, proc
+                )
+            )
+    return incorrect
+
+
 @pytest.mark.asyncio
 async def test_backend_ai8xize():
     dev = MAX78000_ai8xize()
@@ -151,9 +230,39 @@ async def test_backend_ai8xize():
     assert "exception" not in result
 
 
-@pytest.fixture
-def cifar10_layout():
-    return asyncio.run(cifar10_layout_func())
+@pytest.mark.asyncio
+async def test_backend_ai8xize_test_execute_cifar10():
+    dev = MAX78000_ai8xize()
+
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / "cifar10.onnx")
+    with mock.patch(
+        "netdeployonnx.devices.max78000.device.MAX78000.execute"
+    ) as mock_execute:
+        await dev.run_onnx(model)
+        mock_execute.assert_awaited_once()
+        instructions, metrics = mock_execute.await_args.args
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout):
+    dev = MAX78000_ai8xize()
+
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / "cifar10.onnx")
+    with mock.patch(
+        "netdeployonnx.devices.max78000.device.MAX78000.compile_instructions"
+    ) as mock_compile_instructions:
+        mock_compile_instructions.return_value = [
+            {"stage": "cnn_enable", "instructions": []}
+        ]
+        await dev.run_onnx(model)
+        mock_compile_instructions.assert_awaited_once()
+        # unpack the args
+        (layout_ir,) = mock_compile_instructions.await_args.args
+        assert isinstance(layout_ir, CNNx16Core)
+
+        assert [] == core_equal(cifar10_layout, layout_ir)
 
 
 @pytest.mark.asyncio
@@ -165,23 +274,7 @@ async def test_backend_ai8xize_layout(cifar10_layout):
     result = await dev.layout_transform(model)
     assert result
     assert isinstance(result, CNNx16Core)
-    incorrect = []
-    for quad in range(4):
-        for layeridx in range(16):
-            orig_layer = cifar10_layout[quad, layeridx]
-            layer = result[quad, layeridx]
-            for fieldname, field in orig_layer.model_fields.items():
-                origval = getattr(orig_layer, fieldname)
-                val = getattr(layer, fieldname)
-                if type(origval) in [int, float, dict, bool]:
-                    if origval != val:
-                        incorrect.append(
-                            f"quad={quad}, layer={layeridx}, field={fieldname}: "
-                            f"{origval} != {val}"
-                        )
-    # from pprint import pprint
-    # pprint(incorrect)
-    assert len(incorrect) == 0, f"Errors: {len(incorrect)}"
+    assert [] == core_equal(cifar10_layout, result)
 
 
 def test_ai8xconfig():
@@ -286,9 +379,10 @@ def test_layout_transform_generate_config_from_model():
             layers[layeridx].pop("name")
 
         # check for missing keys
-        assert (
-            len(set(c10_layerdict.keys()) - set(layers[layeridx].keys())) == 0
-        ), f"missing keys ({set(c10_layerdict.keys())- set(layers[layeridx].keys())}) in Layer {layeridx}"
+        assert len(set(c10_layerdict.keys()) - set(layers[layeridx].keys())) == 0, (
+            f"missing keys ({set(c10_layerdict.keys())- set(layers[layeridx].keys())})"
+            f" in Layer {layeridx}"
+        )
 
         # check for extra keys, but ignore extra keys that are default values
         for extra_key in set(layers[layeridx].keys()) - set(c10_layerdict.keys()):

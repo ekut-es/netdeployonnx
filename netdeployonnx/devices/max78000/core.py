@@ -85,7 +85,7 @@ class CNNx16_Processor(BaseModel):  # noqa: N801
     @property
     def unused(self):
         """
-        returns True if the layer is unused
+        returns True if the proc is unused
         """
         return self._unused
 
