@@ -4,6 +4,8 @@ import warnings
 from dataclasses import dataclass
 from unittest import mock
 
+from netdeployonnx.devices.max78000.ai8xize.apb_writer import get_custom_writer
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import fs  # noqa: E402
@@ -11,10 +13,7 @@ import numpy as np  # noqa: E402
 import onnx  # noqa: E402
 import yaml  # noqa: E402
 from fs.memoryfs import MemoryFS  # noqa: E402
-from izer import tornadocnn as tc  # noqa: E402
-from izer.apbaccess import APBBlockLevel, APBTopLevel  # noqa: E402
 from izer.izer import main as izer_main  # noqa: E402
-from izer.izer import onnxcp as izer_onnxcp  # noqa: E402
 
 _board_name = "assets.from_template.board_name"  # "EvKit_V1"
 _config_file_yaml = "config_file.yaml"
@@ -25,90 +24,6 @@ _test_dir = "sdk/Examples/MAX78000/CNN_2LY"
 _api_filename = "_api_filename"
 _makefile = "assets/makefile/Makefile"
 _projects_makefile = "assets/makefile/projects.mk"
-
-
-class CustomAPBBlocklevel(APBBlockLevel):
-    def write(
-        self,
-        addr,
-        val,
-        comment="",
-        indent="  ",
-        no_verify=False,
-        fifo=None,
-        base=None,
-        fifo_wait=True,
-    ):
-        """
-        Write address `addr` and data `val` to the .c file.
-        if `no_verify` is `True`, do not check the result
-        of the write operation, even if
-        `verify_writes` is globally enabled.
-        An optional `comment` can be added to the output.
-        """
-        ...
-
-
-class CustomAPBTopLevel(APBTopLevel):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._output_defines = []
-        self._lregs = []
-        self._bias = []
-
-    def output_define(
-        self,
-        array,
-        define_name,
-        fmt,
-        columns,
-        weights=True,
-    ):
-        # holdup waitaminute
-        self._output_defines.append((array, define_name, fmt, columns, weights))
-
-    def write_lreg(
-        self,
-        group,
-        layer,
-        reg,
-        val,
-        force_write=False,
-        no_verify=False,
-        comment="",
-    ):
-        reg = tc.lreg_addr(group, reg, layer=layer), tc.lreg_addr(0, reg, layer=0)
-        self._lregs.append((group, layer, reg, val, force_write, no_verify, comment))
-
-    def write_bias(
-        self,
-        group,
-        offs,
-        bias,
-    ):
-        self._bias.append((group, offs, bias))
-
-
-def get_custom_writer(refs):
-    def custom_writer(*args, debug_mem=False, **kwargs):
-        if not debug_mem:
-            import izer.state as state
-
-            APBClass = (  # noqa: N806
-                CustomAPBBlocklevel
-                if state.block_mode or debug_mem
-                else CustomAPBTopLevel
-            )
-        else:
-            raise NotImplementedError("debug_mem is not implemented")
-        obj = APBClass(
-            *args,
-            **kwargs,
-        )
-        refs.append(obj)
-        return obj
-
-    return custom_writer
 
 
 def get_parser():
