@@ -76,6 +76,9 @@ class CNNx16_Processor(BaseModel):  # noqa: N801
 
     enabled: bool = False
 
+    # per processor data
+    kernels: dict[int, bytes] = {}  # relative address -> kernel_data
+
     def __init__(self, quadrant: "CNNx16_Quadrant", idx: int):
         super().__init__(quadrant=quadrant, idx=idx)
 
@@ -159,9 +162,6 @@ class CNNx16_Layer(BaseModel):  # noqa: N801
     quadrant: "CNNx16_Quadrant"
     _unused: bool = True
     layer_field_dict: dict = {}
-
-    # per layer data
-    kernels: dict[int, bytes] = {}  # relative address -> kernel_data
 
     # RCNT
     row_count: conint(ge=0, le=CNNx16_n_Ly_RCNT_RCNT_MAX_VALUEMASK) = Field(
