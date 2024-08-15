@@ -11,7 +11,6 @@ import torch.nn as nn
 
 from netdeployonnx.devices.max78000.ai8xize import (
     MAX78000_ai8xize,
-    c10_layers,
 )
 from netdeployonnx.devices.max78000.ai8xize.config import (
     AI8XizeConfig,
@@ -26,6 +25,121 @@ logging.basicConfig(
     format="[+{relativeCreated:2.2f}ms] {levelname}: ({funcName:10s}) {message}",
     style="{",
 )
+
+
+
+c10_layers = [
+    AI8XizeConfigLayer(**layer)
+    for layer in [
+        {
+            "out_offset": 0x4000,
+            "processors": 0x0000000000000007,  # 1_1
+            "operation": "conv2d",
+            "kernel_size": "3x3",
+            "pad": 1,
+            "activate": "ReLU",
+            "data_format": "HWC",
+        },
+        {
+            "out_offset": 0x0000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 1_2
+            "operation": "conv2d",
+            "kernel_size": "1x1",
+            "pad": 0,
+            "activate": "ReLU",
+            "output_shift": -1,
+        },
+        {
+            "out_offset": 0x4000,
+            "processors": 0x00000000FFFFFFFF,  # 1_3
+            "operation": "conv2d",
+            "kernel_size": "3x3",
+            "pad": 1,
+            "activate": "ReLU",
+            "output_shift": -1,
+        },
+        {
+            "max_pool": 2,
+            "pool_stride": 2,
+            "out_offset": 0x0000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 2_1
+            "operation": "conv2d",
+            "kernel_size": "3x3",
+            "pad": 1,
+            "activate": "ReLU",
+            "output_shift": -3,
+        },
+        {
+            "out_offset": 0x4000,
+            "processors": 0xFFFFFFFF00000000,  # 2_2
+            "operation": "conv2d",
+            "kernel_size": "1x1",
+            "pad": 0,
+            "activate": "ReLU",
+        },
+        {
+            "max_pool": 2,
+            "pool_stride": 2,
+            "out_offset": 0x0000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 3_1
+            "operation": "conv2d",
+            "kernel_size": "3x3",
+            "pad": 1,  # do 0?
+            "activate": "ReLU",
+            "output_shift": -3,
+        },
+        {
+            "out_offset": 0x4000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 3_2
+            "operation": "conv2d",
+            "kernel_size": "1x1",
+            "pad": 0,
+            "activate": "ReLU",
+            "output_shift": -1,
+        },
+        {
+            "max_pool": 2,
+            "pool_stride": 2,
+            "out_offset": 0x0000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 4_1
+            "operation": "conv2d",
+            "kernel_size": "3x3",
+            "pad": 1,
+            "activate": "ReLU",
+            "output_shift": -3,
+        },
+        {
+            "out_offset": 0x4000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 4_2
+            "operation": "conv2d",
+            "kernel_size": "3x3",
+            "pad": 1,
+            "activate": "ReLU",
+            "output_shift": -2,
+        },
+        {
+            "max_pool": 2,
+            "pool_stride": 2,
+            "out_offset": 0x0000,
+            "processors": 0xFFFFFFFFFFFFFFFF,  # 5_1
+            "operation": "conv2d",
+            "kernel_size": "1x1",
+            "pad": 0,
+            "activate": "ReLU",
+            "output_shift": -1,
+        },
+        {
+            "flatten": True,
+            "out_offset": 0x4000,
+            "processors": 0xFFFFFFFFFFFFFFFF,
+            "operation": "MLP",
+            "output_width": 32,
+            # "activate": "none",
+            "output_shift": 1,
+        },
+    ]
+]
+
 
 
 @pytest.mark.asyncio
