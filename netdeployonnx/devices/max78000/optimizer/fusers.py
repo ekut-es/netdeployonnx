@@ -62,10 +62,10 @@ class FuseConvMaxPool(Optimizer):
         assert len(node.output) == 1, "Conv should have only one output"
 
         # delete the relu node
-        print(f"running on {node}")
+        logger.debug(f"running on {node}")
         inputs = set()
         for source_node in self.source(node)():
-            print("found node")
+            logger.debug("found node")
             # we should only have one as node.input == 1
             if not source_node.op_type.startswith("MaxPool"):
                 # we should not be able to fuse that then?
@@ -87,15 +87,15 @@ class FuseConvMaxPool(Optimizer):
         return NodeTransformType.MODIFY
 
 
-class FuseConvReshape(Optimizer):
+class FuseReshape(Optimizer):
     """
-    Fuse conv+reshape nodes from the graph
+    Fuse reshape nodes from the graph
     """
 
     def match(self, node: Node) -> bool:
         # only match conv + relu if all the outputs are relu
-        return node.op_type.startswith("Conv") and all(
-            self.target(node).op_type.startswith("Reshape")
+        return node.op_type.startswith("Gemm") and all(
+            self.source(node).op_type.startswith("Reshape")
         )
 
     def run_transformation(self, node: Node) -> NodeTransformType:
@@ -105,27 +105,39 @@ class FuseConvReshape(Optimizer):
         assert len(node.input) == 3, "Conv should have 3 inputs: X, W, B"
         assert len(node.output) == 1, "Conv should have only one output"
 
-        node.op_type += "Reshape"
-        node.name = "/".join(node.name.split("/")[:-1] + [node.op_type])
+
         # delete the following relu node
-        outputs = set()
-        for target_node in self.target(node)():
+        inputs = list(node.input)
+        for source_node in self.source(node)():
+            if source_node.deleted:
+                continue
+            
+            node.op_type += "Reshape"
+            node.name = "/".join(node.name.split("/")[:-1] + [node.op_type])
             # we should only have one as node.output == 1
-            if not target_node.op_type.startswith("Reshape"):
+            if not source_node.op_type.startswith("Reshape"):
                 # we should not be able to fuse that then?
-                raise ValueError("We can only fuse if all outputs are Reshape")
-            assert len(target_node.output) == 1, "Reshape should have only one output"
-            outputs |= set(target_node.output)
-            for attrname, attrval in target_node.attributes.items():
+                raise ValueError("We can only fuse if all inputs are Reshape")
+            assert len(source_node.output) == 1, "Reshape should have only one output"
+            inputs[0] = source_node.input[0]
+            for attrname, attrval in source_node.attributes.items():
                 newattr = f"_reshape_{attrname}"
-                if newattr in node.attributes:
+                if newattr in source_node.attributes:
                     raise ValueError(f"Attribute {newattr} already exists in node")
                 node.attributes[newattr] = attrval
-            node.attributes["shape"] = target_node.input[1]  # input1 is shape
-            target_node.deleted = True
-        # now we need to replace the output of the node
-        node.output = list(outputs)
-        return NodeTransformType.MODIFY
+            node.attributes["_reshape__shape"] = source_node.input[1]  # input1 is shape
+
+            for supersource in self.source(source_node)():
+                idx = supersource.output.index(source_node.input[0])
+                supersource.output[idx] = node.input[0]
+                break
+            source_node.deleted = True
+            
+            # now we need to replace the output of the node
+            node.inputs = list(inputs)
+            return NodeTransformType.MODIFY
+            break
+        return NodeTransformType.NO_CHANGE
 
 
 class FuseClipQuantization(Optimizer):
@@ -139,7 +151,7 @@ class FuseClipQuantization(Optimizer):
         )
 
     def run_transformation(self, node: Node) -> NodeTransformType:
-        logger.info(f"running transformation on node {node.op_type} {node.name}")
+        logger.debug(f"running transformation on node {node.op_type} {node.name}")
         # we are targeting the first clip
         # so we have one output guaranteed
         assert len(node.output) == 1
@@ -190,7 +202,7 @@ class FuseSqueeze(Optimizer):
         )
 
     def run_transformation(self, node: Node) -> NodeTransformType:
-        logger.info(f"FuseSqueeze on node {node.op_type} {node.name}")
+        logger.debug(f"FuseSqueeze on node {node.op_type} {node.name}")
         # we are targeting MUL
         # so we have one output guaranteed
         assert len(node.output) == 1
@@ -235,7 +247,7 @@ class FuseConvSqueeze(Optimizer):
         )
 
     def run_transformation(self, node: Node) -> NodeTransformType:
-        logger.info(f"FuseSqueeze on node {node.op_type} {node.name}")
+        logger.debug(f"FuseSqueeze on node {node.op_type} {node.name}")
         # we are targeting Squeeze
         source_nodes = self.source(node)()
         assert len(source_nodes) == 1, f"len={len(source_nodes)}"

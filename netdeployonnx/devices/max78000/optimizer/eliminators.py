@@ -76,7 +76,7 @@ class EliminateDanglingNodes(Optimizer):
     def run_transformation(
         self, node: Node, do_delete_convs: bool = False
     ) -> NodeTransformType:
-        logger.info(f"deleting dangling node {node.name}")
+        logger.debug(f"deleting dangling node {node.name}")
         assert not do_delete_convs and node.op_type != "Conv", (
             "Are we sure we want" " to delete Convs?"
         )
@@ -103,7 +103,7 @@ class EliminateSqueeze(Optimizer):
         return node.op_type.startswith("Squeeze")
 
     def run_transformation(self, node: Node) -> NodeTransformType:
-        logger.info(f"eliminating squeeze node {node.name}")
+        logger.debug(f"eliminating squeeze node {node.name}")
         # we need to change the input and output of the node
         assert len(node.input) == 1
         assert len(node.output) == 1
@@ -173,7 +173,7 @@ class EliminatePassthrough(Optimizer):
     def handle_output(self, node: Node, new_connection_name: str):
         # now, assure that we only have 1 output
         assert len(node.output) == 1
-        # print(node.output[0], graph.output)
+        # logger.debug(node.output[0], graph.output)
         if node.output[0] in node.graph.output:
             # we are the last node, so we can just return
             return
@@ -188,7 +188,7 @@ class EliminatePassthrough(Optimizer):
         self.replace_input(target_node, node.output[0], new_connection_name)
 
     def run_transformation(self, node: Node) -> NodeTransformType:
-        logger.info(f"rerouting output of node {node.name}")
+        logger.debug(f"rerouting output of node {node.name}")
         new_connection_name = f"pass_{node.name}"
         if node.output[0] in node.graph.output:
             new_connection_name = node.output[0]

@@ -102,7 +102,7 @@ class Optimizer(abc.ABC):
     def run_on_graph(self, graph: Graph):
         changes = 0
         for node in graph:
-            if self.match(node):
+            if not node.deleted and self.match(node):
                 replacement_node: NodeTransformType = self.run_transformation(node)
                 assert isinstance(
                     replacement_node, NodeTransformType

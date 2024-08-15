@@ -6,8 +6,8 @@ from netdeployonnx.devices.max78000.optimizer import (
     FuseClipQuantization,
     FuseConvMaxPool,
     FuseConvRelu,
-    FuseConvReshape,
     FuseConvSqueeze,
+    FuseReshape,
     FuseSqueeze,
     Graph,
     logger,
@@ -24,7 +24,7 @@ def run_optimizer(graph: Graph, last_pass=False) -> int:
             FuseConvSqueeze(),
             FuseConvRelu(),
             FuseConvMaxPool(),
-            FuseConvReshape(),
+            FuseReshape(),
         ]
         if not last_pass
         else [
@@ -34,7 +34,7 @@ def run_optimizer(graph: Graph, last_pass=False) -> int:
     num_changes = 0
 
     for optimizer in optimizers:
-        logger.info(f"Running optimizer {optimizer.__class__.__name__}")
+        logger.debug(f"Running optimizer {optimizer.__class__.__name__}")
         num_changes += optimizer.run_on_graph(graph)
 
     # iterate over all nodes in the graph

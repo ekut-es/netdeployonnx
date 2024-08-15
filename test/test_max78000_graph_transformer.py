@@ -12,6 +12,7 @@ from netdeployonnx.devices.max78000.optimizer import (
     FuseConvMaxPool,
     FuseConvRelu,
     FuseConvSqueeze,
+    FuseReshape,
     FuseSqueeze,
 )
 
@@ -403,6 +404,49 @@ def test_fuse_conv_squeeze():
 
     assert init_node.output[0] == conv_node.input[0]
     assert conv_node.output[0] == outro_node.input[0]
+
+
+def test_fuse_reshape():
+    # Transform the graph
+    transformed_graph = Graph(
+        onnx.helper.make_graph(
+            [
+                onnx.helper.make_node("Init", [], ["input1"], name="Initializer1"),
+                onnx.helper.make_node("Reshape", ["input1", "shape"], ["gemm"], name="reshape1"),
+                onnx.helper.make_node(
+                    "Gemm", ["gemm", "weights", "biases"], ["out"], name="gemm1"
+                ),
+                onnx.helper.make_node("Out", ["out"], [], name="Outro1"),
+            ],
+            "test",
+            [
+                onnx.helper.make_value_info(
+                    "input1",
+                    onnx.helper.make_tensor_type_proto(1, shape=None),
+                )
+            ],
+            [],
+        )
+    )
+    changes = FuseReshape().run_on_graph(transformed_graph)
+    assert changes == 1
+    assert len(transformed_graph) == len(transformed_graph.nodes) - 1  # relu is removed
+    # Reshape should not be in graph
+    assert all(node.op_type != "Reshape" for node in transformed_graph)
+    # Gemm should not be in graph
+    assert any(node.op_type != "Gemm" for node in transformed_graph)
+    # GemmReshape should be in graph
+    assert any(node.op_type == "GemmReshape" for node in transformed_graph)
+
+    # is the input connected in both ways?
+    init_node = next(node for node in transformed_graph if node.op_type == "Init")
+    fuse_node = next(
+        node for node in transformed_graph if node.op_type == "GemmReshape"
+    )
+    outro_node = next(node for node in transformed_graph if node.op_type == "Out")
+
+    assert init_node.output[0] == fuse_node.input[0]
+    assert fuse_node.output[0] == outro_node.input[0]
 
 
 def test_transform_graph():
