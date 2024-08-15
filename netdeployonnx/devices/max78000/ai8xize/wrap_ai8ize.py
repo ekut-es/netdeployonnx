@@ -372,10 +372,43 @@ def prepare_vfs(*vfs_args):
             raise ValueError(f"Unsupported return type {type(ret)}")
     return vfs
 
+def _get_inouts(node: onnx.NodeProto) -> tuple[list[str], list[str]]:
+    inputs = []
+    outputs = []
+    for inp in node.input[:-1]: # dont use the last input, because we dont want to use bias
+        inputs.append(inp)
+    for out in node.output[:]: # dont care about more
+        outputs.append(out)
+    return inputs, outputs
+
+def _process_channels(model: onnx.ModelProto, _input: str, initializers: set[str]) -> np.ndarray:
+    """
+    Match model and initializer names from input to find weights.
+    """
+    def is_bias(name: str) -> bool:
+        for node in model.graph.node:
+            for i, inp in enumerate(node.input):
+                if inp == name:
+                    return i == 2 # INPUT, WEIGHTS, BIAS
+        return False # not found
+
+    if _input in initializers:
+        # check if the input is a bias
+        if is_bias(_input):
+            return None
+        for _init in model.graph.initializer:
+            if _input == _init.name:
+                w = onnx.numpy_helper.to_array(_init).astype(np.int64)
+                break
+    else:
+        w = None
+    return w
+
 
 def layout_transform(
     modelcfg: dict,
     model: onnx.ModelProto,
+    sample_input: np.ndarray,
     **kwargs,
 ) -> list[int]:
     """
@@ -401,8 +434,6 @@ def layout_transform(
         "MSYS_PATH": "path/to/msys",
     }
 
-    sample_input = np.zeros((3, 32, 32), dtype=np.int64)
-
     vfs = prepare_vfs(
         modelcfg,
         model,
@@ -424,6 +455,10 @@ def layout_transform(
         mock.patch("izer.assets.makefile", no_makefile),
         mock.patch("izer.assets.from_template", no_from_template),
         mock.patch("izer.assets.vscode", no_vscode),
+        
+        # functional
+        # mock.patch("izer.onnxcp.get_inouts", _get_inouts),
+        mock.patch("izer.onnxcp.process_channels", _process_channels),
     ):
         izer_main()
 

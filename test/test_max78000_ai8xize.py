@@ -22,7 +22,7 @@ from netdeployonnx.devices.max78000.core import CNNx16Core
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format="[+{relativeCreated:2.2f}ms] {levelname}: ({funcName:10s}) {message}",
     style="{",
 )
@@ -151,16 +151,23 @@ async def test_layout_transform_simple_model():
     onnx_model = onnx.load(bytesio)
     onnx.checker.check_model(onnx_model)
     max78000 = MAX78000_ai8xize()
-    result = await max78000.layout_transform(model)
+    result = await max78000.layout_transform(onnx_model)
     assert result
 
 
-@pytest.mark.asyncio
-async def test_layout_transform_generate_config_from_model():
+def test_layout_transform_generate_config_from_model():
     data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10.onnx")
 
     max78000 = MAX78000_ai8xize()
-    result = max78000.generate_config_from_model(model)
+    result, input_shape = max78000.generate_config_from_model(model)
     assert result
-    assert result == c10_layers
+    layers = result.pop("layers")
+    for layeridx, layer in enumerate(c10_layers):
+        layerdict = layer.model_dump(exclude_defaults=True)
+        if "name" in layers[layeridx]:
+            layers[layeridx].pop("name")
+        assert set(layerdict.keys()) == set(
+            layers[layeridx].keys()
+        ), f"different keys in Layer {layeridx} ({layerdict})"
+        assert layerdict == layers[layeridx], f"different values in Layer {layeridx}"

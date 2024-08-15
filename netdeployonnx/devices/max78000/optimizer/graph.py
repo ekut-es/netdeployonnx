@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 
 import networkx as nx
+import numpy as np
 import onnx
 
 
@@ -172,8 +173,26 @@ class Graph:
                     queue.append(next_node)
 
     def onnx(self) -> onnx.GraphProto:
+        nodes = [node.onnx() for node in self.nodes if not node.deleted]
+
+        digraph = nx.DiGraph()
+        for node in nodes:
+            digraph.add_node(node.name, node=node)
+            for input in node.input:
+                digraph.add_edge(input, node.name)
+            for output in node.output:
+                digraph.add_edge(node.name, output)
+        nodes_toposorted_ = nx.topological_sort(digraph)
+        nodes_toposorted = []
+
+        # runtime is shit, but dont care
+        for node_name in nodes_toposorted_:
+            for node in nodes:
+                if node.name == node_name:
+                    nodes_toposorted.append(node)
+
         graph = onnx.helper.make_graph(
-            nodes=[node.onnx() for node in self.nodes if not node.deleted],
+            nodes=nodes_toposorted,
             name="InspectableONNXGraph - INVALID",
             inputs=[
                 onnx.helper.make_value_info(input, type)
@@ -192,6 +211,48 @@ class Graph:
             sparse_initializer=[],
         )
         return graph
+
+    def nxgraph_for_ai8x(self) -> nx.DiGraph:  # noqa: C901
+        # TODO: merge later with networkx
+        # Initialize a directed graph
+        nx_graph = nx.DiGraph()
+        onnxgraph = self.onnx()
+
+        def resolve_input_name(
+            onnxgraph: "onnx.GraphProto", input_name: str
+        ) -> np.ndarray:
+            # Resolve input name
+            for initializer in onnxgraph.initializer:
+                if initializer.name == input_name:
+                    return onnx.numpy_helper.to_array(initializer)
+            for node in onnxgraph.input:
+                if node.name == input_name:
+                    return np.zeros(
+                        [d.dim_value for d in node.type.tensor_type.shape.dim]
+                    )
+            return None
+
+        # Add nodes and edges
+        for node in onnxgraph.node:
+            kwargs = {}
+            if node.op_type.startswith("Conv") or node.op_type.startswith("Gemm"):
+                kwargs["weights"] = resolve_input_name(onnxgraph, node.input[1])
+                kwargs["bias"] = resolve_input_name(onnxgraph, node.input[2])
+                kwargs["input"] = resolve_input_name(onnxgraph, node.input[0])
+                for i, (attribute_name, attribute) in enumerate(
+                    (attr.name, onnx.helper.get_attribute_value(attr))
+                    for attr in node.attribute
+                ):
+                    if attribute_name in kwargs:
+                        raise ValueError(f"Duplicate attribute name {attribute_name}")
+                    kwargs[attribute_name] = attribute
+
+            nx_graph.add_node(node.name, op_type=node.op_type, name=node.name, **kwargs)
+            for input_name in node.input:
+                nx_graph.add_edge(input_name, node.name)
+            for output_name in node.output:
+                nx_graph.add_edge(node.name, output_name)
+        return nx_graph
 
     def networkx(self) -> nx.DiGraph:
         g = nx.DiGraph()
