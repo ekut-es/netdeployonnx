@@ -412,7 +412,9 @@ def test_fuse_reshape():
         onnx.helper.make_graph(
             [
                 onnx.helper.make_node("Init", [], ["input1"], name="Initializer1"),
-                onnx.helper.make_node("Reshape", ["input1", "shape"], ["gemm"], name="reshape1"),
+                onnx.helper.make_node(
+                    "Reshape", ["input1", "shape"], ["gemm"], name="reshape1"
+                ),
                 onnx.helper.make_node(
                     "Gemm", ["gemm", "weights", "biases"], ["out"], name="gemm1"
                 ),

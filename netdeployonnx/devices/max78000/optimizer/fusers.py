@@ -105,13 +105,12 @@ class FuseReshape(Optimizer):
         assert len(node.input) == 3, "Conv should have 3 inputs: X, W, B"
         assert len(node.output) == 1, "Conv should have only one output"
 
-
         # delete the following relu node
         inputs = list(node.input)
         for source_node in self.source(node)():
             if source_node.deleted:
                 continue
-            
+
             node.op_type += "Reshape"
             node.name = "/".join(node.name.split("/")[:-1] + [node.op_type])
             # we should only have one as node.output == 1
@@ -132,7 +131,7 @@ class FuseReshape(Optimizer):
                 supersource.output[idx] = node.input[0]
                 break
             source_node.deleted = True
-            
+
             # now we need to replace the output of the node
             node.inputs = list(inputs)
             return NodeTransformType.MODIFY
