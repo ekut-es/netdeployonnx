@@ -40,7 +40,7 @@ class AI8XizeConfigLayer(BaseModel):
     )
 
     out_offset: int = Field(
-        default=0,
+        # default=0, # dont set default value, so we have to specify it
         json_schema_extra={"optional": True},
         description="""`out_offset` specifies the relative offset inside the data memory instance where the output data should be written to. When not specified,  `out_offset` defaults to  `0`. See also  . Example:
 `out_offset: 0x2000`        """,  # noqa: E501

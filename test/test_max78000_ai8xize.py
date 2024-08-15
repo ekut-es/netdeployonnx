@@ -1,12 +1,21 @@
 import asyncio
+import io
 import logging
 from pathlib import Path
 
 import onnx
+import pydantic
 import pytest
+import torch
+import torch.nn as nn
 
 from netdeployonnx.devices.max78000.ai8xize import (
     MAX78000_ai8xize,
+    c10_layers,
+)
+from netdeployonnx.devices.max78000.ai8xize.config import (
+    AI8XizeConfig,
+    AI8XizeConfigLayer,
 )
 from netdeployonnx.devices.max78000.core import CNNx16Core
 
@@ -61,3 +70,97 @@ async def test_backend_ai8xize_layout(cifar10_layout):
     # from pprint import pprint
     # pprint(incorrect)
     assert len(incorrect) == 0, f"Errors: {len(incorrect)}"
+
+
+def test_ai8xconfig():
+    cfg = AI8XizeConfig(
+        arch="ai85nascifarnet",
+        dataset="CIFAR10",
+        layers=[
+            AI8XizeConfigLayer(
+                **{
+                    "out_offset": 0x4000,
+                    "processors": 0x0000000000000007,  # 1_1
+                    "operation": "conv2d",
+                    "kernel_size": "3x3",
+                    "pad": 1,
+                    "activate": "ReLU",
+                    "data_format": "HWC",
+                }
+            ),
+        ],
+    )
+
+    d = cfg.model_dump(exclude_defaults=True)
+    assert d.get("arch") == "ai85nascifarnet"
+    assert d.get("dataset") == "CIFAR10"
+    assert len(d.keys()) == 3
+    assert len(d.get("layers")) == 1
+    layer0 = d.get("layers")[0]
+    assert layer0.get("out_offset") == 0x4000
+    assert layer0.get("processors") == 7
+
+    # from pprint import pprint
+    # pprint(d)
+
+
+def test_ai8xconfig_missing_attribute():
+    with pytest.raises(pydantic.ValidationError):
+        AI8XizeConfig(
+            arch="ai85nascifarnet",
+            dataset="CIFAR10",
+            layers=[
+                AI8XizeConfigLayer(**{}),
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_layout_transform_load():
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / "cifar10.onnx")
+
+    max78000 = MAX78000_ai8xize()
+    result = await max78000.layout_transform(model)
+    assert result
+
+
+class SimpleModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Linear(1, 1)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.relu(x)
+        return x
+
+
+@pytest.mark.asyncio
+async def test_layout_transform_simple_model():
+    model = SimpleModel()
+    bytesio = io.BytesIO()
+    dummy_input = torch.tensor([1.0]).unsqueeze(0).cpu()
+    torch.onnx.export(
+        model,
+        dummy_input,
+        bytesio,
+    )
+    bytesio.seek(0)
+    onnx_model = onnx.load(bytesio)
+    onnx.checker.check_model(onnx_model)
+    max78000 = MAX78000_ai8xize()
+    result = await max78000.layout_transform(model)
+    assert result
+
+
+@pytest.mark.asyncio
+async def test_layout_transform_generate_config_from_model():
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / "cifar10.onnx")
+
+    max78000 = MAX78000_ai8xize()
+    result = max78000.generate_config_from_model(model)
+    assert result
+    assert result == c10_layers
