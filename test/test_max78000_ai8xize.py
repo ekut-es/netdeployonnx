@@ -27,7 +27,6 @@ logging.basicConfig(
 )
 
 
-
 c10_layers = [
     AI8XizeConfigLayer(**layer)
     for layer in [
@@ -139,7 +138,6 @@ c10_layers = [
         },
     ]
 ]
-
 
 
 @pytest.mark.asyncio
@@ -273,15 +271,35 @@ def test_layout_transform_generate_config_from_model():
     data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10.onnx")
 
+    default_values = {
+        field_name: field.default
+        for field_name, field in AI8XizeConfigLayer.model_fields.items()
+    }
+
     max78000 = MAX78000_ai8xize()
     result, input_shape = max78000.generate_config_from_model(model)
     assert result
     layers = result.pop("layers")
     for layeridx, layer in enumerate(c10_layers):
-        layerdict = layer.model_dump(exclude_defaults=True)
+        c10_layerdict = layer.model_dump(exclude_unset=True)
         if "name" in layers[layeridx]:
             layers[layeridx].pop("name")
-        assert set(layerdict.keys()) == set(
-            layers[layeridx].keys()
-        ), f"different keys in Layer {layeridx} ({layerdict})"
-        assert layerdict == layers[layeridx], f"different values in Layer {layeridx}"
+
+        # check for missing keys
+        assert (
+            len(set(c10_layerdict.keys()) - set(layers[layeridx].keys())) == 0
+        ), f"missing keys ({set(c10_layerdict.keys())- set(layers[layeridx].keys())}) in Layer {layeridx}"
+
+        # check for extra keys, but ignore extra keys that are default values
+        for extra_key in set(layers[layeridx].keys()) - set(c10_layerdict.keys()):
+            # check if the extra key is a default value
+            assert (
+                layers[layeridx][extra_key] == default_values[extra_key]
+            ), f"unexpected value in Layer {layeridx} for key {extra_key}"
+            # it is a default value, so remove it from the dict
+            layers[layeridx].pop(extra_key)
+
+        # check for different values
+        assert (
+            c10_layerdict == layers[layeridx]
+        ), f"different values in Layer {layeridx}"

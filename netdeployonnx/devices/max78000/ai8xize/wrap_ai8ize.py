@@ -14,6 +14,7 @@ from fs.memoryfs import MemoryFS  # noqa: E402
 from izer import tornadocnn as tc  # noqa: E402
 from izer.apbaccess import APBBlockLevel, APBTopLevel  # noqa: E402
 from izer.izer import main as izer_main  # noqa: E402
+from izer.izer import onnxcp as izer_onnxcp  # noqa: E402
 
 _board_name = "assets.from_template.board_name"  # "EvKit_V1"
 _config_file_yaml = "config_file.yaml"
@@ -372,30 +373,41 @@ def prepare_vfs(*vfs_args):
             raise ValueError(f"Unsupported return type {type(ret)}")
     return vfs
 
+
 def _get_inouts(node: onnx.NodeProto) -> tuple[list[str], list[str]]:
     inputs = []
     outputs = []
-    for inp in node.input[:-1]: # dont use the last input, because we dont want to use bias
+    for inp in node.input[
+        :-1
+    ]:  # dont use the last input, because we dont want to use bias
         inputs.append(inp)
-    for out in node.output[:]: # dont care about more
+    for out in node.output[:]:  # dont care about more
         outputs.append(out)
     return inputs, outputs
 
-def _process_channels(model: onnx.ModelProto, _input: str, initializers: set[str]) -> np.ndarray:
-    """
-    Match model and initializer names from input to find weights.
-    """
-    def is_bias(name: str) -> bool:
-        for node in model.graph.node:
-            for i, inp in enumerate(node.input):
-                if inp == name:
-                    return i == 2 # INPUT, WEIGHTS, BIAS
-        return False # not found
 
+def _process_channels(
+    model: onnx.ModelProto, _input: str, initializers: set[str]
+) -> np.ndarray:
+    """
+    trampoline for izer.onnxcp.process_channels
+    Remove kernel_shape attribute from Conv node when checking for bias
+    """
+    # remove kernel_shape attribute from Conv node
+    probable_nodes = [node for node in model.graph.node if _input in node.input]
+    for node in probable_nodes:
+        if node.op_type == "Conv":  # if it is a conv node
+            if _input == node.input[2]:  # if the input is the bias
+                # remove kernel_shape from this bias
+                removal_idx = [attr.name for attr in node.attribute].index(
+                    "kernel_shape"
+                )
+                node.attribute.pop(removal_idx)
+                # remove kernel_shape so that we can use the function and do not add
+                # the kernel shape a second time
+
+    # proceed with original code
     if _input in initializers:
-        # check if the input is a bias
-        if is_bias(_input):
-            return None
         for _init in model.graph.initializer:
             if _input == _init.name:
                 w = onnx.numpy_helper.to_array(_init).astype(np.int64)
@@ -455,7 +467,6 @@ def layout_transform(
         mock.patch("izer.assets.makefile", no_makefile),
         mock.patch("izer.assets.from_template", no_from_template),
         mock.patch("izer.assets.vscode", no_vscode),
-        
         # functional
         # mock.patch("izer.onnxcp.get_inouts", _get_inouts),
         mock.patch("izer.onnxcp.process_channels", _process_channels),

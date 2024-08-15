@@ -40,8 +40,19 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
         cfg, input_shape = self.generate_config_from_model(model)
+        layer0_is_not_gemm = (
+            cfg.get("layers", [{}])[
+                0
+            ].get("operation")
+            != "MLP"
+        )
+        # if the first layer is a CONV layer, then the input shape should be in_chan x H x W
+        if layer0_is_not_gemm:
+            assert len(input_shape) == 3, f"unexpected input shape: {input_shape}"
         sample_input = np.zeros(input_shape, dtype=np.int64)
-        list_of_results: list[any] = wrap_ai8ize_layout_transform(cfg, model, sample_input)
+        list_of_results: list[any] = wrap_ai8ize_layout_transform(
+            cfg, model, sample_input
+        )
 
         core = CNNx16Core()
 
@@ -76,10 +87,12 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     last_pass = True
         return graph
 
-    def generate_config_from_model(self, model: onnx.ModelProto) -> tuple[dict, list[int]]:  # noqa: C901
+    def generate_config_from_model(
+        self, model: onnx.ModelProto
+    ) -> tuple[dict, list[int]]:  # noqa: C901
         # the cfg is expected in the order of the nodes in the onnx model
         layers: list[AI8XizeConfigLayer] = []
-        input_shape:list[int] = None
+        input_shape: list[int] = None
         trf_graph = self.transform_graph(model.graph)
 
         nx_graph = trf_graph.nxgraph_for_ai8x()
@@ -89,6 +102,12 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             if op_type.startswith("Conv") or op_type.startswith("Gemm"):
                 if nxnode.get("input") is not None:
                     input_shape = list(nxnode.get("input").shape)
+                    if len(input_shape) == 4:
+                        input_shape = input_shape[1:]
+                    # assert (
+                    #     len(input_shape) == 3
+                    # ), f"unexpected input shape: {input_shape}"
+                    # TODO: re-enable this check
                 ly = AI8XizeConfigLayer(processors=0, out_offset=0)
                 ly.name = node.name
 
@@ -111,7 +130,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # TODO check if it is flatten
                     ly.flatten = True
                 if "MaxPool" in node.name:
-                    ly.max_pool = nxnode.get('_maxpool_kernel_shape', [1,1])
+                    ly.max_pool = nxnode.get("_maxpool_kernel_shape", [1, 1])
                     if isinstance(ly.max_pool, list) and len(ly.max_pool) == 2:
                         assert ly.max_pool[0] == ly.max_pool[1]
                         ly.max_pool = ly.max_pool[0]
@@ -119,14 +138,16 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                         pass
                     else:
                         raise ValueError(f"unexpected max_pool value: {ly.max_pool}")
-                    ly.pool_stride = nxnode.get('_maxpool_strides', [1,1])
+                    ly.pool_stride = nxnode.get("_maxpool_strides", [1, 1])
                     if isinstance(ly.pool_stride, list) and len(ly.pool_stride) == 2:
                         assert ly.pool_stride[0] == ly.pool_stride[1]
                         ly.pool_stride = ly.pool_stride[0]
                     elif isinstance(ly.pool_stride, int):
                         pass
                     else:
-                        raise ValueError(f"unexpected pool_stride value: {ly.pool_stride}")
+                        raise ValueError(
+                            f"unexpected pool_stride value: {ly.pool_stride}"
+                        )
                 if op_type.startswith("Conv"):
                     weights_shape = nxnode.get("weights").shape
                     ly.kernel_size = "3x3" if weights_shape[2] == 3 else "1x1"
@@ -140,13 +161,13 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 layers.append(ly)
 
-        layers[-1].output_width = 32 # for our output
-        layers[-1].output_shift -= 1 # TODO: check if this is correct
+        layers[-1].output_width = 32  # for our output
+        layers[-1].output_shift -= 1  # TODO: check if this is correct
         c10_layers = layers
         cfg = AI8XizeConfig(
             arch="ai85nascifarnet", dataset="CIFAR10", layers=c10_layers
         )
-        return dict(cfg.model_dump(exclude_defaults=True)), input_shape
+        return dict(cfg.model_dump(exclude_unset=True)), input_shape
 
 
 def set_lregs_to_core(lregs: list[any], core: CNNx16Core):
