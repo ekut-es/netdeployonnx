@@ -191,9 +191,11 @@ class MAX78000(Device):
             return []
 
         for quad in range(4):
-            for layer in range(16):
-                mram_addr = cnn_constants.memory[f"CNNx16_{quad}_P{layer}_MRAM"]
-                for kernel_addr, kernel_data in layout[quad, layer].kernels.items():
+            for proc in range(16):
+                mram_addr = cnn_constants.memory[f"CNNx16_{quad}_P{proc}_MRAM"]
+                for kernel_addr, kernel_data in (
+                    layout[quad].processors[proc].kernels.items()
+                ):
                     ret.append((kernel_addr + mram_addr, kernel_data))
         return ret
 
