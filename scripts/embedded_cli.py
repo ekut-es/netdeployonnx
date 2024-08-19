@@ -81,7 +81,7 @@ def main(hex, test, debug, timeout, tty):
             msg.payload.registers.remove(msg.payload.registers[-1])
             msg.payload.registers.remove(msg.payload.registers[-1])
             msg.payload.registers.remove(msg.payload.registers[-1])
-            lastreg = msg.payload.registers.pop()
+            lastreg = msg.payload.registers.pop()  # noqa F841
             from protobuffers import main_pb2
 
             msg.payload.memory.append(
@@ -98,6 +98,8 @@ def main(hex, test, debug, timeout, tty):
         return
     if hex:
         from protobuffers import main_pb2
+
+        hex_string = hex.replace(" ", "")
 
         data = bytes.fromhex(hex_string)
         msg = main_pb2.ProtocolMessage.FromString(data)

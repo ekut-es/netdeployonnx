@@ -4,14 +4,17 @@ import os
 import struct
 import traceback
 from contextlib import contextmanager
-from typing import Dict, List
 
-from max78000_cnn import *
-from protobuffers import main_pb2
 from tqdm import tqdm
 
+from netdeployonnx.devices.max78000.cnn_constants import (
+    transform_memname_to_address,
+    transform_regname_to_address,
+)
+from netdeployonnx.devices.max78000.device_transport.protobuffers import main_pb2
 
-class hooked_obj:
+
+class hooked_obj:  # noqa N801
     def __init__(self, future):
         self.future = future
 
@@ -20,8 +23,8 @@ class hooked_obj:
 
 
 @contextmanager
-def hook(obj, attr, func, condition=None):
-    orig = getattr(obj, attr)
+def hook(obj, attr, func, condition=None):  # TODO: use unittesting.mock instead
+    orig = getattr(obj, attr)  # noqa F841
     try:
         future = asyncio.Future()
         future.calls = 0
@@ -32,7 +35,7 @@ def hook(obj, attr, func, condition=None):
                 return func(*args, **kwargs)
             finally:
                 if condition is None or condition(future.calls, 0):
-                    if future._result == None:
+                    if future._result is None:
                         future.set_result(True)
 
         setattr(obj, attr, intermed_call)
@@ -46,7 +49,7 @@ def hook(obj, attr, func, condition=None):
         ...
 
 
-def integer_to_bytes(value: List[int]) -> bytes:
+def integer_to_bytes(value: list[int]) -> bytes:
     return b"".join(struct.pack(">I", v) for v in value)
 
 
@@ -55,7 +58,7 @@ class Commands:
         self.dataHandler = None
         self.set_exit_request = False
 
-    def _register(self, dataHandler: "DataHandler"):
+    def _register(self, dataHandler: "serialhandler.DataHandler"):  # noqa F821 (cyclic import)
         self.dataHandler = dataHandler
 
     def get_commands(self) -> dict:
@@ -92,7 +95,7 @@ class Commands:
         msg.version = version
         return msg
 
-    async def send(self, msg: "upb2msg") -> int:
+    async def send(self, msg: main_pb2.ProtocolMessage) -> int:
         """
         returns errorcode, 0 if success
         """
@@ -114,14 +117,15 @@ class Commands:
 
     def convert_instr_to_messages(
         self, *args, **kwargs
-    ) -> List["main_pb2.ProtocolMessage"]:
-        entries = convert_instr_to_messages_dict(*args, **kwargs).items()
+    ) -> list["main_pb2.ProtocolMessage"]:
+        entries = self.convert_instr_to_messages_dict(*args, **kwargs).items()
         # return sorted by index
         return [msg for header, msg in sorted(entries, key=lambda x: x[0])]
 
     def convert_instr_to_messages_dict(
-        self, instr: List[[int, int or bytes] or str]
-    ) -> Dict[str, "main_pb2.ProtocolMessage"]:
+        self,
+        instr: list[str | tuple[int, int | bytes, bool]],
+    ) -> dict[str, "main_pb2.ProtocolMessage"]:
         msgs = {}
         msg = self.new_message()
         title = ""
@@ -129,9 +133,9 @@ class Commands:
             if isinstance(inst, tuple):
                 if len(inst) == 2:
                     addr, data = inst
-                    setAddr = False
+                    setAddr = False  # noqa F806
                 else:
-                    addr, data, setAddr = inst
+                    addr, data, setAddr = inst  # noqa F806
                 if isinstance(data, int):
                     # reg access
                     msg.payload.registers.append(
@@ -139,7 +143,8 @@ class Commands:
                             address=addr,
                             preserve_mask=0,
                             set_mask=data,
-                            # size=main_pb2.Regsize.UINT32, # unknown is like 32bit, save us 4 bits
+                            # size=main_pb2.Regsize.UINT32, # unknown is like 32bit,
+                            # save us 4 bits
                             readable=False,
                         )
                     )
@@ -173,14 +178,14 @@ class Commands:
         return dict(
             filter(
                 lambda titlemsgtuple: titlemsgtuple[1].WhichOneof("message_type")
-                != None,
+                is not None,
                 msgs.items(),
             )
         )  # TODO: filter empty messages
 
     def split_message(
         self, msg: main_pb2.ProtocolMessage
-    ) -> List[main_pb2.ProtocolMessage]:
+    ) -> list[main_pb2.ProtocolMessage]:
         msg_len = len(msg.SerializeToString())
         if msg_len > 900:
             submessages = []
@@ -212,9 +217,9 @@ class Commands:
                                 memory_subchunk * chunksize : (memory_subchunk + 1)
                                 * chunksize
                             ],
-                            setAddr=setmemory.setAddr
-                            if memory_subchunk == 0
-                            else False,
+                            setAddr=(
+                                setmemory.setAddr if memory_subchunk == 0 else False
+                            ),
                         )
                         # print(len(newsetmemory.data))
                         submsg = self.new_message()
@@ -228,10 +233,12 @@ class Commands:
                 if len(submessage.SerializeToString()) > 1000:
                     raise Exception("msg too big")
             return list(
-                filter(lambda x: x.WhichOneof("message_type") != None, submessages)
+                filter(lambda x: x.WhichOneof("message_type") is not None, submessages)
             )
         else:
-            return list(filter(lambda x: x.WhichOneof("message_type") != None, [msg]))
+            return list(
+                filter(lambda x: x.WhichOneof("message_type") is not None, [msg])
+            )
 
     async def set_led(self, *args, **kwargs):
         msg = self.new_message()
@@ -239,9 +246,9 @@ class Commands:
         if len(args) > 0:
             for arg in args:
                 leds.append(int(arg))
-        GPIO2 = 0x40080400  # MaximSDK/Libraries/CMSIS/Device/Maxim/MAX78000/Include/max78000.h
-        SET = 0x1C  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h
-        CLEAR = 0x20  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h
+        GPIO2 = 0x40080400  # MaximSDK/Libraries/CMSIS/Device/Maxim/MAX78000/Include/max78000.h # noqa N806
+        SET = 0x1C  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h # noqa N806
+        CLEAR = 0x20  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h # noqa N806
         pin = 0
         for pin in leds:
             if pin > 3:
@@ -263,9 +270,9 @@ class Commands:
         if len(args) > 0:
             for arg in args:
                 leds.append(int(arg))
-        GPIO2 = 0x40080400  # MaximSDK/Libraries/CMSIS/Device/Maxim/MAX78000/Include/max78000.h
-        SET = 0x1C  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h
-        CLEAR = 0x20  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h
+        GPIO2 = 0x40080400  # MaximSDK/Libraries/CMSIS/Device/Maxim/MAX78000/Include/max78000.h # noqa N806
+        SET = 0x1C  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h # noqa N806
+        CLEAR = 0x20  # MaximSDK/Libraries/PeriphDrivers/Source/GPIO/gpio_reva_regs.h # noqa N806
         pin = 0
         for pin in leds:
             if pin > 3:
@@ -311,12 +318,12 @@ class Commands:
         msg = self.new_message()
         msg.payload.read.append(main_pb2.ReadMemoryContent(address=memaddr, len=memlen))
         await self.send(msg)
-        payloadMsg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
+        payload_msg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
             lambda msg: msg.WhichOneof("message_type") == "payload",
             timeout=1,
         )
-        if payloadMsg:
-            data = payloadMsg.payload.memory[0].data
+        if payload_msg:
+            data = payload_msg.payload.memory[0].data
             csize = 16
             for chunk in range((len(data) // csize) + 1):
                 dchunk = data[chunk * csize : (chunk + 1) * csize]
@@ -354,7 +361,7 @@ class Commands:
                 await self.load_file(f"payload_stage{args[0]}.pbenc")
                 return
             try:
-                with open(filename, "rb") as filecontent:
+                with open(filename, "rb") as filecontent:  # noqa ASYNC230 (use aio)
                     data = filecontent.read()
                 # print("fabulous")
                 msg = main_pb2.ProtocolMessage.FromString(data)
@@ -363,7 +370,7 @@ class Commands:
                 for submsg in messages:
                     await self.send(submsg)
                 return msg
-            except:
+            except Exception:
                 traceback.print_exc()
 
     async def test_set_read_memory_content(self, *args, **kwargs):
@@ -373,12 +380,12 @@ class Commands:
             msg = self.new_message()
             msg.configuration.address_test_message_buffer = 0
             await self.send(msg)
-            configMsg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
+            config_msg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
                 lambda msg: msg.WhichOneof("message_type") == "configuration",
                 timeout=timeout,
             )
-            if configMsg is not None:
-                addr = configMsg.configuration.address_test_message_buffer
+            if config_msg is not None:
+                addr = config_msg.configuration.address_test_message_buffer
                 assert addr >= 0x20000000 and addr < 0x30000000
                 return addr
             raise Exception("did not return a configuration in time")
@@ -388,10 +395,7 @@ class Commands:
 
         addr = await acquire_memory_address()
         print(f"found addr: {addr:08X}")
-        if len(args) == 0:
-            amount = 2
-        else:
-            amount = int(args[0])
+        amount = 2 if len(args) == 0 else int(args[0])
         if 1:
             data = [
                 bytes(f"hello {test_number} world", "utf8")
@@ -416,14 +420,15 @@ class Commands:
                     timeout=timeout,
                 )
                 if msg:
-                    memoryMessage = msg.payload.memory[0]
-                    if memoryMessage.address == addr:
-                        received_data.append(memoryMessage.data)
+                    memory_message = msg.payload.memory[0]
+                    if memory_message.address == addr:
+                        received_data.append(memory_message.data)
 
             # now validate
-            assert (
-                len(data) == len(received_data)
-            ), f"did not receive the same amount of data ({len(data)} vs {len(received_data)})"
+            assert len(data) == len(received_data), (
+                f"did not receive the same amount of data ({len(data)}"
+                f" vs {len(received_data)})"
+            )
             try:
                 for test_number, test_data in enumerate(data):
                     logging.debug(f"[real] {test_data}")
@@ -474,7 +479,7 @@ class Commands:
         else:
             print("no")
 
-    async def test_small_matrix(self, *args, **kwargs):
+    async def test_small_matrix(self, *args, **kwargs):  # noqa F841 TODO: delete this one?
         if 1:
             # we write a new set of instructions
             def cnn_init(registers, data):
@@ -541,7 +546,8 @@ class Commands:
 
             def cnn_start(registers, data):
                 for n in range(0, 4):
-                    # registers += [(f'CNNx16_{n}_CTRL', 0x00100808 if n == 0 else 0x00100809)]
+                    # registers += [(f'CNNx16_{n}_CTRL',
+                    #               0x00100808 if n == 0 else 0x00100809)]
                     registers += [(f"CNNx16_{n}_CTRL", 0x00100808 if n == 0 else 0)]
                 registers += [(f"CNNx16_{0}_CTRL_", 0x00100009)]
 
@@ -570,7 +576,8 @@ class Commands:
                         address=addr,
                         preserve_mask=0,
                         set_mask=value,
-                        # size=main_pb2.Regsize.UINT32, # unknown is like 32bit, save us 4 bits
+                        # size=main_pb2.Regsize.UINT32, # unknown is like 32bit,
+                        # save us 4 bits
                         readable=False,
                     )
                 )
@@ -582,7 +589,7 @@ class Commands:
                         if not isinstance(value, bytes)
                         else value
                     )
-                except:
+                except Exception:
                     traceback.print_exc()
                 msg.payload.memory.append(
                     main_pb2.SetMemoryContent(
@@ -605,12 +612,12 @@ class Commands:
             print("sent!")
             for mname in ["CNNx16_0_SRAM"]:
                 print(mname)
-                payloadMsg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
+                payload_msg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
                     lambda msg: msg.WhichOneof("message_type") == "payload",
                     timeout=2,
                 )
-                if payloadMsg:
-                    data = payloadMsg.payload.memory[0].data
+                if payload_msg:
+                    data = payload_msg.payload.memory[0].data
                     csize = 16
                     for chunk in range((len(data) // csize) + 1):
                         dchunk = data[chunk * csize : (chunk + 1) * csize]
@@ -619,7 +626,7 @@ class Commands:
                     print("no message")
             return msg
 
-    async def cifar10(self, *args, **kwargs):
+    async def cifar10(self, *args, **kwargs):  # noqa C901
         msgs = []
         try:
             import cifar10
@@ -649,13 +656,13 @@ class Commands:
             logging.debug("base regs + data done")
 
             msgs = self.convert_instr_to_messages_dict(instr)
-            totalData = 0
             for msg_title, msg in msgs.items():  # tqdm(msgs):
                 # print("title:", msg_title)
                 mems, regs, acts = 0, 0, 0
                 submessages = self.split_message(msg)
                 for submessage in tqdm(submessages):
-                    # print("    " * 5, msg_title, submessage.WhichOneof("message_type"))
+                    # print("    " * 5, msg_title,
+                    #       submessage.WhichOneof("message_type"))
                     mems += len(submessage.payload.memory)
                     regs += len(submessage.payload.registers)
                     acts += 1 if submessage.action.execute_measurement else 0
@@ -671,7 +678,7 @@ class Commands:
                 # await asyncio.sleep(0.1)
                 print(f"wrote {mems} mems, {regs} regs, {acts} actions")
             # return msgs
-        except:
+        except Exception:
             traceback.print_exc()
 
         print("reading back")
@@ -708,12 +715,12 @@ class Commands:
                 )
                 await self.send(msg)
 
-                payloadMsg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
+                payload_msg: main_pb2.ProtocolMessage = await self.dataHandler.receive(
                     lambda msg: msg.WhichOneof("message_type") == "payload",
                     timeout=2,
                 )
-                if payloadMsg:
-                    data = payloadMsg.payload.memory[0].data
+                if payload_msg:
+                    data = payload_msg.payload.memory[0].data
                     csize = 16
                     for chunk in range((len(data) // csize) + 1):
                         dchunk = data[chunk * csize : (chunk + 1) * csize]
@@ -727,7 +734,7 @@ class Commands:
                     "=" if target_bytes == data else "X",
                     " ".join([f"{b:02X}" for b in target_bytes]),
                 )
-        except:
+        except Exception:
             traceback.print_exc()
         finally:
             # await self.cnn_disable()
@@ -763,7 +770,9 @@ class Commands:
                 kwargs["recvdata"] += datastream
                 return [], b""
 
-            cond = lambda calls, time: calls > 1000
+            def cond(calls: int, time: float):
+                return calls > 1000
+
             with hook(
                 self.dataHandler,
                 "search_protobuf_messages",
@@ -771,9 +780,12 @@ class Commands:
                 condition=cond,
             ) as debug_hook:
                 data = self.dataHandler.debug_data[:write_len]
-                reader, writer = self.dataHandler.reader, self.dataHandler.writer
-                ret1 = writer.write(data)
-                ret2 = await writer.drain()
+                reader, writer = (  # noqa F841
+                    self.dataHandler.reader,
+                    self.dataHandler.writer,
+                )
+                ret1 = writer.write(data)  # noqa F841
+                ret2 = await writer.drain()  # noqa F841
                 print(f"{len(data)} bytes written")
                 await debug_hook.wait_call(timeout=1)
 
@@ -786,7 +798,7 @@ class Commands:
                         assert (
                             dchunk[i] == data[i + chunk * csize]
                         ), f"{dchunk[i]} != {data[i+chunk*csize]} on {i+chunk*csize}"
-                except:
+                except Exception:
                     import traceback
 
                     traceback.print_exc()

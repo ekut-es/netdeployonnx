@@ -4,37 +4,44 @@ import statistics
 import struct
 import time
 import traceback
+from collections.abc import Awaitable
+from typing import Callable
 
 import google.protobuf.message
 import pytest
-from commands import Commands
-from crc import Calculator, Crc32
-from fastcrc import crc8
-from google.protobuf.internal.decoder import _DecodeVarint
-from protobuffers import main_pb2  # pip install protobuf
+from crc import Calculator, Crc32  # pip install crc
+from fastcrc import crc8  # pip install fastcrc
+from google.protobuf.internal.decoder import _DecodeVarint  # pip install protobuf
 from serial_asyncio import (
     open_serial_connection,  # pip install pyserial-asyncio
+)
+
+from netdeployonnx.devices.max78000.device_transport.commands import Commands
+from netdeployonnx.devices.max78000.device_transport.protobuffers import (
+    main_pb2,
 )
 
 BUFFER_READ_SIZE = 1024
 BUFFER_COMPARE_SIZE = 1000
 DEFAULT_TIMEOUT = 1.1
 
-MessageHandler = lambda msg, writer: bool
+MessageHandler = Callable[
+    [main_pb2.ProtocolMessage, asyncio.StreamWriter], Awaitable[bool]
+]  # message, writer -> bool
 
 crc_calc = Calculator(Crc32.POSIX, optimized=True)
 
 POLY = 0x04C11DB7  # POSIX / bzip2 /jamcrc / mpeg_2
 
 
-def crc8(data):
+def crc8(data):  # noqa F811 (redefinition of crc8)
     polynomial = 0x07
     crc = 0
 
     for byte in data:
         crc ^= byte
         for _ in range(8):
-            if crc & 0x80:
+            if crc & 0x80:  # noqa SIM108
                 crc = (crc << 1) ^ polynomial
             else:
                 crc = crc << 1
@@ -88,31 +95,31 @@ class KeepaliveTimer:
         while self.timer < self.timer_max_val:
             self.timer += 1
             await asyncio.sleep(0.1)
-            if self.warning == False and (self.timer / self.timer_max_val) > 0.5:
+            if not self.warning and (self.timer / self.timer_max_val) > 0.5:
                 logging.warning("Keepalive hickup ~ 50%")
                 self.warning = True
         # raise asyncio.TimeoutError("Keepalive-Timer ran out")
 
     async def print_statistics(self):
         try:
-            while self.task_timer != None:
+            while self.task_timer is not None:
                 await asyncio.sleep(1)
                 if len(self.keepalive_list) > 0:
                     if len(self.keepalive_inqueue) == 0:
                         self.keepalive_inqueue = [0]
                     if len(self.keepalive_outqueue) == 0:
                         self.keepalive_outqueue = [0]
-                    v_min, v_mean, v_max = (
+                    v_min, v_mean, v_max = (  # noqa F841
                         min(self.keepalive_list),
                         statistics.mean(self.keepalive_list),
                         max(self.keepalive_list),
                     )
-                    in_min, in_mean, in_max = (
+                    in_min, in_mean, in_max = (  # noqa F841
                         min(self.keepalive_inqueue),
                         statistics.mean(self.keepalive_inqueue),
                         max(self.keepalive_inqueue),
                     )
-                    out_min, out_mean, out_max = (
+                    out_min, out_mean, out_max = (  # noqa F841
                         min(self.keepalive_outqueue),
                         statistics.mean(self.keepalive_outqueue),
                         max(self.keepalive_outqueue),
@@ -121,9 +128,11 @@ class KeepaliveTimer:
                     self.keepalive_inqueue = []
                     self.keepalive_outqueue = []
                     print(
-                        f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, max={v_max:2.2f} [I={in_mean:2.2f}/O={out_mean:2.2f}])"
+                        f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
+                        f"max={v_max:2.2f}"
+                        f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
                     )
-        except:
+        except Exception:
             traceback.print_exc()
 
     def check_and_raise(self):
@@ -160,7 +169,7 @@ class DataHandler:
         self.reader = reader
         self.writer = writer
         self.debug = debug
-        self.handlers: List[MessageHandler] = [self.keepalive_handler]
+        self.handlers: list[MessageHandler] = [self.keepalive_handler]
 
         self.msgs = []
         self.external_send_queue = []
@@ -195,12 +204,15 @@ class DataHandler:
                     else:
                         ...
                         # print("interjection?!?")
-                        # print(future.last_tick, self.last_tick_id, msg.keepalive.ticks)
+                        # print(future.last_tick, self.last_tick_id,
+                        #       msg.keepalive.ticks)
                         # # assume it was false
                         future.set_result(0x4000)
 
                 logging.debug(
-                    f"[ALIVE n={msg.keepalive.next_tick}] {msg.keepalive.ticks} [I: {msg.keepalive.inqueue_size:03d} / O: {msg.keepalive.outqueue_size:03d}]"
+                    f"[ALIVE n={msg.keepalive.next_tick}] {msg.keepalive.ticks}"
+                    f" [I: {msg.keepalive.inqueue_size:03d} "
+                    f"/ O: {msg.keepalive.outqueue_size:03d}]"
                 )
                 if msg.keepalive.ticks > 0:
                     self.last_tick_id = msg.keepalive.ticks
@@ -214,7 +226,7 @@ class DataHandler:
                     msg.keepalive.outqueue_size
                 )
                 # await self.send_msg(self.keepalive_answer)
-            except:
+            except Exception:
                 traceback.print_exc()
             finally:
                 return True
@@ -243,7 +255,7 @@ class DataHandler:
                 #     if len(msg.payload.registers):
                 #         print(len(msg.payload.registers))
                 #     if len(msg.payload.memory):
-                #         print(sum(len(mem.data) for mem in msg.payload.memory),msg.payload)
+                #         print(sum(len(mem.data) for mem in msg.payload.memory),msg.payload) # noqa E501
 
                 # carefully craft the crc of the message to be 0x0
                 msg.checksum = recalc_crc(msg)
@@ -252,15 +264,16 @@ class DataHandler:
                     logging.debug(f"sent msg [len={len(serdata)}]")
                 if len(serdata) > BUFFER_COMPARE_SIZE:
                     future.set_result(32)
-                    # we dont want to overload the smol buffer (cant increase it because DMA)
+                    # we dont want to overload the smol buffer
+                    # (cant increase it because DMA)
                     return
                 # run length encoding
                 future.last_tick = self.last_tick_id
-                ret0 = writer.write(
+                ret0 = writer.write(  # noqa F841
                     struct.pack("<H", len(serdata) * 8)
                 )  # in bits, to check if we received garbage
-                ret1 = writer.write(serdata)
-                ret2 = await writer.drain()
+                ret1 = writer.write(serdata)  # noqa F841
+                ret2 = await writer.drain()  # noqa F841
                 self.open_futures.append(future)
         else:
             # nothing to do, but send a keepalive back
@@ -297,7 +310,7 @@ class DataHandler:
             self.handlers.remove(specific_message_handler)
         return None
 
-    def ParseFromStream(self, data: bytes) -> main_pb2.ProtocolMessage:
+    def ParseFromStream(self, data: bytes) -> main_pb2.ProtocolMessage:  # noqa N802
         ret = main_pb2.ProtocolMessage()
         try:
             # read delimited
@@ -311,15 +324,15 @@ class DataHandler:
         self, datastream: bytes, discard_limit: int = 100
     ) -> tuple[list, bytes]:
         messages = []
-        loopWhile = True
-        while loopWhile:
+        loop_while = True
+        while loop_while:
             # Find the start of the next protobuf message
             # print(f"[{len(datastream)}] ", " ".join([f"{b:02X}" for b in datastream]))
             for startindex in range(len(datastream)):
                 if (
                     len(datastream[startindex:]) < 4
                 ):  # min size is 1 byte length, one version, one tick, one end
-                    loopWhile = False
+                    loop_while = False
                     break  # cant work
                 try:
                     # Deserialize the message
@@ -356,16 +369,16 @@ async def handle_serial(
     global data
     try:
         reader, writer = await open_serial_connection(url=tty, baudrate=1_500_000)
-        dataHandler = DataHandler(reader, writer, debug=debug)
-        commands._register(dataHandler)
+        data_handler = DataHandler(reader, writer, debug=debug)
+        commands._register(data_handler)
         while not commands.set_exit_request:
             try:
-                dataHandler.keepalive_timer.check_and_raise()
-                msg = await dataHandler.next_msg(timeout=timeout)
+                data_handler.keepalive_timer.check_and_raise()
+                msg = await data_handler.next_msg(timeout=timeout)
                 if msg:
                     try:
-                        await dataHandler.find_message_handler(msg, writer)
-                        await dataHandler.handle_sendqueue(writer)
+                        await data_handler.find_message_handler(msg, writer)
+                        await data_handler.handle_sendqueue(writer)
                     except Exception:
                         traceback.print_exc()
             except TimeoutError as timeoutErr:
@@ -395,7 +408,7 @@ def to_bytes(string: str) -> bytes:
         (to_bytes("00 64"), []),
         (
             to_bytes(
-                """04 C0 55 FF FF 12 08 02 22 0E 12 0C 08 80 80 83 82 05 12 04 16 B0 FF FF 08 02 22 0C 12 0A 08 80 80 12 02 73 6B 08 02 12 07 08 C0 56 10 64 28 34 08 02 12 05 08 C1 56 10 64 08 02 12 05 08 C2 56 10 64 08 02 12 05 08 C3 56 10 64 08 02 12 05 08 C4 56 10 64 08 02 12 05 08 C5 56 10 64 08 02 12 05 08 C6 56 10 64"""
+                """04 C0 55 FF FF 12 08 02 22 0E 12 0C 08 80 80 83 82 05 12 04 16 B0 FF FF 08 02 22 0C 12 0A 08 80 80 12 02 73 6B 08 02 12 07 08 C0 56 10 64 28 34 08 02 12 05 08 C1 56 10 64 08 02 12 05 08 C2 56 10 64 08 02 12 05 08 C3 56 10 64 08 02 12 05 08 C4 56 10 64 08 02 12 05 08 C5 56 10 64 08 02 12 05 08 C6 56 10 64"""  # noqa E501
             ),
             [
                 main_pb2.ProtocolMessage(
@@ -430,7 +443,7 @@ def to_bytes(string: str) -> bytes:
         ),
         (
             to_bytes(
-                """08 02 22 0E 12 0C 08 80 80 81 82 05 12 04 C0 55 FF FF 08 02 22 0E 12 0C 08 80 80 83 82 05 12 04 16 B0 FF FF 08 02 22 0C 12 0A 08 80 80 85 82 05 12 02 73 6B 08 02 12 07 08 B4 6F 10 64 28 34"""
+                """08 02 22 0E 12 0C 08 80 80 81 82 05 12 04 C0 55 FF FF 08 02 22 0E 12 0C 08 80 80 83 82 05 12 04 16 B0 FF FF 08 02 22 0C 12 0A 08 80 80 85 82 05 12 02 73 6B 08 02 12 07 08 B4 6F 10 64 28 34"""  # noqa E501
             ),
             [
                 main_pb2.ProtocolMessage(
@@ -503,7 +516,7 @@ def test_search_protobuf_messages(datastream, result):
     ],
 )
 def test_crc(msg):
-    # import debugpy; debugpy.listen(4567);debugpy.wait_for_client();debugpy.breakpoint()
+    # import debugpy; debugpy.listen(4567);debugpy.wait_for_client();debugpy.breakpoint() # noqa E501
 
     msg.checksum = recalc_crc(msg)
 

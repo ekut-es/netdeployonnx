@@ -12,7 +12,7 @@
 # Layer 8: 64x4x4, no pooling, conv2d with kernel size 3x3, stride 1/1, pad 1/1, ReLU, 128x4x4 output
 # Layer 9: 128x4x4, max pool 2x2 with stride 2/2, conv2d with kernel size 1x1, stride 1/1, pad 0/0, ReLU, 128x2x2 output
 # Layer 10: 128x2x2 flattened to 512x1x1, no pooling, linear, no activation, 10x1x1 output
-"""
+"""  # noqa E501
 
 import os
 import struct

@@ -33,6 +33,9 @@ onnxruntime = "^1.18.1"
 rich = "^13.7.1"
 pyserial-asyncio = "^0.6"
 prompt-toolkit = "^3.0.47"
+tqdm = "^4.66.5"
+fastcrc = "^0.3.0"
+crc = "^7.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
@@ -117,6 +120,7 @@ exclude = [
     "staticfiles/*",
     "external/*",
     "netdeployonnx/common/device_pb2*",
+    "netdeployonnx/devices/max78000/device_transport/protobuffers/main_pb2*",
     "test/data/*",
     "test/weights_convert.py",
     "cnn_constants.py",

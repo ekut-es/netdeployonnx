@@ -1,8 +1,9 @@
 import asyncio
 
-from commands import Commands
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
+
+from netdeployonnx.devices.max78000.device_transport.commands import Commands
 
 
 async def cli(cmdobj: Commands, debug: bool = False, timeout: float = 1):
