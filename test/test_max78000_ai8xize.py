@@ -11,6 +11,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+from netdeployonnx.devices.max78000 import MAX78000Metrics
 from netdeployonnx.devices.max78000.ai8xize import (
     MAX78000_ai8xize,
 )
@@ -308,7 +309,19 @@ async def test_backend_ai8xize():
 
 
 @pytest.mark.asyncio
-async def test_backend_ai8xize_test_execute_cifar10():
+async def test_backend_ai8xize_execute_cifar10():
+    dev = MAX78000_ai8xize()
+
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / "cifar10.onnx")
+    layout = await dev.layout_transform(model)
+    instr = await dev.compile_instructions(layout)
+    res = await dev.execute(instructions=instr, metrics=MAX78000Metrics('/dev/null'))
+    assert res
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_execute_called_cifar10():
     dev = MAX78000_ai8xize()
 
     data_folder = Path(__file__).parent / "data"
