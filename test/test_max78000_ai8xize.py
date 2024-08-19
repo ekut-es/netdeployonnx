@@ -316,7 +316,7 @@ async def test_backend_ai8xize_execute_cifar10():
     model = onnx.load(data_folder / "cifar10.onnx")
     layout = await dev.layout_transform(model)
     instr = await dev.compile_instructions(layout)
-    res = await dev.execute(instructions=instr, metrics=MAX78000Metrics('/dev/null'))
+    res = await dev.execute(instructions=instr, metrics=MAX78000Metrics("/dev/null"))
     assert res
 
 
