@@ -31,6 +31,8 @@ xxhash = "^3"
 fs = "^2"
 onnxruntime = "^1.18.1"
 rich = "^13.7.1"
+pyserial-asyncio = "^0.6"
+prompt-toolkit = "^3.0.47"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
@@ -52,6 +54,7 @@ netdeployonnx_mypy = "mypy.main:main"
 max78000_helper = "scripts.helper_max78000_cnn:main"
 max78000_analyze = "scripts.analyze_cnn:main"
 max78000_synth = "test.test_max78000_synthesize_cifar10:main"
+max78000_cli = "scripts.embedded_cli:main"
 
 
 
