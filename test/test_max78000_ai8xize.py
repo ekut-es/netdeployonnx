@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import onnx
 import pydantic
 import pytest
@@ -150,12 +151,54 @@ def cifar10_layout():
     return asyncio.run(cifar10_layout_func())
 
 
+def print_chunks(origval, val_under_test, diff_vector):
+    chunksize = 32
+
+    def hexstr(x):
+        return "".join(f"{h:02X}" for h in x)
+
+    for chunk_idx in range(max(len(origval), len(val_under_test)) // chunksize):
+        print(hexstr(origval[chunk_idx * chunksize : (chunk_idx + 1) * chunksize]))
+        print(
+            hexstr(val_under_test[chunk_idx * chunksize : (chunk_idx + 1) * chunksize])
+        )
+        print("=")
+        print(hexstr(diff_vector[chunk_idx * chunksize : (chunk_idx + 1) * chunksize]))
+        print()
+
+
+def check_off_by_one_error(
+    origval: bytes, val_under_test: bytes, quad: int, fieldname: str
+) -> list:
+    # we should calculate a diff vector, because onnxcp and checkpoint
+    # uses a different method to quantize
+    #
+    # w = np.floor((checkpoint_state[bias_name] / 2**(wb - 1))
+    # .numpy()).astype(np.int64)
+    incorrect = []
+    ori_int = np.frombuffer(origval, dtype=np.int8)
+    vut_int = np.frombuffer(val_under_test, dtype=np.int8)
+    diff_vector = ori_int - vut_int
+    # is the difference max 1?
+    if np.abs(diff_vector).max() > 1:
+        # yes it is
+        incorrect.append(
+            f"quad={quad}, field={fieldname}: "
+            f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+        )
+        print_chunks(ori_int, vut_int, diff_vector)
+    return incorrect
+
+
 def core_layer_equal(
     original_layer: CNNx16_Layer,
     layer_under_test: CNNx16_Layer,
     quad: int,
     layeridx: int,
 ) -> list:
+    """compare the fields of the layer, mostly idx,
+    layer_field_dict, row_count, row pad, ...
+    """
     incorrect = []
     # iterate over fields of original layer
     for fieldname, field in original_layer.model_fields.items():
@@ -179,6 +222,7 @@ def core_processor_equal(
     quad: int,
     proc: int,
 ) -> list:
+    "compare the fields of the processor, mostly idx, enabled, kernels"
     incorrect = []
     for fieldname, field in original_proc.model_fields.items():
         if fieldname in ["quadrant", "layer"]:
@@ -186,14 +230,28 @@ def core_processor_equal(
         origval = getattr(original_proc, fieldname)
         val_under_test = getattr(proc_under_test, fieldname)
         if origval != val_under_test:
-            incorrect.append(
-                f"quad={quad}, proc={proc}, field={fieldname}: "
-                f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
-            )
+            if fieldname == "kernels":
+                kernel_lengths_orig = {k: len(v) for k, v in origval.items()}
+                kernel_lengths_vut = {k: len(v) for k, v in val_under_test.items()}
+                assert (
+                    kernel_lengths_orig == kernel_lengths_vut
+                ), "kernel lengths differ"
+                for k in origval:
+                    orig_kernel = origval[k]
+                    vut_kernel = val_under_test[k]
+                    incorrect.extend(
+                        check_off_by_one_error(orig_kernel, vut_kernel, quad, fieldname)
+                    )
+            else:
+                incorrect.append(
+                    f"quad={quad}, proc={proc}, field={fieldname}: "
+                    f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+                )
     return incorrect
 
 
-def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool:
+def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool:  # noqa: C901
+    "compare the fields of the core, mostly idx, bias, input_frame_size, mlat_data"
     incorrect = []
     for quad in range(4):
         for fieldname, field in original_core[quad].model_fields.items():
@@ -203,10 +261,17 @@ def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool:
             val_under_test = getattr(core_under_test[quad], fieldname)
 
             if origval != val_under_test:
-                incorrect.append(
-                    f"quad={quad}, field={fieldname}: "
-                    f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
-                )
+                if fieldname == "bias":  # check for off by one error
+                    incorrect.extend(
+                        check_off_by_one_error(origval, val_under_test, quad, fieldname)
+                    )
+                    if len(incorrect) > 10:
+                        assert False, f"too many errors: {len(incorrect)}, {incorrect}"
+                else:
+                    incorrect.append(
+                        f"quad={quad}, field={fieldname}: "
+                        f"{str(origval)[:30]} != {str(val_under_test)[:30]}"
+                    )
         # check layers
         for layeridx in range(16):
             incorrect.extend(
@@ -275,7 +340,9 @@ async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout)
         assert isinstance(layout_ir, CNNx16Core)
 
         core_equal_result = core_equal(cifar10_layout, layout_ir)
-        assert core_equal_result == [], f"layout mismatch (len={len(core_equal_result)})"
+        assert (
+            core_equal_result == []
+        ), f"layout mismatch (len={len(core_equal_result)})"  # noqa: E501
 
 
 @pytest.mark.asyncio

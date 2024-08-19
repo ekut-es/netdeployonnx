@@ -193,7 +193,7 @@ def set_lregs_to_core(lregs: list[any], core: CNNx16Core):
 
 def set_bias_to_core(bias: list[tuple[int, int, int]], core: CNNx16Core):
     collected_bias_per_quad = defaultdict(dict)
-    maxoffs_per_quad = [0]*4
+    maxoffs_per_quad = [0] * 4
     for quad, offs, val in bias:
         if offs not in collected_bias_per_quad[quad]:
             collected_bias_per_quad[quad][offs] = val
@@ -212,6 +212,29 @@ def set_bias_to_core(bias: list[tuple[int, int, int]], core: CNNx16Core):
         core[quad].bias = bytes(quad_bias[quad])
 
 
+def assign_collected_weights_to_processor(
+    collected_weights: dict[int, bytes], processor: CNNx16_Processor
+):
+    for addr, weights_array in collected_weights.items():
+        assert addr % 4 == 0, "lower than 8 bit resolution not implemented"
+        addr_div_4 = addr // 4  # because the address is in 2-bit resolution
+        if weights_array is None:
+            continue
+        # in case our weights array is not 4-byte aligned, we need to pad it
+        array_4byte_aligned = len(weights_array) % 4
+        if array_4byte_aligned != 0:
+            weights_array += b"\x00" * (4 - array_4byte_aligned)
+        if addr_div_4 not in processor.kernels:
+            processor.kernels[addr_div_4] = weights_array
+        else:
+            from warnings import warn
+
+            warn(
+                f"overwriting kernel at address {addr:08X} in" f" processor {processor}"
+            )
+            processor.kernels[addr_div_4] = weights_array
+
+
 def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
     apb_base = 0
 
@@ -221,6 +244,7 @@ def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
             memory_array = weights[group][proc]
             for mem in range(len(memory_array)):
                 weights_array = memory_array[mem]
+                collected_weights: dict[int, bytes] = {}
                 assert isinstance(weights_array, list)
                 for weights_entry in weights_array:
                     if not isinstance(weights_entry, tuple):
@@ -254,5 +278,30 @@ def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
                             // tc.dev.MASK_INSTANCES_EACH
                             + naddr * 16
                         )
+                    phys_addr %= tc.dev.MASK_OFFS * 16
+                    if phys_addr not in collected_weights:
+                        # check if there is an address 16 bytes earlier in the list
+                        if phys_addr - 16 in collected_weights:
+                            addr_list = sorted(
+                                (
+                                    item[0]
+                                    for item in collected_weights.items()
+                                    if item[1] is not None
+                                ),
+                            )
+                            iterated_addr = addr_list[-1] if addr_list else None
+                            if iterated_addr in collected_weights:
+                                collected_weights[iterated_addr] += (
+                                    weights_array.tobytes()
+                                )
+                                collected_weights[phys_addr] = None
+                            else:
+                                raise ValueError(
+                                    f"unexpected address: {iterated_addr:08X}"
+                                )
+                        else:
+                            collected_weights[phys_addr] = weights_array.tobytes()
+                    else:
+                        raise ValueError(f"unexpected address: {phys_addr:08X}")
 
-                    processor.kernels[phys_addr] = weights_array.tobytes()
+                assign_collected_weights_to_processor(collected_weights, processor)
