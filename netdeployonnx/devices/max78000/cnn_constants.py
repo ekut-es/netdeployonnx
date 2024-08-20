@@ -1,11 +1,11 @@
 registers = {
-    "CNN_FIF0_CTRL":                  0x5000_0000, # 50000000
-    "CNN_FIF0_STAT":                  0x5000_0004, # 50000004
-    "CNN_FIFO_WR0":                   0x5000_0008, # 50000008
-    "CNN_FIFO_WR1":                   0x5000_000C, # 5000000C
-    "CNN_FIFO_WR2":                   0x5000_0010, # 50000010
-    "CNN_FIFO_WR3":                   0x5000_0014, # 50000014
-    "CNN_AOD_CTRL":                   0x5000_1000, # 50001000
+    "CNNx16_FIF0_CTRL":                  0x5000_0000, # 50000000
+    "CNNx16_FIF0_STAT":                  0x5000_0004, # 50000004
+    "CNNx16_FIFO_WR0":                   0x5000_0008, # 50000008
+    "CNNx16_FIFO_WR1":                   0x5000_000C, # 5000000C
+    "CNNx16_FIFO_WR2":                   0x5000_0010, # 50000010
+    "CNNx16_FIFO_WR3":                   0x5000_0014, # 50000014
+    "CNNx16_AOD_CTRL":                   0x5000_1000, # 50001000
     "CNNx16_0_CTRL":                  0x5010_0000, # 50100000
     "CNNx16_0_SRAM":                  0x5010_0004, # 50100004
     "CNNx16_0_LCNT_MAX":              0x5010_0008, # 50100008
@@ -2210,4 +2210,3 @@ def transform_memname_to_address(name) -> int:
     if name in memory:
         return memory[name]
     raise ValueError(f"memory '{name}' not found")
-
