@@ -18,7 +18,7 @@ class hooked_obj:  # noqa N801
     def __init__(self, future):
         self.future = future
 
-    async def wait_call(self, timeout=0):
+    async def wait_call(self, timeout: float = 0):  # noqa: ASYNC109
         await asyncio.wait_for(self.future, timeout=timeout)
 
 

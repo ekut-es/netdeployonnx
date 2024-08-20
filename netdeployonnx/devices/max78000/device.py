@@ -1,4 +1,5 @@
-import asyncio
+# import asyncio
+import logging
 from typing import Any
 
 import onnx
@@ -12,6 +13,8 @@ from netdeployonnx.devices.max78000.cnn_constants import (
     CNNx16_n_CTRL_MEXPRESS,
 )
 from netdeployonnx.devices.max78000.core import CNNx16Core
+from netdeployonnx.devices.max78000.device_transport.commands import Commands
+from netdeployonnx.devices.max78000.device_transport.protobuffers import main_pb2
 from netdeployonnx.devices.max78000.graph_synthesizer import synth_to_core_ir
 from netdeployonnx.devices.max78000.graph_transformer import transform_graph
 
@@ -93,8 +96,7 @@ class MAX78000(Device):
             return []
         # TODO: do something based on the layout
         return [
-            # ("ACTION",main_pb2.ActionEnum.RUN_CNN_ENABLE),
-            ("ACTION", 4, 0),
+            ("ACTION", main_pb2.ActionEnum.RUN_CNN_ENABLE, 0),
         ]
 
     def cnn_init(self, layout: "CNNx16Core") -> Any:
@@ -213,8 +215,9 @@ class MAX78000(Device):
             "cnn_load_weights": self.cnn_load_weights(layout),
             "cnn_load_bias": self.cnn_load_bias(layout),
             "cnn_configure": self.cnn_configure(layout),
-            "load_input": [],
+            "load_input": [],  # TODO: add input loading
             "cnn_start": self.cnn_start(layout),
+            # TODO: fetch results
             "done": [],
         }.items():
             instructions.append(
@@ -229,15 +232,78 @@ class MAX78000(Device):
         # TODO: this is a placeholder, get from config
         return MAX78000Metrics("/dev/ttyACM0")
 
+    def transform_instructions(
+        self,
+        commands: Commands,
+        instructions: list[tuple[any]],
+    ) -> main_pb2.ProtocolMessage:
+        msg = commands.new_message()
+        action_not_set: bool = True
+        for instruction in instructions:
+            if isinstance(instruction, str):
+                # this is just a comment, so we ignore it (or maybe log / debug it?)
+                logging.debug(f"comment: {instruction}")
+            elif isinstance(instruction, tuple):  # either reg or mem access
+                if len(instruction) not in [2, 3]:
+                    raise ValueError(f"invalid instruction: {instruction}")
+                if len(instruction) == 2:
+                    instruction_dest, instruction_value = instruction
+                    if isinstance(instruction_value, int):  # reg access
+                        reg_addr: int = cnn_constants.registers.get(instruction_dest, 0)
+                        msg.payload.registers.append(
+                            main_pb2.SetRegister(
+                                address=reg_addr,
+                                preserve_mask=0,
+                                set_mask=instruction_value,
+                                size=main_pb2.Regsize.UINT32,
+                                readable=False,  # we dont care
+                            )
+                        )
+                    elif isinstance(instruction_value, (list, bytes)):  # mem access
+                        msg.payload.memory.append(
+                            main_pb2.SetMemoryContent(
+                                address=instruction_dest,
+                                data=instruction_value,
+                                setAddr=True,  # TODO: do we set it?
+                            )
+                        )
+                elif len(instruction) == 3 and action_not_set:
+                    # we may have an action instead of an instruction
+                    action, action_value, action_mask = instruction
+                    msg.action.execute_measurement = action_value
+                    logging.debug(f"action: {action} {action_value} {action_mask}")
+                    # only set once
+                    action_not_set = False
+                else:
+                    raise ValueError(f"invalid instruction: {instruction}")
+            else:
+                raise ValueError(f"invalid instruction: {instruction}")
+
+        return msg
+
     async def execute(self, instructions: Any, metrics: Metrics) -> Any:
         if type(instructions) is not list:
             # something failed in self.compile_instructions?
             raise ValueError("instructions must be a list")
-
-        await asyncio.sleep(0.1)
-
         assert isinstance(instructions, list)
         assert len(instructions) > 0 and isinstance(instructions[0], dict)
+
+        commands = Commands()
+        messages_per_stage: list[tuple[str, main_pb2.ProtocolMessage]] = []
+        for stage in instructions:
+            if isinstance(stage, dict):
+                stage_instructions = stage.get("instructions", [])
+                stage_name = stage.get("stage", "")
+                messages_per_stage.append(
+                    (
+                        stage_name,
+                        self.transform_instructions(commands, stage_instructions),
+                    )
+                )
+        for stagename, stagemsg in messages_per_stage:
+            messages = commands.split_message(stagemsg)
+            for submessage in messages:
+                await commands.send(submessage)
 
         return [
             1,

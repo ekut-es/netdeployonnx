@@ -738,7 +738,7 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
     # are there quadrant-only instructions?
     def instructions_init(self):
         """
-        return instructions like layercount, etc.
+        return instructions like ctrl, sram, layercount, etc.
         """
         ret = []
         if self.unused:
