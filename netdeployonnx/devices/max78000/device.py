@@ -1,5 +1,6 @@
-# import asyncio
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 from typing import Any
 
 import onnx
@@ -23,23 +24,135 @@ class MAX78000Metrics(Metrics):
     def __init__(self, tty_port: str):
         super().__init__()
         self.tty_port = tty_port
+        self.collected_answers = []
 
     def _get_network_stats(self) -> dict[str, float]:
         stats: dict[str, float] = {}
 
-        measurements = {
-            "convolution": (0.1, 0.1),
-            "input_loading": (0.1, 0.1),
-            "weights_loading": (0.1, 0.1),
-            "all": (0.1, 0.1),
-        }
+        one_row = self.collected_answers[-1] if len(self.collected_answers) > 0 else ""
 
-        for measurement_name, (nano_watt, nano_s) in measurements.items():
-            stats[f"nW_per_{measurement_name}"] = round(nano_watt, 2)
-            stats[f"ns_per_{measurement_name}"] = round(nano_s, 2)
-            stats[f"nJ_per_{measurement_name}"] = round(nano_s * nano_watt, 2)
+        res = one_row.rstrip().split(",")
+
+        if len(res) == 12:
+            IDX_ENERGY_USED = 0  # noqa: N806, F841
+            IDX_TIME = 1  # noqa: N806
+            IDX_IDLE_POWER = 2  # noqa: N806, F841
+            IDX_ACTIVE_POWER = 3  # noqa: N806, F841
+            IDX_USED_POWER = 4  # noqa: N806
+
+            def extract_stage(
+                stage: list[str],
+            ) -> tuple[float, float, float, float, float]:
+                used_energy = float(stage[0])
+                used_time = float(stage[1])
+                idle_power = float(stage[2])
+                active_power = float(stage[3])
+                diff_power = active_power - idle_power
+
+                return used_energy, used_time, idle_power, active_power, diff_power
+
+            # TIMES_OPERATION = 100
+
+            measure_kernels = extract_stage(res[0:4])
+            measure_input = extract_stage(res[4:8])
+            measure_input_convolution = extract_stage(res[8:12])
+            # only possible for non-FIFO mode
+            calculated_convolutions = [
+                measure_input_convolution[idx] - measure_input[idx]
+                for idx in range(len(measure_input_convolution))
+            ]
+
+            WATTS_TO_MICRO_WATTS = 1e6  # noqa: N806
+            SECONDS_TO_MICRO_SECONDS = 1e6  # noqa: N806
+
+            measurements = {
+                "weights_loading": (
+                    measure_kernels[IDX_USED_POWER] * WATTS_TO_MICRO_WATTS,
+                    measure_kernels[IDX_TIME] * SECONDS_TO_MICRO_SECONDS,
+                ),
+                "input_loading": (
+                    measure_input[IDX_USED_POWER] * WATTS_TO_MICRO_WATTS,
+                    measure_input[IDX_TIME] * SECONDS_TO_MICRO_SECONDS,
+                ),
+                "convolution": (
+                    calculated_convolutions[IDX_USED_POWER] * WATTS_TO_MICRO_WATTS,
+                    calculated_convolutions[IDX_TIME] * SECONDS_TO_MICRO_SECONDS,
+                ),
+                "all": (
+                    sum(
+                        [
+                            measure_kernels[IDX_USED_POWER],
+                            measure_input_convolution[IDX_USED_POWER],
+                        ]
+                    )
+                    * WATTS_TO_MICRO_WATTS,
+                    sum(
+                        [
+                            measure_kernels[IDX_TIME],
+                            measure_input_convolution[IDX_TIME],
+                        ]
+                    )
+                    * SECONDS_TO_MICRO_SECONDS,
+                ),
+            }
+
+            for measurement_name, (micro_watt, micro_s) in measurements.items():
+                stats[f"uW_per_{measurement_name}"] = round(micro_watt, 2)
+                stats[f"us_per_{measurement_name}"] = round(micro_s, 2)
+                stats[f"uJ_per_{measurement_name}"] = (
+                    round(micro_s * micro_watt, 2) * 1e-6
+                )
 
         return stats
+
+    @asynccontextmanager
+    async def get_serial(
+        self,
+    ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        from serial_asyncio import (
+            open_serial_connection,
+        )
+
+        reader, writer = await open_serial_connection(
+            url=self.tty_port, baudrate=1_500_000
+        )
+        yield reader, writer
+        writer.close()
+        await writer.wait_closed()
+        reader.close()
+
+    async def collect(self, timeout: float = 1) -> str:  # noqa: ASYNC109
+        async with self.get_serial() as (reader, writer):
+            try:
+                data = await asyncio.wait_for(reader.read(100), timeout=timeout)
+                answer = data.decode()
+                self.collected_answers.append(answer)
+                return answer
+            except asyncio.TimeoutError:
+                return ""
+
+    async def set_mode(self, mode: str) -> None:
+        """
+        set the mode of the measurement device
+        v - voltage mode
+        i - current mode
+        w - power mode
+        t - triggered mode (used with the ai8xize.py --energy option)
+        s - system mode (used with the ai8xize.py --energy option)
+        """
+        modes = {
+            "power": "w",
+            "voltage": "v",
+            "current": "i",
+            "triggered": "t",
+            "system": "s",
+        }
+        if mode not in modes:
+            raise ValueError(f"mode {mode} not supported")
+        character: str = modes[mode]
+        async with self.get_serial() as (reader, writer):
+            writer.write(character.encode())
+            await writer.drain()
 
     def as_dict(self) -> dict:
         d = super().as_dict()
@@ -288,6 +401,8 @@ class MAX78000(Device):
         assert isinstance(instructions, list)
         assert len(instructions) > 0 and isinstance(instructions[0], dict)
 
+        await metrics.set_mode("triggered")
+
         commands = Commands()
         messages_per_stage: list[tuple[str, main_pb2.ProtocolMessage]] = []
         for stage in instructions:
@@ -304,6 +419,8 @@ class MAX78000(Device):
             messages = commands.split_message(stagemsg)
             for submessage in messages:
                 await commands.send(submessage)
+
+        await metrics.collect()  # collect is needed so that .as_dict works
 
         return [
             1,

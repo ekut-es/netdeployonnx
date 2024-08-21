@@ -298,26 +298,247 @@ def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool: 
 
 
 @pytest.mark.asyncio
-async def test_backend_ai8xize():
-    dev = MAX78000_ai8xize()
+async def test_backend_ai8xize_run_onnx(open_serial_connection_virtual_device):
+    with mock.patch(
+        "serial_asyncio.open_serial_connection", open_serial_connection_virtual_device
+    ) as mock_open_serial_connection:  # noqa: F841
+        dev = MAX78000_ai8xize()
+        assert dev
 
-    data_folder = Path(__file__).parent / "data"
-    model = onnx.load(data_folder / "cifar10.onnx")
-    result = await dev.run_onnx(model)
-    print(result)
-    assert "exception" not in result
+        data_folder = Path(__file__).parent / "data"
+        model = onnx.load(data_folder / "cifar10.onnx")
+        result = await dev.run_onnx(model)
+        print(result)
+        # assert mock_open_serial_connection.assert_awaited()
+        assert "exception" not in result
 
 
 @pytest.mark.asyncio
-async def test_backend_ai8xize_execute_cifar10():
-    dev = MAX78000_ai8xize()
+async def test_backend_ai8xize_execute_cifar10(
+    open_serial_connection_virtual_device,
+):
+    with mock.patch(
+        "serial_asyncio.open_serial_connection",
+        open_serial_connection_virtual_device,
+    ) as mock_open_serial_connection:  # noqa: F841
+        dev = MAX78000_ai8xize()
 
-    data_folder = Path(__file__).parent / "data"
-    model = onnx.load(data_folder / "cifar10.onnx")
-    layout = await dev.layout_transform(model)
-    instr = await dev.compile_instructions(layout)
-    res = await dev.execute(instructions=instr, metrics=MAX78000Metrics("/dev/null"))
-    assert res
+        data_folder = Path(__file__).parent / "data"
+        model = onnx.load(data_folder / "cifar10.onnx")
+        layout = await dev.layout_transform(model)
+        instr = await dev.compile_instructions(layout)
+        res = await dev.execute(
+            instructions=instr, metrics=MAX78000Metrics("/dev/null")
+        )
+
+        assert res
+
+
+class MeasureDevice:
+    "https://github.com/analogdevicesinc/max78000-powermonitor/blob/main/main.c#L110"
+
+    def __init__(self, measurement: dict[str, list[float]] = {}):
+        self.mode = ""
+        self.idle_power = measurement.get("idle_power", [0.03])
+        # kernel, input, input+inference
+        self.active_power = measurement.get("active_power", [70.3, 69.5, 327.8])
+        self.time = measurement.get("time", [20.8e-3, 268.3e-6, 1.6e-3])
+        self.power = measurement.get("power", [0.1, 0.2, 0.3, 0.4])
+        self.voltages = measurement.get("voltages", [3.3, 3.3, 3.3, 1.8])
+
+    def write(self, data, *args, **kwargs):
+        self.mode = data
+
+    async def read(self, count: int, *args, **kwargs) -> bytes:
+        # 3.3V, CA, CB, 1.8V
+        COREA_IDX = 1  # noqa: N806, F841
+        idle_power = self.idle_power[0]
+        active_power = self.active_power
+        time = self.time
+        power = self.power
+        voltages = self.voltages
+        if self.mode == b"v":
+            # voltage mode
+            sepstr = ",".join([f"{voltage:g}" for voltage in voltages])
+            return bytes(f"{sepstr}\r\n", "utf8")
+        elif self.mode in [b"t", b"c"]:
+            # trigger mode CNN
+            seps = []
+            for i in range(3):
+                vals = [
+                    (active_power[i] - idle_power) * time[i] / 1000.0,
+                    time[i],
+                    idle_power / 1000.0,
+                    active_power[i] / 1000.0,
+                ]
+                seps.append(",".join([f"{val:g}" for val in vals]))
+            sepstr = ",".join(seps)
+            return bytes(f"{sepstr}\r\n", "utf8")
+        elif self.mode == b"s":
+            # trigger mode System
+            seps = []
+            for i in range(3):
+                vals = [
+                    (idle_power) * time[i] / 1000.0,
+                    time[i],
+                    idle_power / 1000.0,
+                ]
+                seps.append(",".join([f"{val:g}" for val in vals]))
+            sepstr = ",".join(seps)
+            return bytes(f"{sepstr}\r\n", "utf8")
+        elif self.mode == b"\x16":  # CTRL-V
+            PM_VERSION = "EMULATED"  # noqa: N806
+            __TIMESTAMP__ = "2024-08-21"  # noqa: N806
+            AI_DEVICE = "EMULATED"  # noqa: N806
+            return bytes(
+                f"\r\nPMON {PM_VERSION} {__TIMESTAMP__} FOR {AI_DEVICE}\r\n\r\n", "utf8"
+            )
+        elif self.mode == b"i":
+            # current mode
+            sepstr = ",".join(
+                [
+                    f"{power[i] / voltages[i]:g}" if voltages[i] else f"{0.0:g}"
+                    for i, voltage in enumerate(voltages)
+                ]
+            )
+            return bytes(f"{sepstr}\r\n", "utf-8")
+        elif self.mode == b"w":
+            # power mode
+            sepstr = ",".join(
+                [f"{power[i]/1000.0:g}" for i, voltage in enumerate(voltages)]
+            )
+            return bytes(f"{sepstr}\r\n", "utf-8")
+        return b""
+
+    async def drain(
+        self,
+    ):
+        pass
+
+
+@pytest.fixture(scope="module")
+def open_serial_connection_virtual_device():
+    mdev = MeasureDevice()
+
+    async def return_virtual_dev(*args, **kwargs):
+        reader, writer = mock.AsyncMock(), mock.AsyncMock()
+        reader.read = mdev.read
+        writer.drain = mdev.drain
+        writer.write = mdev.write
+        writer.close = mock.MagicMock()
+        reader.close = mock.MagicMock()
+        return reader, writer
+
+    return return_virtual_dev
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("power", "0.0001,0.0002,0.0003,0.0004\r\n"),
+        ("voltage", "3.3,3.3,3.3,1.8\r\n"),
+        ("current", "0.030303,0.0606061,0.0909091,0.222222\r\n"),
+        (
+            "triggered",
+            "0.00146162,0.0208,3e-05,0.0703,1.86388e-05,0.0002683,"
+            "3e-05,0.0695,0.000524432,0.0016,3e-05,0.3278\r\n",
+        ),
+        (
+            "system",
+            "6.24e-07,0.0208,3e-05,8.049e-09,0.0002683,3e-05,4.8e-08,0.0016,3e-05\r\n",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_metrics_collect_with_virtual_serialport(
+    open_serial_connection_virtual_device, mode, expected
+):
+    with mock.patch(
+        "serial_asyncio.open_serial_connection", open_serial_connection_virtual_device
+    ) as mock_open_serial_connection:  # noqa: F841
+        metrics = MAX78000Metrics("/dev/null")
+        await metrics.set_mode(mode)
+        data = await metrics.collect()
+        assert data == expected
+
+
+@pytest.mark.parametrize(
+    "measurement, expected",
+    [
+        (
+            {
+                "idle_power": [0.03, 0.03, 0.03, 0.03],  # in W
+                "active_power": [70.3, 69.5, 327.8],  # in mW
+                "time": [20.8e-3, 268.3e-6, 1.6e-3],  # in s
+                "power": [0.1, 0.2, 0.3, 0.4],  # in W
+                "voltages": [3.3, 3.3, 3.3, 1.8],  # in V
+            },
+            {
+                "deployment_execution_times": {"total": 0.0},
+                # these are calculated from above
+                "uJ_per_all": 1748e0 + 7168,
+                "uJ_per_convolution": 496e0 - 152,
+                "uJ_per_input_loading": 16e0 + 2.63,
+                "uJ_per_weights_loading": 1236e0 + 225,
+                # these are absolute (from above)
+                "uW_per_all": 398.1e3,
+                "uW_per_convolution": 258.3e3,
+                "uW_per_input_loading": 69.5e3,
+                "uW_per_weights_loading": 70.3e3,
+                "us_per_all": 22.4e3,
+                "us_per_convolution": 1.3317e3,
+                "us_per_input_loading": 268.3,
+                "us_per_weights_loading": 20.8e3,
+            },
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_metrics_dict_with_virtual_serialport(measurement, expected):
+    mdev = MeasureDevice(measurement)
+
+    async def return_virt(*args, **kwargs):
+        reader, writer = mock.AsyncMock(), mock.AsyncMock()
+        reader.read = mdev.read
+        writer.drain = mdev.drain
+        writer.write = mdev.write
+        writer.close = mock.MagicMock()
+        reader.close = mock.MagicMock()
+        return reader, writer
+
+    with mock.patch(
+        "serial_asyncio.open_serial_connection", return_virt
+    ) as mock_open_serial_connection:  # noqa: F841
+        metrics = MAX78000Metrics("/dev/null")
+        await metrics.set_mode("triggered")
+        await metrics.collect()
+        data = metrics.as_dict()
+
+        assertion_errors = []
+        for key in expected:
+            try:
+                if isinstance(expected[key], float):
+                    r, a = estimate_isclose_tolerances(
+                        data[key] * 1e-6, expected[key] * 1e-6
+                    )
+                    assert np.isclose(data[key], expected[key], rtol=1e-3, atol=1e-3), (
+                        f"{key}: {data[key]*1e-6} != {expected[key]*1e-6},"
+                        f" rtol={r:g}, atol={a:g}"
+                    )
+                else:
+                    assert data[key] == expected[key]
+            except AssertionError as e:
+                assertion_errors.append(str(e).split("\n")[0])
+        if len(assertion_errors) > 0:
+            for e in assertion_errors:
+                print(e)
+            assert False, "\n".join([str(e) for e in assertion_errors])
+
+
+def estimate_isclose_tolerances(a, b):
+    atol = abs(a - b)
+    rtol = atol / max(abs(a), abs(b))
+    return rtol, atol
 
 
 @pytest.mark.asyncio
