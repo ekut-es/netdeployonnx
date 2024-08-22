@@ -62,21 +62,25 @@ class MAX78000Metrics(Metrics):
                 for idx in range(len(measure_input_convolution))
             ]
 
-            WATTS_TO_MICRO_WATTS = 1e6  # noqa: N806
-            SECONDS_TO_MICRO_SECONDS = 1e6  # noqa: N806
+            X_TO_MICRO_WATTS = 1e6  # noqa: N806
+            X_TO_MICRO_SECONDS = 1e6  # noqa: N806
+            X_TO_MICRO_JOULES = 1e6  # noqa: N806
 
             measurements = {
                 "weights_loading": (
-                    measure_kernels[IDX_USED_POWER] * WATTS_TO_MICRO_WATTS,
-                    measure_kernels[IDX_TIME] * SECONDS_TO_MICRO_SECONDS,
+                    measure_kernels[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                    measure_kernels[IDX_TIME] * X_TO_MICRO_SECONDS,
+                    measure_kernels[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                 ),
                 "input_loading": (
-                    measure_input[IDX_USED_POWER] * WATTS_TO_MICRO_WATTS,
-                    measure_input[IDX_TIME] * SECONDS_TO_MICRO_SECONDS,
+                    measure_input[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                    measure_input[IDX_TIME] * X_TO_MICRO_SECONDS,
+                    measure_input[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                 ),
                 "convolution": (
-                    calculated_convolutions[IDX_USED_POWER] * WATTS_TO_MICRO_WATTS,
-                    calculated_convolutions[IDX_TIME] * SECONDS_TO_MICRO_SECONDS,
+                    calculated_convolutions[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                    calculated_convolutions[IDX_TIME] * X_TO_MICRO_SECONDS,
+                    calculated_convolutions[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                 ),
                 "all": (
                     sum(
@@ -85,23 +89,35 @@ class MAX78000Metrics(Metrics):
                             measure_input_convolution[IDX_USED_POWER],
                         ]
                     )
-                    * WATTS_TO_MICRO_WATTS,
+                    * X_TO_MICRO_WATTS,
                     sum(
                         [
                             measure_kernels[IDX_TIME],
                             measure_input_convolution[IDX_TIME],
                         ]
                     )
-                    * SECONDS_TO_MICRO_SECONDS,
+                    * X_TO_MICRO_SECONDS,
+                    sum(
+                        [
+                            measure_kernels[IDX_ENERGY_USED],
+                            measure_input_convolution[IDX_ENERGY_USED],
+                        ]
+                    )
+                    * X_TO_MICRO_JOULES,
                 ),
             }
 
-            for measurement_name, (micro_watt, micro_s) in measurements.items():
-                stats[f"uW_per_{measurement_name}"] = round(micro_watt, 2)
-                stats[f"us_per_{measurement_name}"] = round(micro_s, 2)
-                stats[f"uJ_per_{measurement_name}"] = (
-                    round(micro_s * micro_watt, 2) * 1e-6
-                )
+            for measurement_name, (
+                micro_watt,
+                micro_s,
+                micro_joules,
+            ) in measurements.items():
+                stats[f"uW_per_{measurement_name}"] = round(max(0, micro_watt), 2)
+                stats[f"us_per_{measurement_name}"] = round(max(0, micro_s), 2)
+                # stats[f"uJ_per_{measurement_name}"] = (
+                #     round(micro_s * micro_watt, 2) * 1e-6
+                # )
+                stats[f"uJ_per_{measurement_name}"] = round(max(0, micro_joules), 2)
 
         return stats
 

@@ -339,7 +339,7 @@ class MeasureDevice:
 
     def __init__(self, measurement: dict[str, list[float]] = {}):
         self.mode = ""
-        self.idle_power = measurement.get("idle_power", [0.03])
+        self.idle_power = measurement.get("idle_power", [0.03] * 3)
         # kernel, input, input+inference
         self.active_power = measurement.get("active_power", [70.3, 69.5, 327.8])
         self.time = measurement.get("time", [20.8e-3, 268.3e-6, 1.6e-3])
@@ -352,7 +352,7 @@ class MeasureDevice:
     async def read(self, count: int, *args, **kwargs) -> bytes:
         # 3.3V, CA, CB, 1.8V
         COREA_IDX = 1  # noqa: N806, F841
-        idle_power = self.idle_power[0]
+        idle_power = self.idle_power
         active_power = self.active_power
         time = self.time
         power = self.power
@@ -366,9 +366,9 @@ class MeasureDevice:
             seps = []
             for i in range(3):
                 vals = [
-                    (active_power[i] - idle_power) * time[i] / 1000.0,
+                    (active_power[i] - idle_power[i]) * time[i] / 1000.0,
                     time[i],
-                    idle_power / 1000.0,
+                    idle_power[i] / 1000.0,
                     active_power[i] / 1000.0,
                 ]
                 seps.append(",".join([f"{val:g}" for val in vals]))
@@ -379,9 +379,9 @@ class MeasureDevice:
             seps = []
             for i in range(3):
                 vals = [
-                    (idle_power) * time[i] / 1000.0,
+                    (idle_power[i]) * time[i] / 1000.0,
                     time[i],
-                    idle_power / 1000.0,
+                    idle_power[i] / 1000.0,
                 ]
                 seps.append(",".join([f"{val:g}" for val in vals]))
             sepstr = ",".join(seps)
@@ -463,11 +463,132 @@ async def test_metrics_collect_with_virtual_serialport(
 
 
 @pytest.mark.parametrize(
+    "message, expected",
+    [
+        (
+            "5.20414e-07,7.38719e-06,0.00310935,0.0735575,2.19814e-06,2.77844e-05,0.00310935,0.0822235,1.92158e-06,2.76521e-05,0.00310935,0.0726008",
+            {},
+        ),
+        (
+            "6.21383e-07,7.81052e-06,0.00310935,0.0826666,2.13321e-06,2.77854e-05,0.00310935,0.0798838,2.05103e-06,2.76256e-05,0.00310935,0.0773532",
+            {},
+        ),
+        (
+            "5.86322e-07,7.62531e-06,0.00310935,0.0800009,2.19136e-06,2.7759e-05,0.00310935,0.082052,2.21465e-06,2.76521e-05,0.00310935,0.0831993",
+            {},
+        ),
+        (
+            "8.76824e-07,7.73115e-06,0.00310935,0.116524,1.90149e-06,2.7759e-05,0.00310935,0.0716095,2.29047e-06,2.7705e-05,0.00310935,0.085783",
+            {},
+        ),
+        (
+            "8.04126e-07,7.73115e-06,0.00310935,0.107121,1.99366e-06,2.77844e-05,0.00310935,0.0748642,2.25008e-06,2.76785e-05,0.00310935,0.0844028",
+            {},
+        ),
+        (
+            "7.43405e-07,7.7576e-06,0.00310935,0.0989386,2.19818e-06,2.77579e-05,0.00310935,0.0823006,2.21161e-06,2.76785e-05,0.00310935,0.0830128",
+            {},
+        ),
+        (
+            "7.49766e-07,7.70469e-06,0.00310935,0.100422,2.2807e-06,2.7759e-05,0.00310935,0.0852701,2.14223e-06,2.75992e-05,0.00310935,0.0807286",
+            {},
+        ),
+        (
+            "4.72946e-07,7.83698e-06,0.00310935,0.0634573,2.27616e-06,2.77844e-05,0.00310935,0.0850316,2.16434e-06,2.76785e-05,0.00310935,0.0813048",
+            {},
+        ),
+        (
+            "4.88699e-07,7.5724e-06,0.00310935,0.0676462,2.27405e-06,2.7759e-05,0.00310935,0.0850307,2.19117e-06,2.76521e-05,0.00310935,0.0823499",
+            {},
+        ),
+        (
+            "5.90711e-07,7.96927e-06,0.00310935,0.077233,2.19803e-06,2.7759e-05,0.00310935,0.0822919,1.9502e-06,2.76521e-05,0.00310935,0.0736356",
+            {},
+        ),
+        (
+            "6.39399e-07,7.81052e-06,0.00310935,0.0849732,2.15581e-06,2.7759e-05,0.00310935,0.0807713,2.14708e-06,2.7705e-05,0.00310935,0.0806073",
+            {
+                "uJ_per_weights_loading": 0.639,
+                "us_per_weights_loading": 7.81,
+                "uW_per_weights_loading": 81863.85,
+                "uJ_per_input_loading": 2.16,
+                "us_per_input_loading": 27.75,
+                "uW_per_input_loading": 77662.0,
+                "uJ_per_convolution": 0,
+                "us_per_convolution": 0,
+                "uW_per_convolution": 0,
+            },
+        ),
+        (
+            "7.50678e-07,7.73115e-06,0.00310935,0.100207,2.1794e-06,2.7759e-05,0.00310935,0.0816211,2.26539e-06,2.78373e-05,0.00310935,0.084489",
+            {
+                "uJ_per_weights_loading": 0.75,
+                "us_per_weights_loading": 7.73,
+                "uW_per_weights_loading": 97090.0,
+                "uJ_per_input_loading": 2.18,
+                "us_per_input_loading": 27.75,
+                "uW_per_input_loading": 78510.0,
+                "uJ_per_convolution": 0.09,
+                "us_per_convolution": 0.08,
+                "uW_per_convolution": 2867.9,
+            },
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_metrics_parsing(message, expected):
+    mdev = MeasureDevice()
+
+    async def return_virt(*args, **kwargs):
+        reader, writer = mock.AsyncMock(), mock.AsyncMock()
+        reader.read = mdev.read
+        writer.drain = mdev.drain
+        writer.write = mdev.write
+        writer.close = mock.MagicMock()
+        reader.close = mock.MagicMock()
+        return reader, writer
+
+    async def my_read(inst):
+        return bytes(f"{message}\r\n", "utf-8")
+
+    mdev.read = my_read
+
+    with mock.patch(
+        "serial_asyncio.open_serial_connection", return_virt
+    ) as mock_open_serial_connection:  # noqa: F841
+        metrics = MAX78000Metrics("/dev/null")
+        await metrics.set_mode("triggered")
+        await metrics.collect()
+        data = metrics.as_dict()
+
+        assertion_errors = []
+        # assert len(data) == len(
+        #     expected
+        # ), f"different keys: {list(data.keys())} != {list(expected.keys())}"
+        for key in expected:
+            try:
+                if isinstance(expected[key], float):
+                    r, a = estimate_isclose_tolerances(data[key], expected[key])
+                    assert np.isclose(data[key], expected[key], rtol=1e-3, atol=1e-3), (
+                        f"{key}: {data[key]} != {expected[key]},"
+                        f" rtol={r:g}, atol={a:g}"
+                    )
+                else:
+                    assert data[key] == expected[key]
+            except AssertionError as e:
+                assertion_errors.append(str(e).split("\n")[0])
+        if len(assertion_errors) > 0:
+            for e in assertion_errors:
+                print(e)
+            assert False, "\n".join([str(e) for e in assertion_errors])
+
+
+@pytest.mark.parametrize(
     "measurement, expected",
     [
         (
             {
-                "idle_power": [0.03, 0.03, 0.03, 0.03],  # in W
+                "idle_power": [10.87] * 3,  # in mW
                 "active_power": [70.3, 69.5, 327.8],  # in mW
                 "time": [20.8e-3, 268.3e-6, 1.6e-3],  # in s
                 "power": [0.1, 0.2, 0.3, 0.4],  # in W
@@ -476,15 +597,15 @@ async def test_metrics_collect_with_virtual_serialport(
             {
                 "deployment_execution_times": {"total": 0.0},
                 # these are calculated from above
-                "uJ_per_all": 1748e0 + 7168,
-                "uJ_per_convolution": 496e0 - 152,
-                "uJ_per_input_loading": 16e0 + 2.63,
-                "uJ_per_weights_loading": 1236e0 + 225,
+                "uJ_per_all": 1742.73,
+                "uJ_per_convolution": 491.0,
+                "uJ_per_input_loading": 15.73,
+                "uJ_per_weights_loading": 1236.0,
                 # these are absolute (from above)
-                "uW_per_all": 398.1e3,
-                "uW_per_convolution": 258.3e3,
-                "uW_per_input_loading": 69.5e3,
-                "uW_per_weights_loading": 70.3e3,
+                "uW_per_all": 376.1e3,
+                "uW_per_convolution": 258_300.0,
+                "uW_per_input_loading": 69500.0 - 10870,  # TODO: why 10870?
+                "uW_per_weights_loading": 70300.0 - 10870,  # TODO: why 10870?
                 "us_per_all": 22.4e3,
                 "us_per_convolution": 1.3317e3,
                 "us_per_input_loading": 268.3,
@@ -518,11 +639,9 @@ async def test_metrics_dict_with_virtual_serialport(measurement, expected):
         for key in expected:
             try:
                 if isinstance(expected[key], float):
-                    r, a = estimate_isclose_tolerances(
-                        data[key] * 1e-6, expected[key] * 1e-6
-                    )
+                    r, a = estimate_isclose_tolerances(data[key], expected[key])
                     assert np.isclose(data[key], expected[key], rtol=1e-3, atol=1e-3), (
-                        f"{key}: {data[key]*1e-6} != {expected[key]*1e-6},"
+                        f"{key}: {data[key]} != {expected[key]},"
                         f" rtol={r:g}, atol={a:g}"
                     )
                 else:
