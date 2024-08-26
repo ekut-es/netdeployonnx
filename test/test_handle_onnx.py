@@ -45,7 +45,7 @@ async def test_device_run_types(
 ):
     if expected_error:
         with pytest.raises(expected_error):
-            await device.run_async(run_type, b"")
+            await device.run_async(run_type, b"", "", b"")
 
 
 @pytest.mark.asyncio
@@ -53,7 +53,7 @@ async def test_device_run_with_empty_data(device):
     datatype = "onnxb"
     data = b""
     with pytest.raises(ValueError):  # model empty
-        result = await device.run_async(datatype, data)
+        result = await device.run_async(datatype, data, "", b"")
         assert isinstance(result, dict)
         assert "result" in result
         assert result["result"] is None
@@ -64,7 +64,7 @@ async def test_device_run_with_false_data(device):
     datatype = "onnxb"
     data = b"1"
     with pytest.raises(google.protobuf.message.DecodeError):
-        result = await device.run_async(datatype, data)
+        result = await device.run_async(datatype, data, "", b"")
         assert isinstance(result, dict)
         assert "result" in result
         assert result["result"] is None
@@ -118,7 +118,7 @@ async def test_device_run_with_good_data(device):
     datatype = "onnxb"
     data = data_stream.getvalue()
 
-    result = await device.run_async(datatype, data)
+    result = await device.run_async(datatype, data, "", b"")
 
     assert isinstance(result, dict)
     assert "result" in result

@@ -1,10 +1,29 @@
 import abc
 import io
+import json
+import pickle
 import time
 from contextlib import asynccontextmanager
 from typing import Any
 
 import onnx
+
+
+def convert(input_type: str, input_data: bytes) -> Any:
+    if input_type == "bytes" or input_type == "":
+        return input_data
+    elif input_type == "str":
+        return input_data.decode("utf-8")
+    elif input_type == "json":
+        return json.loads(input_data.decode("utf-8"))
+    elif input_type == "dict":
+        return pickle.loads(input_data)
+    elif input_type == "none":
+        return None
+    else:
+        raise ValueError(
+            f"input_type must be one of bytes, str, int, float, but is {input_type}"
+        )
 
 
 class Metrics:
@@ -143,7 +162,7 @@ class Device(abc.ABC):
         # if len(model.graph.node) > 10:
         #     raise ValueError("Model is too deep")
 
-    async def run_onnx(self, model: "onnx.ModelProto") -> dict:
+    async def run_onnx(self, model: "onnx.ModelProto", input: Any) -> dict:
         """ """
         try:
             async with self.collect_metrics() as collected_metrics:
@@ -180,10 +199,17 @@ class Device(abc.ABC):
             }
         return metrics
 
-    async def run_async(self, datatype: str, data: (bytes, "onnx.ModelProto")) -> dict:
+    async def run_async(
+        self,
+        datatype: str,
+        data: (bytes, "onnx.ModelProto"),
+        input_type: str,
+        input_data: bytes,
+    ) -> dict:
         """
         Run the model with the provided data
         """
+        converted_input_data: Any = convert(input_type, input_data)
         if not isinstance(datatype, str):
             raise ValueError("datatype must be a string")
         if datatype == "onnxb":
@@ -193,14 +219,14 @@ class Device(abc.ABC):
                 raise ValueError("Model is empty")
             textio = io.BytesIO(data)
             model = onnx.load(textio)
-            return await self.run_onnx(model)
+            return await self.run_onnx(model, converted_input_data)
         elif datatype == "onnx":
             if isinstance(data, onnx.ModelProto):
                 model = data
                 raise NotImplementedError("Not implemented")
             else:
                 raise ValueError("data must be an onnx model")
-            return await self.run_onnx(model)
+            return await self.run_onnx(model, converted_input_data)
         else:
             raise NotImplementedError("Only ONNX (onnxb/onnx) is supported")
 

@@ -62,6 +62,8 @@ def create_device_from_classname_and_ports(
 
 
 def list_devices(config: AppConfig) -> dict[str, Device]:
+    if config is None:
+        return {}
     devices_from_config: list[DeviceConfig] = config.devices
     devices = [
         create_device_from_classname_and_ports(
@@ -76,11 +78,10 @@ def list_devices(config: AppConfig) -> dict[str, Device]:
 
 
 class DeviceService(device_pb2_grpc.DeviceServiceServicer):
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig = None):
         self.device_handles: dict[(str | uuid.UUID), Device] = {}
         self.run_queue: dict[str, concurrent.futures.Future] = {}
         self.config = config
-        self.devices = list_devices(config)
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
@@ -93,7 +94,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             return loop
 
     def ListDevices(self, request, context):  # noqa: N802
-        devices = self.devices
+        devices = list_devices(self.config)
         return ListDevicesResponse(
             devices=[
                 DeviceInfo(
@@ -125,6 +126,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
         handle = request.deviceHandle.handle
         if handle in self.device_handles:
             payload = request.payload
+            input_payload = request.inputs
             device: Device = self.device_handles[handle]
 
             # put the reqid in a queue
@@ -132,7 +134,10 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             if run_id not in self.run_queue:
                 self.run_queue[run_id] = self.loop.create_task(
                     device.run_async(
-                        Payload_Datatype.Name(payload.datatype), payload.data
+                        Payload_Datatype.Name(payload.datatype),
+                        payload.data,
+                        Payload_Datatype.Name(input_payload.datatype),
+                        input_payload.data,
                     )
                 )
                 # we need to make sure that our task has the
@@ -207,7 +212,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                 manufacturer=dev.manufacturer,
                 firmware_version=dev.firmware_version,
             )
-            for devid, dev in self.devices.items()
+            for devid, dev in list_devices(self.config).items()
         ]
         # distill the result to only the devices that match the filters
         for f in filters:

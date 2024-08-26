@@ -307,7 +307,7 @@ async def test_backend_ai8xize_run_onnx(open_serial_connection_virtual_device):
 
         data_folder = Path(__file__).parent / "data"
         model = onnx.load(data_folder / "cifar10.onnx")
-        result = await dev.run_onnx(model)
+        result = await dev.run_onnx(model, None)
         print(result)
         # assert mock_open_serial_connection.assert_awaited()
         assert "exception" not in result
@@ -669,7 +669,7 @@ async def test_backend_ai8xize_execute_called_cifar10():
     with mock.patch(
         "netdeployonnx.devices.max78000.device.MAX78000.execute"
     ) as mock_execute:
-        await dev.run_onnx(model)
+        await dev.run_onnx(model, None)
         mock_execute.assert_awaited_once()
         instructions, metrics = mock_execute.await_args.args
 
@@ -686,7 +686,7 @@ async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout)
         mock_compile_instructions.return_value = [
             {"stage": "cnn_enable", "instructions": []}
         ]
-        await dev.run_onnx(model)
+        await dev.run_onnx(model, None)
         mock_compile_instructions.assert_awaited_once()
         # unpack the args
         (layout_ir,) = mock_compile_instructions.await_args.args
