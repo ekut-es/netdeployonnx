@@ -1,4 +1,7 @@
-import marko
+try:
+    import marko
+except ImportError:
+    marko = None
 
 
 def do_heading(parse, field_str_open) -> bool:
