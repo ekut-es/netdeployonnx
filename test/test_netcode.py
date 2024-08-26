@@ -5,8 +5,11 @@ from unittest import mock
 
 import pytest
 
-from netdeployonnx.common import device_pb2
+from netdeployonnx.common import device_pb2, device_pb2_grpc
+from netdeployonnx.common.device_pb2_grpc import DeviceServiceStub
 from netdeployonnx.devices import DummyDevice
+from netdeployonnx.devices.max78000 import MAX78000
+from netdeployonnx.server import DeviceService
 
 
 def run_debugger():
@@ -19,22 +22,22 @@ def run_debugger():
 
 @pytest.fixture(scope="module")
 def grpc_add_to_server():
-    from netdeployonnx.common import device_pb2_grpc
-
     return device_pb2_grpc.add_DeviceServiceServicer_to_server
 
 
 @pytest.fixture(scope="module")
 def grpc_servicer():
-    from netdeployonnx.server import DeviceService
-
-    return DeviceService()
+    with mock.patch("netdeployonnx.server.list_devices") as mock_list_devices:
+        mock_list_devices.return_value = {
+            "1": MAX78000("EvKit_V1", "MAXIM", "?"),
+            "2": MAX78000("FTHR_RevA", "MAXIM", "?"),
+            "3": DummyDevice("Test", "test", "."),
+        }
+        return DeviceService()
 
 
 @pytest.fixture(scope="module")
 def grpc_stub_cls(grpc_channel):
-    from netdeployonnx.common.device_pb2_grpc import DeviceServiceStub
-
     return DeviceServiceStub
 
 
@@ -61,15 +64,16 @@ def test_device_handle_filter(
     """
     Test that a device handle can be retrieved with filters
     """
-    with mock.patch("netdeployonnx.server.list_devices") as mock_list_devices:
-        retval = {
-            "1": DummyDevice("EvKit_V1", "MAXIM", "?") if 1 in list_devices else None,
-            "2": DummyDevice("FTHR_RevA", "MAXIM", "?") if 2 in list_devices else None,
-            "3": DummyDevice("Test", "test", ".") if 3 in list_devices else None,
-        }
-        mock_list_devices.return_value = {
-            k: v for k, v in retval.items() if v is not None
-        }
+    retval = {
+        "1": DummyDevice("EvKit_V1", "MAXIM", "?") if 1 in list_devices else None,
+        "2": DummyDevice("FTHR_RevA", "MAXIM", "?") if 2 in list_devices else None,
+        "3": DummyDevice("Test", "test", ".") if 3 in list_devices else None,
+    }
+    retval = dict(
+        filter(lambda x: x[1] is not None, retval.items())
+    )  # remove None values
+    with mock.patch("netdeployonnx.server.list_devices") as mock_devices:
+        mock_devices.return_value = retval
         filters_req = [device_pb2.DeviceInfo(model=f) for f in filter_model]
         filters_req += [device_pb2.DeviceInfo(manufacturer=f) for f in filter_manuf]
         response = grpc_stub.GetDeviceHandle(
@@ -239,7 +243,7 @@ def test_run_payload_async(
         mock_run_async.assert_called_once()
         mock_run_async.assert_awaited_once()
         print(mock_run_async)
-        mock_run_async.assert_awaited_with("none", b"test")
+        mock_run_async.assert_awaited_with("none", b"test", "none", b"")
 
 
 def test_run_payload_async_wrong_returntype(
@@ -270,7 +274,7 @@ def test_run_payload_async_wrong_returntype(
             assert response.payload.data == expected_result
         mock_run_async.assert_called_once()
         # runid, datatype, data
-        mock_run_async.assert_called_with("none", b"test")
+        mock_run_async.assert_called_with("none", b"test", "none", b"")
 
 
 def test_run_payload_async_invalid_runid(grpc_stub):
