@@ -1,23 +1,27 @@
-try:
-    import numpy as np
-    import onnx
-    import torch
-    import torch.nn as nn
-    import torch.onnx
-    from onnx2pytorch import ConvertModel
-except ImportError as imperr:
-    print(f"Import error: {imperr}")
-
 import pathlib
 
+import numpy as np
+import onnx
+import pytest
+import torch
+import torch.nn as nn
+import torch.onnx
+
+try:
+    from onnx2pytorch import ConvertModel
+except ImportError:
+    onnx2pytorch = None
+
 data = pathlib.Path(__file__).parent / "data"
+ai8x_training_path = pathlib.Path(__file__).parent.parent.parent / "ai8x-training"
 
 
 def create_cifar10_model():
     import sys
 
-    sys.path.append("/home/vscode/_Masterarbeit_SS24/hannah-env/ai8x-training/")
-    sys.path.append("/home/vscode/_Masterarbeit_SS24/hannah-env/ai8x-training/models/")
+    sys.path.append(str(ai8x_training_path))
+    sys.path.append(str(ai8x_training_path / "models"))
+
     # i need to import the class from the file ai85net-nas-cifar.py
     # i tried to add the path to the sys.path, but it still doesn't work
     # i also tried to import the class from the file, but it doesn't work either
@@ -168,6 +172,9 @@ def execute_model(model):
     print("result looks good!")
 
 
+@pytest.mark.skipif(
+    not ai8x_training_path.exists(), reason="ai8x-training is not there"
+)
 def test_create_cifar10_model():
     model = create_cifar10_model()
     assert model
