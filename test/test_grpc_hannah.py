@@ -1,11 +1,17 @@
 from unittest import mock
 
+import pytest
 import torch
 
-from netdeployonnx.common.hannah_backend import GPRCBackend
 from netdeployonnx.common.wrapper import Payload_Datatype
 
+try:
+    from hannah.backends import GPRCBackend
+except ImportError:
+    GPRCBackend = None
 
+
+@pytest.mark.skipif(GPRCBackend is None, reason="hannah backend not installed")
 def test_backend():
     backend = GPRCBackend(client_connect="localhost:28329")
     assert backend is not None
