@@ -37,7 +37,7 @@ service DeviceService {
     rpc FreeDeviceHandle(FreeDeviceHandleRequest) returns (FreeDeviceHandleResponse) {}
     rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse) {}
 
-    # missing: prepare, profile
+    // missing: prepare, profile
 
     rpc RunPayloadSynchronous(RunPayloadRequest) returns (RunPayloadResponse) {}
 
@@ -76,6 +76,7 @@ message RunPayloadRequest {
     // TODO: send a model?
     DeviceHandle deviceHandle = 1;
     Payload payload = 2;
+    Payload inputs = 3;
 }
 
 message RunPayloadResponse {
