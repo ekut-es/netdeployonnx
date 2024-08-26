@@ -29,7 +29,13 @@ def grpc_add_to_server():
 
 @pytest.fixture(scope="module")
 def grpc_servicer():
-    return DeviceService()
+    with mock.patch("netdeployonnx.server.list_devices") as mock_list_devices:
+        mock_list_devices.return_value = {
+            "1": MAX78000("EvKit_V1", "MAXIM", "?"),
+            "2": MAX78000("FTHR_RevA", "MAXIM", "?"),
+            "3": DummyDevice("Test", "test", "."),
+        }
+        return DeviceService()
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +49,11 @@ def test_net_deploy(grpc_stub: DeviceService):
     """
     Test that the device information can be retrieved by handle
     """
-    with mock.patch("netdeployonnx.server.list_devices") as mock_list_devices:
+    with (
+        mock.patch("netdeployonnx.server.list_devices") as mock_list_devices,
+        mock.patch("netdeployonnx.devices.max78000.MAX78000.execute") as mock_execute,
+    ):
+        mock_execute.return_value = {"result": "ok"}
         mock_list_devices.return_value = {
             "1": MAX78000("EvKit_V1", "MAXIM", "?"),
             "2": MAX78000("FTHR_RevA", "MAXIM", "?"),
@@ -112,13 +122,17 @@ def test_net_deploy(grpc_stub: DeviceService):
 
 @pytest.mark.asyncio
 async def test_wrapper_for_deployment(grpc_stub):
-    with mock.patch("netdeployonnx.server.list_devices") as mock_list_devices:
+    with (
+        mock.patch("netdeployonnx.server.list_devices") as mock_list_devices,
+        mock.patch("netdeployonnx.devices.max78000.MAX78000.execute") as mock_execute,
+    ):
+        mock_execute.return_value = {"result": "ok"}
         mock_list_devices.return_value = {
             "1": MAX78000_ai8xize("EvKit_V1", "MAXIM", "?"),
             "2": MAX78000("FTHR_RevA", "MAXIM", "?"),
             "3": DummyDevice("Test", "test", "."),
         }
-        client = NetClient(grpc_stub)
+        client = NetClient(grpc_stub, mock.MagicMock())
         async with client.connect("EvKit_V1") as remote_device:
             # load the cifar10 net
             data_folder = Path(__file__).parent / "data"
