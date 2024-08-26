@@ -1,0 +1,14 @@
+client:
+  host: localhost
+  port: 28329
+devices:
+- class_name: MAX78000_ai8xize
+  communication_port: /dev/ttyACM1
+  energy_port: /dev/ttyACM0
+  name: EVKit_V1
+logging:
+  file: log.log
+  level: INFO
+server:
+  host: 0.0.0.0
+  port: 28329

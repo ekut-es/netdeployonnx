@@ -135,8 +135,11 @@ class MAX78000Metrics(Metrics):
         )
         yield reader, writer
         writer.close()
-        await writer.wait_closed()
-        reader.close()
+        try:
+            await asyncio.wait_for(writer.wait_closed(), timeout=4) 
+        except TimeoutError:
+            # if it does not return, i dont fcare
+            pass
 
     async def collect(self, timeout: float = 1) -> str:  # noqa: ASYNC109
         async with self.get_serial() as (reader, writer):
@@ -462,8 +465,8 @@ class MAX78000(Device):
                 messages = commands.split_message(stagemsg)
                 for submessage in messages:
                     await commands.send(submessage)  # these can throw a CancelledError
-        except asyncio.exceptions.CancelledError:
-            raise
+        except asyncio.exceptions.CancelledError as cancelled_error:
+            raise Exception("message cancelled")
 
         await metrics.collect()  # collect is needed so that .as_dict works
 

@@ -1,4 +1,5 @@
 import abc
+import asyncio
 import io
 import json
 import pickle
@@ -165,6 +166,7 @@ class Device(abc.ABC):
     async def run_onnx(self, model: "onnx.ModelProto", input: Any) -> dict:
         """ """
         try:
+            await asyncio.sleep(0)
             async with self.collect_metrics() as collected_metrics:
                 self._check_model(model)
                 collected_metrics.timestamp("_check_model")
@@ -209,6 +211,7 @@ class Device(abc.ABC):
         """
         Run the model with the provided data
         """
+        await asyncio.sleep(0)
         converted_input_data: Any = convert(input_type, input_data)
         if not isinstance(datatype, str):
             raise ValueError("datatype must be a string")

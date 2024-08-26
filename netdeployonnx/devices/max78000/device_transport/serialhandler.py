@@ -71,6 +71,7 @@ def recalc_crc(msg: "main_pb2.ProtocolMessage") -> int:
 
 class KeepaliveTimer:
     def __init__(self):
+        self.TIMER_TICK = 0.1
         self.timer = 0
         self.timer_max_val = 10  # default 10 ticks @ 100ms => 1s
         self.initialized = False
@@ -85,12 +86,12 @@ class KeepaliveTimer:
     async def close_tasks(self):
         if self.task_timer:
             self.task_timer.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.task_timer
         if self.task_stats:
             self.task_stats.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await self.task_timer
-        with contextlib.suppress(asyncio.CancelledError):
-            await self.task_stats
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.task_stats
 
     def init_once(self, timeout_in_s: float):
         if not self.initialized:
@@ -98,14 +99,16 @@ class KeepaliveTimer:
             self.initialized = True
 
     def _init(self, timer_max_val: int):
+        self.start_time = time.monotonic()
         self.timer_max_val = timer_max_val
         self.task_timer = asyncio.create_task(self.timer_task())
         self.task_stats = asyncio.create_task(self.print_statistics())
 
     async def timer_task(self):
         while self.timer < self.timer_max_val:
-            self.timer += 1
-            await asyncio.sleep(0.1)
+            elapsed = time.monotonic() - self.start_time
+            self.timer = int(elapsed / self.TIMER_TICK) # TIMER_TICK is 0.1
+            await asyncio.sleep(self.TIMER_TICK)
             if not self.warning and (self.timer / self.timer_max_val) > 0.5:
                 logging.warning("Keepalive hickup ~ 50%")
                 self.warning = True
