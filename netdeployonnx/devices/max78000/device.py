@@ -14,6 +14,7 @@ from netdeployonnx.devices.max78000.cnn_constants import (
     CNNx16_n_CTRL_MEXPRESS,
 )
 from netdeployonnx.devices.max78000.core import CNNx16Core
+from netdeployonnx.devices.max78000.device_transport import serialhandler
 from netdeployonnx.devices.max78000.device_transport.commands import Commands
 from netdeployonnx.devices.max78000.device_transport.protobuffers import main_pb2
 from netdeployonnx.devices.max78000.graph_synthesizer import synth_to_core_ir
@@ -192,6 +193,20 @@ class MAX78000(Device):
             comm_port=communication_port,
             energy_port=energy_port,
         )
+        self.commands = Commands()
+        # get communication task
+        self.handle_serial_task = None
+
+    async def get_handle_serial_task(self, loop: None) -> asyncio.Task:
+        if self.handle_serial_task is None:
+            self.handle_serial_task = loop.create_task(
+                serialhandler.handle_serial(
+                    self.commands,
+                    tty=self.port,
+                    timeout=4,
+                )
+            )
+        return self.handle_serial_task
 
     @classmethod
     def create_device_from_name_and_ports(
@@ -419,7 +434,10 @@ class MAX78000(Device):
 
         await metrics.set_mode("triggered")
 
-        commands = Commands()
+        task = await self.get_handle_serial_task(loop=asyncio.get_event_loop())
+        assert task
+
+        commands = self.commands
         messages_per_stage: list[tuple[str, main_pb2.ProtocolMessage]] = []
         for stage in instructions:
             if isinstance(stage, dict):
@@ -431,6 +449,7 @@ class MAX78000(Device):
                         self.transform_instructions(commands, stage_instructions),
                     )
                 )
+        # todo: add checkpoint
         for stagename, stagemsg in messages_per_stage:
             messages = commands.split_message(stagemsg)
             for submessage in messages:

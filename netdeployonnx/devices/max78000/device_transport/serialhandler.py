@@ -364,7 +364,10 @@ class DataHandler:
 
 
 async def handle_serial(
-    commands: Commands, tty: str, debug: bool = False, timeout: float = 1
+    commands: Commands,
+    tty: str,
+    debug: bool = False,
+    timeout: float = 1,  # noqa: ASYNC109
 ):
     global data
     try:
