@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import statistics
 import struct
@@ -80,6 +81,16 @@ class KeepaliveTimer:
         self.keepalive_outqueue = []
         self.task_timer = None
         self.task_stats = None
+
+    async def close_tasks(self):
+        if self.task_timer:
+            self.task_timer.cancel()
+        if self.task_stats:
+            self.task_stats.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.task_timer
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.task_stats
 
     def init_once(self, timeout_in_s: float):
         if not self.initialized:
@@ -324,7 +335,7 @@ class DataHandler:
         self, datastream: bytes, discard_limit: int = 100
     ) -> tuple[list, bytes]:
         messages = []
-        loop_while = True
+        loop_while = len(datastream) > 0  # True, but does not allow always looping
         while loop_while:
             # Find the start of the next protobuf message
             # print(f"[{len(datastream)}] ", " ".join([f"{b:02X}" for b in datastream]))
@@ -363,6 +374,27 @@ class DataHandler:
         return await self.default_handle_msg(msg, writer)
 
 
+async def await_closing_handle_serial(
+    data_handler: DataHandler, reason_to_exit: str, writer: asyncio.StreamWriter
+):
+    # before we exit, we need to cancel all sendqueue futures
+    for msg, future in data_handler.external_send_queue:
+        future.cancel(reason_to_exit)
+    # we also want to kill the keepalive timer
+    if data_handler:
+        try:
+            if data_handler.keepalive_timer:
+                await data_handler.keepalive_timer.close_tasks()
+        except Exception:
+            traceback.print_exc()
+    # and close the writer
+    if writer:
+        writer.close()
+        await writer.wait_closed()
+    await asyncio.sleep(0.5)
+    # exit(0)
+
+
 async def handle_serial(
     commands: Commands,
     tty: str,
@@ -370,6 +402,7 @@ async def handle_serial(
     timeout: float = 1,  # noqa: ASYNC109
 ):
     global data
+    reason_to_exit = ""
     try:
         reader, writer = await open_serial_connection(url=tty, baudrate=1_500_000)
         data_handler = DataHandler(reader, writer, debug=debug)
@@ -388,13 +421,13 @@ async def handle_serial(
                 if "Keepalive-Timer" in str(timeoutErr):
                     print("Timeout:", str(timeoutErr))
                     break
-            except Exception:
-                traceback.print_exc()
-                break
-    except Exception:
+        if commands.set_exit_request:
+            reason_to_exit = "exit requested"
+    except Exception as loop_breaking_exception:
         traceback.print_exc()
-    await asyncio.sleep(0.5)
-    exit(0)
+        reason_to_exit = str(loop_breaking_exception)
+    finally:
+        await await_closing_handle_serial(data_handler, reason_to_exit, writer)
 
 
 async def main(): ...

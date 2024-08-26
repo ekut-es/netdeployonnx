@@ -197,6 +197,11 @@ class MAX78000(Device):
         # get communication task
         self.handle_serial_task = None
 
+    def __del__(self):
+        # make sure the task is cancelled
+        if self.handle_serial_task:
+            self.handle_serial_task.cancel()
+
     async def get_handle_serial_task(self, loop: None) -> asyncio.Task:
         if self.handle_serial_task is None:
             self.handle_serial_task = loop.create_task(
@@ -435,6 +440,7 @@ class MAX78000(Device):
         await metrics.set_mode("triggered")
 
         task = await self.get_handle_serial_task(loop=asyncio.get_event_loop())
+        await asyncio.sleep(0)  # make sure the task is started
         assert task
 
         commands = self.commands
@@ -449,11 +455,15 @@ class MAX78000(Device):
                         self.transform_instructions(commands, stage_instructions),
                     )
                 )
-        # todo: add checkpoint
-        for stagename, stagemsg in messages_per_stage:
-            messages = commands.split_message(stagemsg)
-            for submessage in messages:
-                await commands.send(submessage)
+
+        # TODO: add checkpoint or something to make sure we can continue
+        try:
+            for stagename, stagemsg in messages_per_stage:
+                messages = commands.split_message(stagemsg)
+                for submessage in messages:
+                    await commands.send(submessage)  # these can throw a CancelledError
+        except asyncio.exceptions.CancelledError:
+            raise
 
         await metrics.collect()  # collect is needed so that .as_dict works
 

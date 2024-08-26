@@ -299,10 +299,19 @@ def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool: 
 
 @pytest.mark.asyncio
 async def test_backend_ai8xize_run_onnx(open_serial_connection_virtual_device):
-    with mock.patch(
-        "serial_asyncio.open_serial_connection", open_serial_connection_virtual_device
-    ) as mock_open_serial_connection:  # noqa: F841
-        dev = MAX78000_ai8xize()
+    with (
+        mock.patch(
+            "serial_asyncio.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ),
+        mock.patch(
+            "netdeployonnx.devices.max78000.device_transport.serialhandler.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ),  # noqa: F841
+    ):  # noqa: F841
+        dev = MAX78000_ai8xize(
+            communication_port="/dev/ttyACM1", energy_port="/dev/ttyACM0"
+        )
         assert dev
 
         data_folder = Path(__file__).parent / "data"
@@ -331,6 +340,34 @@ async def test_backend_ai8xize_execute_cifar10(
             instructions=instr, metrics=MAX78000Metrics("/dev/null")
         )
 
+        assert res
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_execute_fakedata(
+    open_serial_connection_virtual_device,
+):
+    with (
+        mock.patch(
+            "serial_asyncio.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ),
+        mock.patch(
+            "netdeployonnx.devices.max78000.device_transport.serialhandler.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ),
+    ):  # noqa: F841
+        dev = MAX78000_ai8xize(
+            communication_port="/dev/ttyACM1", energy_port="/dev/ttyACM0"
+        )
+
+        instr = [{"stage": "cnn_enable", "instructions": [("", "NONE", "")]}]
+        res = await dev.execute(
+            instructions=instr, metrics=MAX78000Metrics("/dev/null")
+        )
+
+        dev.commands.exit_request()
+        await asyncio.sleep(0.1)  # wait for exit
         assert res
 
 
@@ -416,15 +453,57 @@ class MeasureDevice:
         pass
 
 
-@pytest.fixture(scope="module")
-def open_serial_connection_virtual_device():
-    mdev = MeasureDevice()
+class FullDevice:
+    async def read(self, count: int, *args, **kwargs) -> bytes:
+        from google.protobuf.internal.encoder import _VarintBytes
 
-    async def return_virtual_dev(*args, **kwargs):
+        from netdeployonnx.devices.max78000.device_transport.protobuffers import (
+            main_pb2,
+        )
+
+        async def emit_keepalive():
+            msg = main_pb2.ProtocolMessage()
+            msg.version = 2
+            msg.keepalive.next_tick = 23
+            await asyncio.sleep(0.1)
+            return msg.SerializeToString()
+
+        data = []
+        data.append(await emit_keepalive())
+        bindata = b""
+        for d in data:
+            run_length_encoding = _VarintBytes(len(d))
+            bindata += run_length_encoding + d
+
+        return bindata
+
+    async def drain(self):
+        pass
+
+    def write(self, data, *args, **kwargs):
+        print("WRITE, ", data)
+
+
+@pytest.fixture(scope="module")
+def open_serial_connection_virtual_device(
+    full_devices: list[str] = ["/dev/ttyACM1", ""],
+    measure_devices: list[str] = ["/dev/ttyACM0", "/dev/null"],
+):
+    mdev = MeasureDevice()
+    fdev = FullDevice()
+
+    async def return_virtual_dev(url, *args, **kwargs):
         reader, writer = mock.AsyncMock(), mock.AsyncMock()
-        reader.read = mdev.read
-        writer.drain = mdev.drain
-        writer.write = mdev.write
+        if url in measure_devices:
+            reader.read = mdev.read
+            writer.drain = mdev.drain
+            writer.write = mdev.write
+        elif url in full_devices:
+            reader.read = fdev.read
+            writer.drain = fdev.drain
+            writer.write = fdev.write
+        else:
+            raise ValueError("unknown device")
         writer.close = mock.MagicMock()
         reader.close = mock.MagicMock()
         return reader, writer
