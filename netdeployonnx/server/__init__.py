@@ -87,11 +87,10 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
     def loop(self) -> asyncio.AbstractEventLoop:
         try:
             loop = asyncio.get_event_loop()
-            return loop
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            return loop
+        return loop
 
     def ListDevices(self, request, context):  # noqa: N802
         devices = list_devices(self.config)
@@ -132,13 +131,18 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             # put the reqid in a queue
             run_id = "run" + str(uuid.uuid4())
             if run_id not in self.run_queue:
+                async def task(device, payload, input_payload):
+                    # import aiomonitor
+                    # with aiomonitor.start_monitor(loop=asyncio.get_running_loop()):
+                    if 1:
+                        await device.run_async(
+                            Payload_Datatype.Name(payload.datatype),
+                            payload.data,
+                            Payload_Datatype.Name(input_payload.datatype),
+                            input_payload.data,
+                        )
                 self.run_queue[run_id] = self.loop.create_task(
-                    device.run_async(
-                        Payload_Datatype.Name(payload.datatype),
-                        payload.data,
-                        Payload_Datatype.Name(input_payload.datatype),
-                        input_payload.data,
-                    )
+                    task(device, payload, input_payload)
                 )
                 # we need to make sure that our task has the
                 # possibility to run atleast once
@@ -263,12 +267,16 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
 
 def listen(config: AppConfig):
     print(f"Listening on {config.server.host}:{config.server.port}")
+    print("Devices:")
+    for device in config.devices:
+        print(f"- {device.name}")
+        for dev_property_name, field in device.model_fields.items():
+            print(f"\t{dev_property_name}: {getattr(device, dev_property_name)}")
     server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
     device_pb2_grpc.add_DeviceServiceServicer_to_server(DeviceService(config), server)
     server.add_insecure_port(f"{config.server.host}:{config.server.port}")
     server.start()
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     listen(AppConfig())

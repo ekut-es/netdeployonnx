@@ -4,6 +4,14 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import onnx
+from rich.progress import (
+    Progress,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+    TimeRemainingColumn,
+    MofNCompleteColumn,
+)
 
 import netdeployonnx.devices.max78000.cnn_constants as cnn_constants
 from netdeployonnx.devices import Device, Metrics
@@ -136,7 +144,7 @@ class MAX78000Metrics(Metrics):
         yield reader, writer
         writer.close()
         try:
-            await asyncio.wait_for(writer.wait_closed(), timeout=4) 
+            await asyncio.wait_for(writer.wait_closed(), timeout=0.5)
         except TimeoutError:
             # if it does not return, i dont fcare
             pass
@@ -440,36 +448,58 @@ class MAX78000(Device):
         assert isinstance(instructions, list)
         assert len(instructions) > 0 and isinstance(instructions[0], dict)
 
-        await metrics.set_mode("triggered")
+        import yappi
+        yappi.set_clock_type("WALL")
+        with yappi.run():
 
-        task = await self.get_handle_serial_task(loop=asyncio.get_event_loop())
-        await asyncio.sleep(0)  # make sure the task is started
-        assert task
+            await metrics.set_mode("triggered")
 
-        commands = self.commands
-        messages_per_stage: list[tuple[str, main_pb2.ProtocolMessage]] = []
-        for stage in instructions:
-            if isinstance(stage, dict):
-                stage_instructions = stage.get("instructions", [])
-                stage_name = stage.get("stage", "")
-                messages_per_stage.append(
-                    (
-                        stage_name,
-                        self.transform_instructions(commands, stage_instructions),
+            task = await self.get_handle_serial_task(loop=asyncio.get_event_loop())
+            await asyncio.sleep(0)  # make sure the task is started
+            assert task
+
+            commands = self.commands
+            messages_per_stage: list[tuple[str, main_pb2.ProtocolMessage]] = []
+            for stage in instructions:
+                if isinstance(stage, dict):
+                    stage_instructions = stage.get("instructions", [])
+                    stage_name = stage.get("stage", "")
+                    messages_per_stage.append(
+                        (
+                            stage_name,
+                            self.transform_instructions(commands, stage_instructions),
+                        )
                     )
-                )
 
-        # TODO: add checkpoint or something to make sure we can continue
-        try:
-            for stagename, stagemsg in messages_per_stage:
-                messages = commands.split_message(stagemsg)
-                for submessage in messages:
-                    await commands.send(submessage)  # these can throw a CancelledError
-        except asyncio.exceptions.CancelledError as cancelled_error:
-            raise Exception("message cancelled")
+            # TODO: add checkpoint or something to make sure we can continue
+            try:
+                tasks = {}
+                with Progress(
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(bar_width=None),
+                    TaskProgressColumn(),
+                    MofNCompleteColumn(),
+                    TimeRemainingColumn(),
+                ) as progress:
+                    for stagename, stagemsg in messages_per_stage:
+                        tasks[stagename] = progress.add_task(stagename, total=1)
+                    for stagename, stagemsg in messages_per_stage:
+                        messages = commands.split_message(stagemsg)
+                        progress.reset(tasks[stagename], total=len(messages))
+                        for index_submessage, submessage in enumerate(messages):
+                            await commands.send(submessage)  # these can throw a CancelledError
+                            progress.advance(tasks[stagename])
+            except asyncio.exceptions.CancelledError as cancelled_error:
+                raise Exception("message cancelled")
 
-        await metrics.collect()  # collect is needed so that .as_dict works
+            await metrics.collect()  # collect is needed so that .as_dict works
 
+        with open("profile.log", "w") as fprofile:
+            yappi.get_thread_stats().print_all(out=fprofile)
+            yappi.get_func_stats().sort("tsub", "desc").print_all(out=fprofile)
+            import json
+            json.dump(metrics.as_dict(), fprofile)
+        print("done")
         return [
             1,
             2,

@@ -7,6 +7,7 @@ import time
 import traceback
 from collections.abc import Awaitable
 from typing import Callable
+import rich
 
 import google.protobuf.message
 import pytest
@@ -31,6 +32,7 @@ MessageHandler = Callable[
 ]  # message, writer -> bool
 
 crc_calc = Calculator(Crc32.POSIX, optimized=True)
+# console = rich.console.Console()
 
 POLY = 0x04C11DB7  # POSIX / bzip2 /jamcrc / mpeg_2
 
@@ -141,11 +143,11 @@ class KeepaliveTimer:
                     self.keepalive_list = []
                     self.keepalive_inqueue = []
                     self.keepalive_outqueue = []
-                    print(
-                        f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
-                        f"max={v_max:2.2f}"
-                        f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
-                    )
+                    # console.print(
+                    #     f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
+                    #     f"max={v_max:2.2f}"
+                    #     f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
+                    # )
         except Exception:
             traceback.print_exc()
 
@@ -247,7 +249,8 @@ class DataHandler:
         return False
 
     async def default_handle_msg(self, msg, writer) -> bool:
-        print(f"[? {msg.WhichOneof('message_type')} ]{str(msg)[:600]}")
+        pass
+        # console.print(f"[? {msg.WhichOneof('message_type')} ]{str(msg)[:600]}")
 
     async def send_msg(self, msg: "main_pb2.ProtocolMessage"):
         sent = asyncio.Future()
@@ -354,7 +357,8 @@ class DataHandler:
                     if message.ByteSize() > 0:
                         messages.append(message)
                         if startindex > 1:
-                            logging.warning(f"skipped data: {datastream[0:startindex]}")
+                            # logging.warning(f"skipped data: {datastream[0:startindex]}")
+                            pass
                         # Update the datastream to point to the next message
                         datastream = datastream[startindex + message.ByteSize() :]
                         break
@@ -406,6 +410,8 @@ async def handle_serial(
 ):
     global data
     reason_to_exit = ""
+    data_handler = None
+    writer = None
     try:
         reader, writer = await open_serial_connection(url=tty, baudrate=1_500_000)
         data_handler = DataHandler(reader, writer, debug=debug)
