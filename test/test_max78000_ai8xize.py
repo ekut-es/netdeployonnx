@@ -1,6 +1,7 @@
 import asyncio
 import io
 import logging
+import struct
 from pathlib import Path
 from unittest import mock
 
@@ -10,6 +11,8 @@ import pydantic
 import pytest
 import torch
 import torch.nn as nn
+from google.protobuf.internal.decoder import _DecodeVarint
+from google.protobuf.internal.encoder import _VarintBytes
 
 from netdeployonnx.devices.max78000 import MAX78000Metrics
 from netdeployonnx.devices.max78000.ai8xize import (
@@ -23,6 +26,10 @@ from netdeployonnx.devices.max78000.core import (
     CNNx16_Layer,
     CNNx16_Processor,
     CNNx16Core,
+)
+from netdeployonnx.devices.max78000.device_transport.commands import Commands
+from netdeployonnx.devices.max78000.device_transport.protobuffers import (
+    main_pb2,
 )
 
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
@@ -150,6 +157,114 @@ c10_layers = [
 @pytest.fixture
 def cifar10_layout():
     return asyncio.run(cifar10_layout_func())
+
+
+@pytest.fixture
+def test_instructions():
+    return [
+        {"stage": "cnn_enable", "instructions": [("ACTION", 20, 0)]},
+        {
+            "stage": "cnn_init",
+            "instructions": [
+                ("CNNx16_AOD_CTRL", 0),
+                ("CNNx16_0_CTRL", 1048584),
+                ("CNNx16_0_SRAM", 1036),
+                ("CNNx16_0_LCNT_MAX", 15),
+                ("CNNx16_1_CTRL", 1048584),
+                ("CNNx16_1_SRAM", 1036),
+                ("CNNx16_1_LCNT_MAX", 15),
+                ("CNNx16_2_CTRL", 1048584),
+                ("CNNx16_2_SRAM", 1036),
+                ("CNNx16_2_LCNT_MAX", 15),
+                ("CNNx16_3_CTRL", 1048584),
+                ("CNNx16_3_SRAM", 1036),
+                ("CNNx16_3_LCNT_MAX", 15),
+                "",
+            ],
+        },
+        {"stage": "cnn_load_weights", "instructions": [("ACTION", 40, 0)]},
+        {
+            "stage": "cnn_load_bias",
+            "instructions": [
+                (
+                    1343258624,
+                    b"\x07\xf9\xf9\x04\x07\x03\xff\xfd\xf9\x01I\xe7\x1d4R^47\xef.t\xfc",
+                ),
+                (
+                    1347452928,
+                    b"\xce\xc3~~~\x1e\x80~\x80\x80~~\x82~\x80\x123~~\xdf~\x80\x80\xda~~",
+                ),
+                (
+                    1351647232,
+                    b"e\x02\x1e~!\x1b2F\xc9\xf0\xf9 $\xec!~3\x05\xe6\xfc3\xe7\x1d\xdb",
+                ),
+                (
+                    1355841536,
+                    b"H\x17\x04?\xe1\xee\xf9\xa4a\xf5\xe7\xf4/\x1c\x05\x07\xcc\xf5\x11",
+                ),
+            ],
+        },
+        {
+            "stage": "cnn_configure",
+            "instructions": [
+                "// Layer 0 quadrant 0",
+                ("CNNx16_0_L0_RCNT", 65569),
+                ("CNNx16_0_L0_CCNT", 65569),
+                ("CNNx16_0_L0_WPTR_BASE", 4096),
+                ("CNNx16_0_L0_WPTR_MOFF", 8192),
+                ("CNNx16_0_L0_LCTRL0", 11040),
+                ("CNNx16_0_L0_MCNT", 504),
+                ("CNNx16_0_L0_TPTR", 31),
+                ("CNNx16_0_L0_EN", 458759),
+                ("CNNx16_0_L0_LCTRL1", 129024),
+                "",
+                "// Layer 0 quadrant 1",
+                ("CNNx16_1_L0_RCNT", 65569),
+                ("CNNx16_1_L0_CCNT", 65569),
+                ("CNNx16_1_L0_WPTR_BASE", 4096),
+                ("CNNx16_1_L0_WPTR_MOFF", 8192),
+                ("CNNx16_1_L0_LCTRL0", 2848),
+                ("CNNx16_1_L0_MCNT", 504),
+                ("CNNx16_1_L0_TPTR", 31),
+                ("CNNx16_1_L0_POST", 4224),
+                ("CNNx16_1_L0_LCTRL1", 129024),
+                "",
+                "// Layer 0 quadrant 2",
+                ("CNNx16_2_L0_RCNT", 65569),
+                ("CNNx16_2_L0_CCNT", 65569),
+                ("CNNx16_2_L0_WPTR_BASE", 4096),
+                ("CNNx16_2_L0_WPTR_MOFF", 8192),
+                ("CNNx16_2_L0_LCTRL0", 2848),
+                ("CNNx16_2_L0_MCNT", 504),
+                ("CNNx16_2_L0_TPTR", 31),
+                ("CNNx16_2_L0_LCTRL1", 129024),
+                "",
+                "// Layer 0 quadrant 3",
+                ("CNNx16_3_L0_RCNT", 65569),
+                ("CNNx16_3_L0_CCNT", 65569),
+                ("CNNx16_3_L0_WPTR_BASE", 4096),
+                ("CNNx16_3_L0_WPTR_MOFF", 8192),
+                ("CNNx16_3_L0_LCTRL0", 2848),
+                ("CNNx16_3_L0_MCNT", 504),
+                ("CNNx16_3_L0_TPTR", 31),
+                ("CNNx16_3_L0_LCTRL1", 129024),
+                "",
+            ],
+        },
+        {"stage": "load_input", "instructions": []},
+        {
+            "stage": "cnn_start",
+            "instructions": [
+                ("CNNx16_0_CTRL", 1050632),
+                ("CNNx16_1_CTRL", 1050633),
+                ("CNNx16_2_CTRL", 1050633),
+                ("CNNx16_3_CTRL", 1050633),
+                "",
+                ("CNNx16_0_CTRL", 1048585),
+            ],
+        },
+        {"stage": "done", "instructions": []},
+    ]
 
 
 def print_chunks(origval, val_under_test, diff_vector):
@@ -347,6 +462,20 @@ async def test_backend_ai8xize_execute_cifar10(
 async def test_backend_ai8xize_execute_fakedata(
     open_serial_connection_virtual_device,
 ):
+    async def send_batch_patched(
+        self, msgs: list[main_pb2.ProtocolMessage]
+    ) -> list[int]:
+        """
+        returns errorcode, 0 if success
+        """
+        if self.dataHandler:
+            if msgs:
+                return await self.dataHandler.send_msgs(msgs)
+            else:
+                return [0]
+        else:
+            return [1024]  # no data handler
+
     with (
         mock.patch(
             "serial_asyncio.open_serial_connection",
@@ -361,10 +490,100 @@ async def test_backend_ai8xize_execute_fakedata(
             communication_port="/dev/ttyACM1", energy_port="/dev/ttyACM0"
         )
 
-        instr = [{"stage": "cnn_enable", "instructions": [("", "NONE", "")]}]
+        instr = [
+            {
+                "stage": "cnn_enable",
+                "instructions": [
+                    ("", "NONE", ""),
+                    ("", "NONE", ""),
+                    ("", "NONE", ""),
+                    ("", "NONE", ""),
+                ],
+            },
+        ]
+        with mock.patch(
+            "netdeployonnx.devices.max78000.device_transport.commands.Commands.send_batch",
+            side_effect=lambda msgs: send_batch_patched(dev.commands, msgs),
+        ) as mock_send_batch:
+            res = await dev.execute(
+                instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
+            )
+
+            dev.commands.exit_request()
+            await asyncio.sleep(0.1)  # wait for exit
+            assert res
+            expected_args = [
+                [
+                    main_pb2.ProtocolMessage(
+                        version=2, action=main_pb2.Action(execute_measurement="NONE")
+                    )
+                ],
+                [
+                    main_pb2.ProtocolMessage(
+                        version=2, action=main_pb2.Action(execute_measurement="NONE")
+                    )
+                ],
+                [
+                    main_pb2.ProtocolMessage(
+                        version=2, action=main_pb2.Action(execute_measurement="NONE")
+                    )
+                ],
+                [
+                    main_pb2.ProtocolMessage(
+                        version=2, action=main_pb2.Action(execute_measurement="NONE")
+                    )
+                ],
+            ]
+            for i, (args, kwargs) in enumerate(mock_send_batch.await_args_list):
+                assert expected_args[i] == list(args[0])
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_real_execute_exampledata(
+    test_instructions,
+):
+    dev = MAX78000_ai8xize(
+        communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+    )
+
+    instr = test_instructions
+    try:
         res = await dev.execute(
-            instructions=instr, metrics=MAX78000Metrics("/dev/null")
+            instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
         )
+    except TimeoutError:
+        raise TimeoutError("timeout")
+
+    dev.commands.exit_request()
+    await asyncio.sleep(0.1)  # wait for exit
+    assert res
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_virtual_execute_exampledata(
+    test_instructions, open_serial_connection_virtual_device
+):
+    with (
+        mock.patch(
+            "serial_asyncio.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ),
+        mock.patch(
+            "netdeployonnx.devices.max78000.device_transport.serialhandler.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ),
+    ):  # noqa: F841
+        dev = MAX78000_ai8xize(
+            communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+        )
+
+        instr = test_instructions
+        try:
+            res = await dev.execute(
+                instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
+            )
+        except TimeoutError:
+            raise TimeoutError("timeout")
 
         dev.commands.exit_request()
         await asyncio.sleep(0.1)  # wait for exit
@@ -454,39 +673,61 @@ class MeasureDevice:
 
 
 class FullDevice:
+    def __init__(self, *args, **kwargs):
+        self.data = []
+        self.collected_data = b""
+
     async def read(self, count: int, *args, **kwargs) -> bytes:
-        from google.protobuf.internal.encoder import _VarintBytes
-
-        from netdeployonnx.devices.max78000.device_transport.protobuffers import (
-            main_pb2,
-        )
-
         async def emit_keepalive():
             msg = main_pb2.ProtocolMessage()
             msg.version = 2
             msg.keepalive.next_tick = 23
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.001)
             return msg.SerializeToString()
 
-        data = []
-        data.append(await emit_keepalive())
+        self.data.append(await emit_keepalive())
         bindata = b""
-        for d in data:
+        for i_d in range(len(self.data)):
+            d = self.data.pop(0)
             run_length_encoding = _VarintBytes(len(d))
             bindata += run_length_encoding + d
+        assert len(self.data) == 0
 
         return bindata
 
     async def drain(self):
-        pass
+        self.work_on_data()
+
+    def work_on_data(self):
+        "basically send ACKs"
+        additional_bytes = 0
+        packet = b""
+        if len(self.collected_data) > 2:
+            (additional_bits,) = struct.unpack("<H", self.collected_data[:2])
+            additional_bytes = 2
+            readlen = additional_bits // 8
+            packet = self.collected_data[additional_bytes : additional_bytes + readlen]
+        if len(packet) > 0:
+            msg = main_pb2.ProtocolMessage.FromString(packet)
+            ans_msg = main_pb2.ProtocolMessage(
+                version=2,
+                ack=main_pb2.ACK(),
+                sequence=msg.sequence,
+            )
+            assert ans_msg.WhichOneof("message_type") == "ack"
+            self.data.append(ans_msg.SerializeToString())
+            # remove this from the input
+            self.collected_data = self.collected_data[len(packet) + 2 :]
 
     def write(self, data, *args, **kwargs):
-        print("WRITE, ", data)
+        # virtual write means receive on device
+        self.collected_data += data
+        self.work_on_data()
 
 
 @pytest.fixture(scope="module")
 def open_serial_connection_virtual_device(
-    full_devices: list[str] = ["/dev/ttyACM1", ""],
+    full_devices: list[str] = ["/dev/ttyACM1", "/dev/ttyUSB0"],
     measure_devices: list[str] = ["/dev/ttyACM0", "/dev/null"],
 ):
     mdev = MeasureDevice()

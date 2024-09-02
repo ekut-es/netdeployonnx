@@ -7,16 +7,15 @@ import time
 import traceback
 from collections.abc import Awaitable
 from typing import Callable
-import rich
 
 import google.protobuf.message
+import numpy as np
 import pytest
+import rich
+import serial_asyncio  # pip install pyserial-asyncio
 from crc import Calculator, Crc32  # pip install crc
 from fastcrc import crc8  # pip install fastcrc
 from google.protobuf.internal.decoder import _DecodeVarint  # pip install protobuf
-from serial_asyncio import (
-    open_serial_connection,  # pip install pyserial-asyncio
-)
 
 from netdeployonnx.devices.max78000.device_transport.commands import Commands
 from netdeployonnx.devices.max78000.device_transport.protobuffers import (
@@ -73,7 +72,7 @@ def recalc_crc(msg: "main_pb2.ProtocolMessage") -> int:
 
 class KeepaliveTimer:
     def __init__(self):
-        self.TIMER_TICK = 0.1
+        self.TIMER_TICK = 0.01
         self.timer = 0
         self.timer_max_val = 10  # default 10 ticks @ 100ms => 1s
         self.initialized = False
@@ -97,7 +96,7 @@ class KeepaliveTimer:
 
     def init_once(self, timeout_in_s: float):
         if not self.initialized:
-            self._init(timeout_in_s * 10.0)
+            self._init(timeout_in_s / self.TIMER_TICK)
             self.initialized = True
 
     def _init(self, timer_max_val: int):
@@ -109,7 +108,7 @@ class KeepaliveTimer:
     async def timer_task(self):
         while self.timer < self.timer_max_val:
             elapsed = time.monotonic() - self.start_time
-            self.timer = int(elapsed / self.TIMER_TICK) # TIMER_TICK is 0.1
+            self.timer = int(elapsed / self.TIMER_TICK)  # TIMER_TICK is 0.1
             await asyncio.sleep(self.TIMER_TICK)
             if not self.warning and (self.timer / self.timer_max_val) > 0.5:
                 logging.warning("Keepalive hickup ~ 50%")
@@ -143,18 +142,18 @@ class KeepaliveTimer:
                     self.keepalive_list = []
                     self.keepalive_inqueue = []
                     self.keepalive_outqueue = []
-                    # console.print(
-                    #     f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
-                    #     f"max={v_max:2.2f}"
-                    #     f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
-                    # )
+                    print(
+                        f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
+                        f"max={v_max:2.2f}"
+                        f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
+                    )
         except Exception:
             traceback.print_exc()
 
     def check_and_raise(self):
         if self.timer >= self.timer_max_val:
             self.task_timer = None
-            raise asyncio.TimeoutError("Keepalive-Timer ran out")
+            # raise asyncio.TimeoutError("Keepalive-Timer ran out") # TODO: remove this comment
 
     def reset(self):
         now = time.time()
@@ -180,12 +179,60 @@ warning_flags = {
 inverted_warning_flags = {value: key for key, value in warning_flags.items()}
 
 
+class PacketOrderSender:
+    MAX_QUEUE_SIZE = 10
+
+    def __init__(self, data_handler: "DataHandler"):
+        self.data_handler = data_handler
+        self.current_sequence = 0  # 0xFFFF_FFF0
+        self.sent_sequence = self.current_sequence
+        self.sequence_queue = {}
+        self.sendqueue = []
+        self.resend = False
+
+    def enqueue(self, msg: main_pb2.ProtocolMessage) -> None:
+        msg.sequence = self.sent_sequence
+        self.sequence_queue[self.sent_sequence] = msg
+        self.sent_sequence += 1
+
+    def accept_acknowledge(self, sequence: int) -> bool:
+        if self.current_sequence == sequence:
+            self.current_sequence += 1
+            return True
+        else:
+            self.resend = True
+            return False
+
+    async def work(self):
+        "keep up a send queue and resend if necessary"
+        if self.resend:
+            # we need to resend the current sequence
+            # 1. flush the send queue
+            # 2. resend the current sequence
+            # 3. requeue the rest of the messages
+            self.sendqueue = []
+            self.resend = False
+        if len(self.sendqueue) == 0:
+            # we need to fill it
+            for local_seq_id in range(self.MAX_QUEUE_SIZE):
+                sequence_id = self.current_sequence + local_seq_id
+                if sequence_id in self.sequence_queue:
+                    self.sendqueue.append(self.sequence_queue[sequence_id])
+                else:
+                    break  # stop when we tested a nonexistant sequence
+            # send the queue
+            await self.data_handler.send_msgs(self.sendqueue)
+
+
 class DataHandler:
     def __init__(self, reader, writer, debug: bool = False):
         self.reader = reader
         self.writer = writer
         self.debug = debug
-        self.handlers: list[MessageHandler] = [self.keepalive_handler]
+        self.handlers: list[MessageHandler] = [self.keepalive_handler, self.ack_handler]
+
+        self.sequence = 0xFFFF_FFF0
+        self.to_be_acknowledged: dict[int, asyncio.Future] = {}
 
         self.msgs = []
         self.external_send_queue = []
@@ -203,6 +250,56 @@ class DataHandler:
             debug_data.extend([(i & 0xF00) >> 8, i & 0xFF])
         self.debug_data = bytes(debug_data)
 
+        self.packet_order_sender = PacketOrderSender(self)
+
+    async def ack_handler(self, msg, writer) -> bool:
+        "we can free the handle and sequence now"
+
+        def is_future_running(future) -> bool:
+            try:
+                future.result()
+            except asyncio.InvalidStateError:
+                # it is running?
+                return True
+            except asyncio.CancelledError:
+                ...
+            except Exception:
+                # maybe set_exception
+                ...
+            return False
+
+        if msg.WhichOneof("message_type") == "ack":
+            try:
+                # print("ACK", msg.sequence)
+                seq = msg.sequence
+                if seq in self.to_be_acknowledged:
+                    future = self.to_be_acknowledged[seq]
+                    if is_future_running(future):  # TODO: check if future is running?
+                        # we can only set the result if the previous futures have been set
+                        if (seq - 1) in self.to_be_acknowledged:
+                            # yes, there is a previous one, but is it ack'd?
+                            if not is_future_running(self.to_be_acknowledged[seq - 1]):
+                                # it is not running, so we can set it
+                                future.set_result(0)
+                            else:
+                                # it is still running, we are out of order
+                                raise Exception("sequence out of order")
+                        else:
+                            # its not in there?
+                            # then it must be the first
+                            future.set_result(0)
+                    else:
+                        print("future is not running anymore?", future)
+                else:
+                    print("weird, i didnt ask for this seq")
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+            finally:
+                return True
+        return False
+
     async def keepalive_handler(self, msg, writer) -> bool:
         if msg.WhichOneof("message_type") == "keepalive":
             try:
@@ -211,20 +308,6 @@ class DataHandler:
                         logging.warning(
                             f"[{msg.keepalive.ticks:06d}] Device: {warning_text}"
                         )
-                future = self.open_futures.pop(0) if len(self.open_futures) else None
-                if future:
-                    # check if this is really the next keepalive
-                    if msg.keepalive.ticks >= (future.last_tick + 1):
-                        # we dont have a warning: 0, else warning value
-                        future.set_result(msg.keepalive.warning & 0x0F)
-                    else:
-                        ...
-                        # print("interjection?!?")
-                        # print(future.last_tick, self.last_tick_id,
-                        #       msg.keepalive.ticks)
-                        # # assume it was false
-                        future.set_result(0x4000)
-
                 logging.debug(
                     f"[ALIVE n={msg.keepalive.next_tick}] {msg.keepalive.ticks}"
                     f" [I: {msg.keepalive.inqueue_size:03d} "
@@ -250,12 +333,20 @@ class DataHandler:
 
     async def default_handle_msg(self, msg, writer) -> bool:
         pass
-        # console.print(f"[? {msg.WhichOneof('message_type')} ]{str(msg)[:600]}")
+        print(f"[? {msg.WhichOneof('message_type')} ]{str(msg)[:600]}")
 
-    async def send_msg(self, msg: "main_pb2.ProtocolMessage"):
-        sent = asyncio.Future()
-        self.external_send_queue.append((msg, sent))
-        return await sent
+    async def send_msgs(
+        self, msgs: list["main_pb2.ProtocolMessage"], group_timeout: int = 4.0
+    ):
+        awaitables = []
+        for msg in msgs:
+            sent = asyncio.Future()
+            self.external_send_queue.append((msg, sent, time.monotonic()))
+            awaitables.append(asyncio.wait_for(sent, group_timeout))
+        try:
+            return await asyncio.gather(*awaitables)
+        except TimeoutError:
+            raise
 
     async def handle_sendqueue(self, writer) -> None:
         # sending
@@ -263,35 +354,40 @@ class DataHandler:
             ret1 = writer.write(self.debug_data)
             ret2 = await writer.drain()
         elif len(self.external_send_queue) > 0:
-            msg, future = self.external_send_queue.pop(0)
-            if msg:
-                if msg is None:
-                    future.set_result(16)
-                    return
-                # if msg.WhichOneof('message_type') == 'payload':
-                #     if len(msg.payload.registers):
-                #         print(len(msg.payload.registers))
-                #     if len(msg.payload.memory):
-                #         print(sum(len(mem.data) for mem in msg.payload.memory),msg.payload) # noqa E501
+            for i_msg in range(len(self.external_send_queue)):
+                msg, future, inqueue_timestamp = self.external_send_queue.pop(0)
+                # print(f"time_in_queue: {time.monotonic() - inqueue_timestamp:2.2f}")
+                if msg:
+                    if msg is None:
+                        future.set_result(16)
+                        return
+                    # if msg.WhichOneof('message_type') == 'payload':
+                    #     if len(msg.payload.registers):
+                    #         print(len(msg.payload.registers))
+                    #     if len(msg.payload.memory):
+                    #         print(sum(len(mem.data) for mem in msg.payload.memory),msg.payload) # noqa E501
 
-                # carefully craft the crc of the message to be 0x0
-                msg.checksum = recalc_crc(msg)
-                serdata = msg.SerializeToString()
-                if not msg.keepalive.ticks:
-                    logging.debug(f"sent msg [len={len(serdata)}]")
-                if len(serdata) > BUFFER_COMPARE_SIZE:
-                    future.set_result(32)
-                    # we dont want to overload the smol buffer
-                    # (cant increase it because DMA)
-                    return
-                # run length encoding
-                future.last_tick = self.last_tick_id
-                ret0 = writer.write(  # noqa F841
-                    struct.pack("<H", len(serdata) * 8)
-                )  # in bits, to check if we received garbage
-                ret1 = writer.write(serdata)  # noqa F841
-                ret2 = await writer.drain()  # noqa F841
-                self.open_futures.append(future)
+                    # set the sequence
+                    self.sequence = (self.sequence + 1) & 0xFFFFFFFF  # keep at 32bit
+                    msg.sequence = self.sequence
+                    self.to_be_acknowledged[msg.sequence] = future
+
+                    # carefully craft the crc of the message to be 0x0
+                    msg.checksum = recalc_crc(msg)
+                    serdata = msg.SerializeToString()
+                    if not msg.keepalive.ticks:
+                        logging.debug(f"sent msg [len={len(serdata)}]")
+                    if len(serdata) > BUFFER_COMPARE_SIZE:
+                        future.set_result(32)
+                        # we dont want to overload the smol buffer
+                        # (cant increase it because DMA)
+                        return
+                    # run length encoding
+                    ret0 = writer.write(  # noqa F841
+                        struct.pack("<H", len(serdata) * 8)
+                    )  # in bits, to check if we received garbage
+                    ret1 = writer.write(serdata)  # noqa F841
+            ret2 = await writer.drain()  # noqa F841
         else:
             # nothing to do, but send a keepalive back
             ...
@@ -300,9 +396,13 @@ class DataHandler:
         if len(self.msgs) > 0:
             return self.msgs.pop(0)
         self.keepalive_timer.init_once(timeout)
+        start = time.monotonic()
         self.datastream += await asyncio.wait_for(
             self.reader.read(BUFFER_READ_SIZE), timeout
         )  # should return after reading 1 byte
+        await asyncio.sleep(0)
+        stop = time.monotonic()
+        # print(f"reader {stop-start:2.2f}")
         msgs, self.datastream = self.search_protobuf_messages(self.datastream)
         self.msgs += msgs
         if len(self.msgs) > 0:
@@ -384,9 +484,13 @@ class DataHandler:
 async def await_closing_handle_serial(
     data_handler: DataHandler, reason_to_exit: str, writer: asyncio.StreamWriter
 ):
-    # before we exit, we need to cancel all sendqueue futures
-    for msg, future in data_handler.external_send_queue:
-        future.cancel(reason_to_exit)
+    if data_handler:
+        # before we exit, we need to cancel all sendqueue futures
+        for msg, future in data_handler.external_send_queue:
+            future.cancel(reason_to_exit)
+        # TODO: maybe also kill the ones to be acknowledged
+        for sequence, future in data_handler.to_be_acknowledged.items():
+            future.cancel(reason_to_exit)
     # we also want to kill the keepalive timer
     if data_handler:
         try:
@@ -402,18 +506,30 @@ async def await_closing_handle_serial(
     # exit(0)
 
 
+async def open_serial_connection(*, loop=None, limit=None, **kwargs):
+    """wrapper for serial_asyncio.open_serial_connection"""
+    return await serial_asyncio.open_serial_connection(loop=loop, limit=limit, **kwargs)
+
+
 async def handle_serial(
     commands: Commands,
     tty: str,
     debug: bool = False,
     timeout: float = 1,  # noqa: ASYNC109
+    open_serial_connection_patchable=open_serial_connection,
 ):
     global data
     reason_to_exit = ""
     data_handler = None
     writer = None
     try:
-        reader, writer = await open_serial_connection(url=tty, baudrate=1_500_000)
+        # import debugpy;debugpy.listen(4567);debugpy.wait_for_client();
+        reader, writer = await open_serial_connection_patchable(
+            url=tty,
+            baudrate=1_500_000,
+            timeout=0.000,
+            write_timeout=0.001,
+        )
         data_handler = DataHandler(reader, writer, debug=debug)
         commands._register(data_handler)
         while not commands.set_exit_request:

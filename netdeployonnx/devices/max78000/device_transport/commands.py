@@ -85,6 +85,8 @@ class Commands:
             "enable": self.cnn_enable,
             "start": self.cnn_start,
             "stop": self.cnn_disable,
+            "assertw": self.assert_weights,
+            "awx": self.assert_weightsX,
         }
 
     def exit_request(self):
@@ -101,11 +103,23 @@ class Commands:
         """
         if self.dataHandler:
             if msg:
-                return await self.dataHandler.send_msg(msg)
+                return await self.dataHandler.send_msgs([msg])
             else:
                 return 0
         else:
             return 1024  # no data handler
+
+    async def send_batch(self, msgs: list[main_pb2.ProtocolMessage]) -> list[int]:
+        """
+        returns errorcode, 0 if success
+        """
+        if self.dataHandler:
+            if msgs:
+                return await self.dataHandler.send_msgs(msgs)
+            else:
+                return [0]
+        else:
+            return [1024]  # no data handler
 
     async def help(self, *args, **kwargs):
         print("commands:")
@@ -806,3 +820,27 @@ class Commands:
             print(f'{len(kwargs["recvdata"])} bytes read')
         else:
             logging.warning("please enable debug mode")
+
+    async def assert_weights(self, *args, **kwargs):
+        msg = self.new_message()
+        msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS
+        # print("sending...")
+        import time
+
+        total_time_for_150 = time.monotonic()
+        for i in range(150):
+            start = time.monotonic()
+            print(await self.send(msg), f"{time.monotonic() - start:2.2f}")
+        print("yeah", time.monotonic() - total_time_for_150)
+
+    async def assert_weightsX(self, *args, **kwargs):
+        msg = self.new_message()
+        msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS
+        # print("sending...")
+        import time
+
+        total_time_for_150 = time.monotonic()
+        for i in range(15):
+            start = time.monotonic()
+            print(await self.send_batch([msg] * 10), f"{time.monotonic() - start:2.2f}")
+        print("yeah", time.monotonic() - total_time_for_150)

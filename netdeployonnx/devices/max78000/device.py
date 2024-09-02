@@ -5,12 +5,12 @@ from typing import Any
 
 import onnx
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
-    TaskProgressColumn,
-    TimeRemainingColumn,
     MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
 )
 
 import netdeployonnx.devices.max78000.cnn_constants as cnn_constants
@@ -27,6 +27,19 @@ from netdeployonnx.devices.max78000.device_transport.commands import Commands
 from netdeployonnx.devices.max78000.device_transport.protobuffers import main_pb2
 from netdeployonnx.devices.max78000.graph_synthesizer import synth_to_core_ir
 from netdeployonnx.devices.max78000.graph_transformer import transform_graph
+
+try:
+    from itertools import batched
+except ImportError:
+    from itertools import islice
+
+    def batched(iterable, n):
+        # batched('ABCDEFG', 3) → ABC DEF G
+        if n < 1:
+            raise ValueError("n must be at least one")
+        iterator = iter(iterable)
+        while batch := tuple(islice(iterator, n)):
+            yield batch
 
 
 class MAX78000Metrics(Metrics):
@@ -396,17 +409,18 @@ class MAX78000(Device):
         self,
         commands: Commands,
         instructions: list[tuple[any]],
-    ) -> main_pb2.ProtocolMessage:
+    ) -> list[main_pb2.ProtocolMessage]:
         msg = commands.new_message()
+        messages = [msg]
         action_not_set: bool = True
         for instruction in instructions:
             if isinstance(instruction, str):
                 # this is just a comment, so we ignore it (or maybe log / debug it?)
                 logging.debug(f"comment: {instruction}")
             elif isinstance(instruction, tuple):  # either reg or mem access
-                if len(instruction) not in [2, 3]:
-                    raise ValueError(f"invalid instruction: {instruction}")
-                if len(instruction) == 2:
+                if False:
+                    ...
+                elif len(instruction) == 2:
                     instruction_dest, instruction_value = instruction
                     if isinstance(instruction_value, int):  # reg access
                         reg_addr: int = cnn_constants.registers.get(instruction_dest, 0)
@@ -427,19 +441,24 @@ class MAX78000(Device):
                                 setAddr=True,  # TODO: do we set it?
                             )
                         )
-                elif len(instruction) == 3 and action_not_set:
+                elif len(instruction) == 3:
                     # we may have an action instead of an instruction
+                    if action_not_set:
+                        # use available msg
+                        action_not_set = False
+                    else:
+                        # create a new message and add
+                        msg = commands.new_message()
+                        messages.append(msg)
                     action, action_value, action_mask = instruction
                     msg.action.execute_measurement = action_value
                     logging.debug(f"action: {action} {action_value} {action_mask}")
-                    # only set once
-                    action_not_set = False
                 else:
                     raise ValueError(f"invalid instruction: {instruction}")
             else:
                 raise ValueError(f"invalid instruction: {instruction}")
 
-        return msg
+        return messages
 
     async def execute(self, instructions: Any, metrics: Metrics) -> Any:
         if type(instructions) is not list:
@@ -448,58 +467,52 @@ class MAX78000(Device):
         assert isinstance(instructions, list)
         assert len(instructions) > 0 and isinstance(instructions[0], dict)
 
-        import yappi
-        yappi.set_clock_type("WALL")
-        with yappi.run():
+        await metrics.set_mode("triggered")
 
-            await metrics.set_mode("triggered")
+        task = await self.get_handle_serial_task(loop=asyncio.get_event_loop())
+        await asyncio.sleep(0)  # make sure the task is started
+        assert task
 
-            task = await self.get_handle_serial_task(loop=asyncio.get_event_loop())
-            await asyncio.sleep(0)  # make sure the task is started
-            assert task
-
-            commands = self.commands
-            messages_per_stage: list[tuple[str, main_pb2.ProtocolMessage]] = []
-            for stage in instructions:
-                if isinstance(stage, dict):
-                    stage_instructions = stage.get("instructions", [])
-                    stage_name = stage.get("stage", "")
-                    messages_per_stage.append(
-                        (
-                            stage_name,
-                            self.transform_instructions(commands, stage_instructions),
-                        )
+        commands = self.commands
+        messages_per_stage: list[tuple[str, list[main_pb2.ProtocolMessage]]] = []
+        for stage in instructions:
+            if isinstance(stage, dict):
+                stage_instructions = stage.get("instructions", [])
+                stage_name = stage.get("stage", "")
+                messages_per_stage.append(
+                    (
+                        stage_name,
+                        self.transform_instructions(commands, stage_instructions),
                     )
+                )
 
-            # TODO: add checkpoint or something to make sure we can continue
-            try:
-                tasks = {}
-                with Progress(
-                    TextColumn("[progress.description]{task.description}"),
-                    BarColumn(bar_width=None),
-                    TaskProgressColumn(),
-                    MofNCompleteColumn(),
-                    TimeRemainingColumn(),
-                ) as progress:
-                    for stagename, stagemsg in messages_per_stage:
-                        tasks[stagename] = progress.add_task(stagename, total=1)
-                    for stagename, stagemsg in messages_per_stage:
+        # TODO: add checkpoint or something to make sure we can continue
+        try:
+            tasks = {}
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(bar_width=None),
+                TaskProgressColumn(),
+                MofNCompleteColumn(),
+                TimeRemainingColumn(),
+            ) as progress:
+                for stagename, stagemsg in messages_per_stage:
+                    tasks[stagename] = progress.add_task(stagename, total=1)
+                for stagename, stage_messages in messages_per_stage:
+                    for stagemsg in stage_messages:
                         messages = commands.split_message(stagemsg)
                         progress.reset(tasks[stagename], total=len(messages))
-                        for index_submessage, submessage in enumerate(messages):
-                            await commands.send(submessage)  # these can throw a CancelledError
-                            progress.advance(tasks[stagename])
-            except asyncio.exceptions.CancelledError as cancelled_error:
-                raise Exception("message cancelled")
+                        batchsize = 10
+                        for batch in batched(enumerate(messages), batchsize):
+                            await commands.send_batch(
+                                submessage for index_submessage, submessage in batch
+                            )  # these can throw a CancelledError
+                            progress.advance(tasks[stagename], len(batch))
+        except asyncio.exceptions.CancelledError as cancelled_error:
+            raise Exception("message cancelled")
 
-            await metrics.collect()  # collect is needed so that .as_dict works
+        await metrics.collect()  # collect is needed so that .as_dict works
 
-        with open("profile.log", "w") as fprofile:
-            yappi.get_thread_stats().print_all(out=fprofile)
-            yappi.get_func_stats().sort("tsub", "desc").print_all(out=fprofile)
-            import json
-            json.dump(metrics.as_dict(), fprofile)
-        print("done")
         return [
             1,
             2,

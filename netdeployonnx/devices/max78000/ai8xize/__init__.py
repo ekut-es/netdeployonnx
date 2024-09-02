@@ -1,5 +1,6 @@
 import math
 from collections import defaultdict
+from typing import Any
 
 import networkx as nx
 import numpy as np
@@ -20,6 +21,9 @@ from netdeployonnx.devices.max78000.cnn_registers import (
 from netdeployonnx.devices.max78000.core import (
     CNNx16_Processor,
     CNNx16Core,
+)
+from netdeployonnx.devices.max78000.device_transport.protobuffers.main_pb2 import (
+    ActionEnum,
 )
 from netdeployonnx.devices.max78000.graph_transformer import (
     Graph,
@@ -152,7 +156,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                             f"unexpected pool_stride value: {ly.pool_stride}"
                         )
                 if op_type.startswith("Conv"):
-                    weights_shape = nxnode.get("weights").shape
+                    weights_shape = nxnode.get("weights", np.zeros(shape=[0])).shape
                     ly.kernel_size = "3x3" if weights_shape[2] == 3 else "1x1"
                 pads = nxnode.get("pads", [0, 0, 0, 0])
                 assert len(pads) == 4 and all(p == pads[0] for p in pads)
@@ -171,6 +175,21 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             arch="ai85nascifarnet", dataset="CIFAR10", layers=c10_layers
         )
         return dict(cfg.model_dump(exclude_unset=True)), input_shape
+
+    def cnn_load_weights(self, layout: Any) -> Any:
+        """
+        Dont load the weights, because we init with random patterns
+        """
+        ret = []
+
+        if layout is None:
+            return []
+
+        for quad in range(4):
+            for proc in range(16):
+                ...
+        ret.append(("ACTION", ActionEnum.INIT_WEIGHTS_PATTERN1, 0))
+        return ret
 
 
 def set_lregs_to_core(lregs: list[any], core: CNNx16Core):
