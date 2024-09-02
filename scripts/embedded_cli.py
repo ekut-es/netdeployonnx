@@ -25,7 +25,7 @@ async def asyncmain(args, tty, debug, timeout):
     funcs = []
     funcs += [handle_serial(commands, tty, debug, timeout)]
     funcs += [cli(commands, debug, timeout)]
-    funcs += [debug_queue()]
+    # funcs += [debug_queue()]
     await asyncio.gather(*funcs)
 
 

@@ -10,7 +10,6 @@ from typing import Callable
 
 import google.protobuf.message
 import pytest
-import serial_asyncio  # pip install pyserial-asyncio
 from crc import Calculator, Crc32  # pip install crc
 from fastcrc import crc8  # pip install fastcrc
 from google.protobuf.internal.decoder import _DecodeVarint  # pip install protobuf
@@ -34,7 +33,19 @@ crc_calc = Calculator(Crc32.POSIX, optimized=True)
 POLY = 0x04C11DB7  # POSIX / bzip2 /jamcrc / mpeg_2
 
 
-def crc8(data):  # noqa F811 (redefinition of crc8)
+def generate_table(crc_method) -> str:
+    table = "static const uint8_t crc8_table[256] = {\n"
+    for i in range(256):
+        if i % 8 == 0:
+            table += "    "
+        table += f"0x{crc_method(i):02x}, "
+        if i % 8 == 7:
+            table += "\n"
+    table += "};"
+    return table
+
+
+def crc8_own(data):
     polynomial = 0x07
     crc = 0
 
@@ -52,7 +63,12 @@ def crc8(data):  # noqa F811 (redefinition of crc8)
 def crc(data: bytes) -> int:
     # return crc_calc.checksum(data)
     # return crc32.mpeg_2(data)
-    return crc8(data)
+    # crcs = {
+    #     name:getattr(crc8, name)(data)
+    #     for name in crc8.__always_supported
+    # }
+    # return crcs
+    return crc8.smbus(data)
 
 
 def recalc_crc(msg: "main_pb2.ProtocolMessage") -> int:
@@ -152,7 +168,8 @@ class KeepaliveTimer:
     def check_and_raise(self):
         if self.timer >= self.timer_max_val:
             self.task_timer = None
-            # raise asyncio.TimeoutError("Keepalive-Timer ran out") # TODO: remove this comment
+            # raise asyncio.TimeoutError("Keepalive-Timer ran out")
+            # # TODO: remove this comment
 
     def reset(self):
         now = time.time()
@@ -179,7 +196,7 @@ inverted_warning_flags = {value: key for key, value in warning_flags.items()}
 
 
 class PacketOrderSender:
-    MAX_QUEUE_SIZE = 10
+    MAX_QUEUE_SIZE = 1
 
     def __init__(self, data_handler: "DataHandler"):
         self.data_handler = data_handler
@@ -203,6 +220,7 @@ class PacketOrderSender:
                 self.sendqueue.pop(0)
             else:
                 raise Exception("when does this happen?")
+            # logging.debug(f"we could update sequence {sequence}")
             if sequence in self.wait_queue:
                 self.wait_queue[sequence].set_result(True)
             self.current_sequence += 1
@@ -241,7 +259,7 @@ class PacketOrderSender:
 
     async def wait_for_sequence(self, sequence) -> None:
         self.wait_queue[sequence] = asyncio.Future()
-        logging.debug(">>>start waiting for sequence")
+        logging.debug(f">>>start waiting for sequence {sequence}")
         await self.wait_queue[sequence]
         logging.debug("<<<done  waiting for sequence")
         return self.wait_queue[sequence].result()
@@ -293,6 +311,7 @@ class DataHandler:
     async def keepalive_handler(self, msg, writer) -> bool:
         if msg.WhichOneof("message_type") == "keepalive":
             try:
+                return True
                 for warning_id, warning_text in inverted_warning_flags.items():
                     if msg.keepalive.warning & warning_id:
                         logging.warning(
@@ -317,8 +336,7 @@ class DataHandler:
                 # await self.send_msg(self.keepalive_answer)
             except Exception:
                 traceback.print_exc()
-            finally:
-                return True
+            return True
         return False
 
     async def default_handle_msg(self, msg, writer) -> bool:
@@ -357,7 +375,8 @@ class DataHandler:
                     if not msg.keepalive.ticks:
                         msgstr = str(msg).replace("\n", " ")
                         logging.debug(
-                            f"sent msg [len={len(serdata)}, seq={msg.sequence}, msg{msgstr}]"
+                            f"sent msg [len={len(serdata)}, "
+                            f"seq={msg.sequence}, msg{msgstr}]"
                         )
                     if len(serdata) > BUFFER_COMPARE_SIZE:
                         future.set_result(32)
@@ -378,15 +397,12 @@ class DataHandler:
         if len(self.msgs) > 0:
             return self.msgs.pop(0)
         # self.keepalive_timer.init_once(timeout)
-        start = time.monotonic()
-        logging.debug("### bfore read")
+        start = time.monotonic()  # noqa: F841
         self.datastream += await asyncio.wait_for(
             self.reader.read(BUFFER_READ_SIZE), timeout
         )  # should return after reading 1 byte
-        logging.debug("### read done")
         await asyncio.sleep(0)
-        logging.debug("### sleep done")
-        stop = time.monotonic()
+        stop = time.monotonic()  # noqa: F841
         # print(f"reader {stop-start:2.2f}")
         msgs, self.datastream = self.search_protobuf_messages(self.datastream)
         self.msgs += msgs
@@ -419,9 +435,16 @@ class DataHandler:
         try:
             # read delimited
             length, new_pos = _DecodeVarint(data, 0)
-            ret.ParseFromString(data[new_pos : new_pos + length])
+            # raw_msg with RLE
+            raw_msg: bytes = data[: new_pos + length]
+            data_msg: bytes = raw_msg[new_pos:]
+            crc_val: bytes = data[new_pos + length : new_pos + length + 1]
+            assert len(crc_val) and crc(raw_msg) == crc_val[0]
+            ret.ParseFromString(data_msg)
         except google.protobuf.message.DecodeError as ex:
             raise Exception() from ex
+        except AssertionError as ae:
+            raise Exception() from ae
         return ret
 
     def search_protobuf_messages(
@@ -448,7 +471,10 @@ class DataHandler:
                             # f"skipped data: {datastream[0:startindex]}")
                             pass
                         # Update the datastream to point to the next message
-                        datastream = datastream[startindex + message.ByteSize() :]
+                        # + 1 for crc and + 1 for the length
+                        datastream = datastream[
+                            1 + startindex + message.ByteSize() + 1 :
+                        ]
                         break
                 except ValueError:
                     continue
@@ -456,6 +482,8 @@ class DataHandler:
                     # If parsing fails, continue searching from the next position
                     # print(f"startindex {startindex} did not work", type(e), e)
                     ...
+            if len(datastream) == 0:
+                break  # read everything
         return messages, datastream
 
     async def find_message_handler(self, msg, writer) -> bool:
@@ -493,7 +521,64 @@ async def await_closing_handle_serial(
 
 async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     """wrapper for serial_asyncio.open_serial_connection"""
-    return await serial_asyncio.open_serial_connection(loop=loop, limit=limit, **kwargs)
+    import aioserial
+
+    print("open_serial_connection", kwargs)
+    # return await serial_asyncio.open_serial_connection(
+    # loop=loop, limit=limit, **kwargs
+    # )
+    aioserial_instance: aioserial.AioSerial = aioserial.AioSerial(
+        port=kwargs.get("url"),
+        baudrate=kwargs.get("baudrate"),
+    )
+    aioserial_instance.set_low_latency_mode(True)
+
+    class FakeWriter:
+        def __init__(self, aioserial_instance):
+            self.aioserial_instance = aioserial_instance
+            self.data = b""
+
+        def write(self, data):
+            self.data += data
+
+        def close(self): ...
+        async def wait_closed(self): ...
+
+        async def drain(self):
+            ret = await self.aioserial_instance.write_async(self.data)
+            self.data = b""
+            return ret
+
+    class FakeReader:
+        def __init__(self, aioserial_instance):
+            self.aioserial_instance = aioserial_instance
+
+        async def read(self, size):
+            # logging.debug(f"### bfore read {self.aioserial_instance.in_waiting}")
+            ret = await self.aioserial_instance.read_async(
+                self.aioserial_instance.in_waiting
+            )
+            # logging.debug("### after read")
+            return ret
+
+    return FakeReader(aioserial_instance), FakeWriter(aioserial_instance)
+
+
+async def handle_write(data_handler, writer):
+    try:
+        await data_handler.handle_sendqueue(writer)
+    except Exception:
+        traceback.print_exc()
+
+
+async def handle_read(data_handler, writer, timeout):
+    msg = await data_handler.next_msg(timeout=timeout)
+    if msg:
+        # logging.debug("message found")
+        try:
+            await data_handler.find_message_handler(msg, writer)
+        except Exception:
+            traceback.print_exc()
 
 
 async def handle_serial(
@@ -520,15 +605,11 @@ async def handle_serial(
         while not commands.set_exit_request:
             try:
                 data_handler.keepalive_timer.check_and_raise()
-                logging.debug("next_msg")
-                msg = await data_handler.next_msg(timeout=timeout)
-                if msg:
-                    logging.debug("message found")
-                    try:
-                        await data_handler.find_message_handler(msg, writer)
-                        await data_handler.handle_sendqueue(writer)
-                    except Exception:
-                        traceback.print_exc()
+                # logging.debug("next_msg")
+                await asyncio.gather(
+                    handle_read(data_handler, writer, timeout),
+                    handle_write(data_handler, writer),
+                )
             except TimeoutError as timeoutErr:
                 if "Keepalive-Timer" in str(timeoutErr):
                     print("Timeout:", str(timeoutErr))
@@ -673,6 +754,28 @@ def test_crc(msg):
     new_crc = crc(serdata)
     print(f"CRC={new_crc:08X}")
     # assert new_crc == 0x0000_0000 # 0xFFFF_FFFF
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"\t\x08\x02\x12\x05\x08\x83\r\x10\x05\xee",
+    ],
+)
+def test_find_with_rle_and_crc8(data):
+    dh = DataHandler(None, None)
+    msgs, datastream = dh.search_protobuf_messages(data)
+    assert datastream == b""
+    assert len(msgs) == 1
+    assert msgs[0].version == 2
+    assert msgs[0].keepalive.ticks >= 0
+
+    print(msgs[0])
+
+
+@pytest.mark.skip("only generate once")
+def test_generate_table():
+    print(generate_table(lambda i: crc(bytes([i]))))
 
 
 if __name__ == "__main__":

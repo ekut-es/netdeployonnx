@@ -836,7 +836,7 @@ class Commands:
             print(await self.send(create_msg()), f"{time.monotonic() - start:2.2f}")
         print("yeah", time.monotonic() - total_time_for_150)
 
-    async def assert_weightsX(self, *args, **kwargs):
+    async def assert_weightsX(self, *args, **kwargs):  # noqa: N802
         def create_msg():
             msg = self.new_message()
             msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS

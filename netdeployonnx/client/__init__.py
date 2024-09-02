@@ -13,8 +13,8 @@ def connect(config: AppConfig):
 
         # Get device handle
         response = stub.GetDeviceHandle(device_pb2.GetDeviceHandleRequest())
-        deviceHandle = response.deviceHandle
-        print(f"Device handle: {deviceHandle.handle}")
+        device_handle = response.deviceHandle
+        print(f"Device handle: {device_handle.handle}")
 
         # load the cifar10 net
         data_folder = Path(__file__).parent.parent.parent / "test" / "data"
@@ -24,7 +24,7 @@ def connect(config: AppConfig):
 
         # Run payload
         payload = device_pb2.RunPayloadRequest(
-            deviceHandle=deviceHandle,
+            deviceHandle=device_handle,
             payload=device_pb2.Payload(
                 data=data,
                 datatype=device_pb2.Payload_Datatype.onnxb,
@@ -60,13 +60,13 @@ def connect(config: AppConfig):
 
         # Get device info
         response = stub.GetDeviceInfo(
-            device_pb2.GetDeviceInfoRequest(deviceHandle=deviceHandle)
+            device_pb2.GetDeviceInfoRequest(deviceHandle=device_handle)
         )
         print(f"Device model: {response.device.model}")
         print(f"Device manufacturer: {response.device.manufacturer}")
         print(f"Device firmware version: {response.device.firmware_version}")
         freed = stub.FreeDeviceHandle(
-            device_pb2.FreeDeviceHandleRequest(deviceHandle=deviceHandle)
+            device_pb2.FreeDeviceHandleRequest(deviceHandle=device_handle)
         )
         if freed.ok:
             print("device freed.")

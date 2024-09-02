@@ -20,6 +20,9 @@ async def cli(cmdobj: Commands, debug: bool = False, timeout: float = 1):
     }
     while True:
         try:
+            # if session==None:
+            #     await commanddict["awx"]()
+            #     break
             with patch_stdout():
                 command = await session.prompt_async(">> ")
                 # Add your command handling logic here
