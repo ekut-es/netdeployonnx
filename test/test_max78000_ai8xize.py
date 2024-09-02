@@ -28,8 +28,8 @@ from netdeployonnx.devices.max78000.core import (
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
 from .test_serialhandler import (
     MeasureDevice,
+    open_serial_connection_virtual_device,  # noqa: F401
     print_chunks,
-    open_serial_connection_virtual_device
 )
 
 logging.basicConfig(
