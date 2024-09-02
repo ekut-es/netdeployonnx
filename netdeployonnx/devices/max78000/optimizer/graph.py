@@ -236,9 +236,13 @@ class Graph:
         for node in onnxgraph.node:
             kwargs = {}
             if node.op_type.startswith("Conv") or node.op_type.startswith("Gemm"):
-                kwargs["weights"] = resolve_input_name(onnxgraph, node.input[1])
-                kwargs["bias"] = resolve_input_name(onnxgraph, node.input[2])
-                kwargs["input"] = resolve_input_name(onnxgraph, node.input[0])
+                node_input = list(node.input)
+                if len(node_input) >= 2:
+                    kwargs["weights"] = resolve_input_name(onnxgraph, node_input[1])
+                if len(node_input) >= 3:
+                    kwargs["bias"] = resolve_input_name(onnxgraph, node_input[2])
+                if len(node_input) >= 1:
+                    kwargs["input"] = resolve_input_name(onnxgraph, node_input[0])
                 for i, (attribute_name, attribute) in enumerate(
                     (attr.name, onnx.helper.get_attribute_value(attr))
                     for attr in node.attribute
