@@ -26,7 +26,10 @@ from netdeployonnx.devices.max78000.core import (
 )
 
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
-from .test_serialhandler import MeasureDevice, print_chunks
+from .test_serialhandler import (
+    MeasureDevice,
+    print_chunks,
+)
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -389,6 +392,7 @@ def core_equal(original_core: CNNx16Core, core_under_test: CNNx16Core) -> bool: 
             )
     return incorrect
 
+
 @pytest.mark.parametrize(
     "message, expected",
     [
@@ -579,6 +583,36 @@ async def test_metrics_dict_with_virtual_serialport(measurement, expected):
             for e in assertion_errors:
                 print(e)
             assert False, "\n".join([str(e) for e in assertion_errors])
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("power", "0.0001,0.0002,0.0003,0.0004\r\n"),
+        ("voltage", "3.3,3.3,3.3,1.8\r\n"),
+        ("current", "0.030303,0.0606061,0.0909091,0.222222\r\n"),
+        (
+            "triggered",
+            "0.00146162,0.0208,3e-05,0.0703,1.86388e-05,0.0002683,"
+            "3e-05,0.0695,0.000524432,0.0016,3e-05,0.3278\r\n",
+        ),
+        (
+            "system",
+            "6.24e-07,0.0208,3e-05,8.049e-09,0.0002683,3e-05,4.8e-08,0.0016,3e-05\r\n",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_metrics_collect_with_virtual_serialport(
+    open_serial_connection_virtual_device, mode, expected
+):
+    with mock.patch(
+        "serial_asyncio.open_serial_connection", open_serial_connection_virtual_device
+    ) as mock_open_serial_connection:  # noqa: F841
+        metrics = MAX78000Metrics("/dev/null")
+        await metrics.set_mode(mode)
+        data = await metrics.collect()
+        assert data == expected
 
 
 def estimate_isclose_tolerances(a, b):

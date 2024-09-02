@@ -508,7 +508,7 @@ class MAX78000(Device):
                                 submessage for index_submessage, submessage in batch
                             )  # these can throw a CancelledError
                             progress.advance(tasks[stagename], len(batch))
-        except asyncio.exceptions.CancelledError as cancelled_error:
+        except asyncio.exceptions.CancelledError:
             raise Exception("message cancelled")
 
         await metrics.collect()  # collect is needed so that .as_dict works

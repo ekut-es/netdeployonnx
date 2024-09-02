@@ -9,9 +9,7 @@ from collections.abc import Awaitable
 from typing import Callable
 
 import google.protobuf.message
-import numpy as np
 import pytest
-import rich
 import serial_asyncio  # pip install pyserial-asyncio
 from crc import Calculator, Crc32  # pip install crc
 from fastcrc import crc8  # pip install fastcrc
@@ -190,10 +188,11 @@ class PacketOrderSender:
         self.sendqueue = []
         self.resend = False
 
-    def enqueue(self, msg: main_pb2.ProtocolMessage) -> None:
+    def enqueue(self, msg: main_pb2.ProtocolMessage) -> int:
         msg.sequence = self.sent_sequence
         self.sequence_queue[self.sent_sequence] = msg
         self.sent_sequence += 1
+        return msg.sequence
 
     def accept_acknowledge(self, sequence: int) -> bool:
         if self.current_sequence == sequence:
@@ -222,6 +221,8 @@ class PacketOrderSender:
                     break  # stop when we tested a nonexistant sequence
             # send the queue
             await self.data_handler.send_msgs(self.sendqueue)
+
+    async def wait_for_sequence(self, sequence) -> None: ...
 
 
 class DataHandler:
@@ -257,8 +258,7 @@ class DataHandler:
             try:
                 # print("ACK", msg.sequence)
                 seq = msg.sequence
-                self.packet_order_sender.accept_acknowledge(seq)
-                await self.packet_order_sender.work()
+                assert self.packet_order_sender.accept_acknowledge(seq)
             except Exception:
                 import traceback
 
@@ -305,13 +305,11 @@ class DataHandler:
     async def send_msgs(
         self, msgs: list["main_pb2.ProtocolMessage"], group_timeout: int = 4.0
     ):
-        awaitables = []
+        last_sequence = None
         for msg in msgs:
-            sent = asyncio.Future()
-            self.external_send_queue.append((msg, sent, time.monotonic()))
-            awaitables.append(asyncio.wait_for(sent, group_timeout))
+            last_sequence = self.packet_order_sender.enqueue(msg)
         try:
-            return await asyncio.gather(*awaitables)
+            return await self.packet_order_sender.wait_for_sequence(last_sequence)
         except TimeoutError:
             raise
 
