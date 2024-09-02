@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import struct
 from pathlib import Path
 from unittest import mock
@@ -14,6 +15,117 @@ from netdeployonnx.devices.max78000.ai8xize import (
 from netdeployonnx.devices.max78000.device_transport.protobuffers import (
     main_pb2,
 )
+
+
+@pytest.fixture
+def test_instructions():
+    return [
+        {
+            "stage": "cnn_enable",
+            "instructions": [("ACTION", main_pb2.ActionEnum.RUN_CNN_ENABLE, 0)],
+        },
+        {
+            "stage": "cnn_init",
+            "instructions": [
+                ("CNNx16_AOD_CTRL", 0),
+                ("CNNx16_0_CTRL", 1048584),
+                ("CNNx16_0_SRAM", 1036),
+                ("CNNx16_0_LCNT_MAX", 15),
+                ("CNNx16_1_CTRL", 1048584),
+                ("CNNx16_1_SRAM", 1036),
+                ("CNNx16_1_LCNT_MAX", 15),
+                ("CNNx16_2_CTRL", 1048584),
+                ("CNNx16_2_SRAM", 1036),
+                ("CNNx16_2_LCNT_MAX", 15),
+                ("CNNx16_3_CTRL", 1048584),
+                ("CNNx16_3_SRAM", 1036),
+                ("CNNx16_3_LCNT_MAX", 15),
+                "",
+            ],
+        },
+        {"stage": "cnn_load_weights", "instructions": [("ACTION", 40, 0)]},
+        {
+            "stage": "cnn_load_bias",
+            "instructions": [
+                (
+                    1343258624,
+                    b"\x07\xf9\xf9\x04\x07\x03\xff\xfd\xf9\x01I\xe7\x1d4R^47\xef.t\xfc",
+                ),
+                (
+                    1347452928,
+                    b"\xce\xc3~~~\x1e\x80~\x80\x80~~\x82~\x80\x123~~\xdf~\x80\x80\xda~~",
+                ),
+                (
+                    1351647232,
+                    b"e\x02\x1e~!\x1b2F\xc9\xf0\xf9 $\xec!~3\x05\xe6\xfc3\xe7\x1d\xdb",
+                ),
+                (
+                    1355841536,
+                    b"H\x17\x04?\xe1\xee\xf9\xa4a\xf5\xe7\xf4/\x1c\x05\x07\xcc\xf5\x11",
+                ),
+            ],
+        },
+        {
+            "stage": "cnn_configure",
+            "instructions": [
+                "// Layer 0 quadrant 0",
+                ("CNNx16_0_L0_RCNT", 65569),
+                ("CNNx16_0_L0_CCNT", 65569),
+                ("CNNx16_0_L0_WPTR_BASE", 4096),
+                ("CNNx16_0_L0_WPTR_MOFF", 8192),
+                ("CNNx16_0_L0_LCTRL0", 11040),
+                ("CNNx16_0_L0_MCNT", 504),
+                ("CNNx16_0_L0_TPTR", 31),
+                ("CNNx16_0_L0_EN", 458759),
+                ("CNNx16_0_L0_LCTRL1", 129024),
+                "",
+                "// Layer 0 quadrant 1",
+                ("CNNx16_1_L0_RCNT", 65569),
+                ("CNNx16_1_L0_CCNT", 65569),
+                ("CNNx16_1_L0_WPTR_BASE", 4096),
+                ("CNNx16_1_L0_WPTR_MOFF", 8192),
+                ("CNNx16_1_L0_LCTRL0", 2848),
+                ("CNNx16_1_L0_MCNT", 504),
+                ("CNNx16_1_L0_TPTR", 31),
+                ("CNNx16_1_L0_POST", 4224),
+                ("CNNx16_1_L0_LCTRL1", 129024),
+                "",
+                "// Layer 0 quadrant 2",
+                ("CNNx16_2_L0_RCNT", 65569),
+                ("CNNx16_2_L0_CCNT", 65569),
+                ("CNNx16_2_L0_WPTR_BASE", 4096),
+                ("CNNx16_2_L0_WPTR_MOFF", 8192),
+                ("CNNx16_2_L0_LCTRL0", 2848),
+                ("CNNx16_2_L0_MCNT", 504),
+                ("CNNx16_2_L0_TPTR", 31),
+                ("CNNx16_2_L0_LCTRL1", 129024),
+                "",
+                "// Layer 0 quadrant 3",
+                ("CNNx16_3_L0_RCNT", 65569),
+                ("CNNx16_3_L0_CCNT", 65569),
+                ("CNNx16_3_L0_WPTR_BASE", 4096),
+                ("CNNx16_3_L0_WPTR_MOFF", 8192),
+                ("CNNx16_3_L0_LCTRL0", 2848),
+                ("CNNx16_3_L0_MCNT", 504),
+                ("CNNx16_3_L0_TPTR", 31),
+                ("CNNx16_3_L0_LCTRL1", 129024),
+                "",
+            ],
+        },
+        {"stage": "load_input", "instructions": []},
+        {
+            "stage": "cnn_start",
+            "instructions": [
+                ("CNNx16_0_CTRL", 1050632),
+                ("CNNx16_1_CTRL", 1050633),
+                ("CNNx16_2_CTRL", 1050633),
+                ("CNNx16_3_CTRL", 1050633),
+                "",
+                ("CNNx16_0_CTRL", 1048585),
+            ],
+        },
+        {"stage": "done", "instructions": []},
+    ]
 
 
 def print_chunks(origval, val_under_test, diff_vector):
@@ -321,7 +433,7 @@ async def test_backend_ai8xize_execute_fakedata(
 
 
 @pytest.mark.asyncio
-async def test_backend_ai8xize_real_execute_exampledata(
+async def test_backend_ai8xize_real_execute_exampledata_unpatched(
     test_instructions,
 ):
     dev = MAX78000_ai8xize(
@@ -335,6 +447,37 @@ async def test_backend_ai8xize_real_execute_exampledata(
         )
     except TimeoutError:
         raise TimeoutError("timeout")
+
+    dev.commands.exit_request()
+    await asyncio.sleep(0.1)  # wait for exit
+    assert res
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_real_execute_exampledata_patched(
+    test_instructions,
+):
+    dev = MAX78000_ai8xize(
+        communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+    )
+    instr = test_instructions
+    progress_obj_mock = mock.MagicMock()
+
+    @contextlib.contextmanager
+    def progress_mock(*args):
+        yield progress_obj_mock
+
+    progress_obj_mock.add_task = lambda *args, **kwargs: (args, kwargs)
+    progress_obj_mock.advance = print
+    with (
+        mock.patch("netdeployonnx.devices.max78000.device.Progress", progress_mock),
+    ):
+        try:
+            res = await dev.execute(
+                instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
+            )
+        except TimeoutError:
+            raise TimeoutError("timeout")
 
     dev.commands.exit_request()
     await asyncio.sleep(0.1)  # wait for exit

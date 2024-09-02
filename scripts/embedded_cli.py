@@ -10,6 +10,8 @@ from netdeployonnx.devices.max78000.device_transport.serialhandler import handle
 
 
 async def debug_queue():
+    # inline:
+    # [f"- {task.get_coro().__name__}: {task.get_coro().cr_frame.f_code.co_filename}:{task.get_coro().cr_frame.f_lineno}"[-50:] for task in [task for task in asyncio.all_tasks() if not task.done()]]  # noqa: E501
     while True:
         tasks = [task for task in asyncio.all_tasks() if not task.done()]
         logging.debug(f"Current tasks in the execution queue ({len(tasks)}):")

@@ -157,114 +157,6 @@ def cifar10_layout():
     return asyncio.run(cifar10_layout_func())
 
 
-@pytest.fixture
-def test_instructions():
-    return [
-        {"stage": "cnn_enable", "instructions": [("ACTION", 20, 0)]},
-        {
-            "stage": "cnn_init",
-            "instructions": [
-                ("CNNx16_AOD_CTRL", 0),
-                ("CNNx16_0_CTRL", 1048584),
-                ("CNNx16_0_SRAM", 1036),
-                ("CNNx16_0_LCNT_MAX", 15),
-                ("CNNx16_1_CTRL", 1048584),
-                ("CNNx16_1_SRAM", 1036),
-                ("CNNx16_1_LCNT_MAX", 15),
-                ("CNNx16_2_CTRL", 1048584),
-                ("CNNx16_2_SRAM", 1036),
-                ("CNNx16_2_LCNT_MAX", 15),
-                ("CNNx16_3_CTRL", 1048584),
-                ("CNNx16_3_SRAM", 1036),
-                ("CNNx16_3_LCNT_MAX", 15),
-                "",
-            ],
-        },
-        {"stage": "cnn_load_weights", "instructions": [("ACTION", 40, 0)]},
-        {
-            "stage": "cnn_load_bias",
-            "instructions": [
-                (
-                    1343258624,
-                    b"\x07\xf9\xf9\x04\x07\x03\xff\xfd\xf9\x01I\xe7\x1d4R^47\xef.t\xfc",
-                ),
-                (
-                    1347452928,
-                    b"\xce\xc3~~~\x1e\x80~\x80\x80~~\x82~\x80\x123~~\xdf~\x80\x80\xda~~",
-                ),
-                (
-                    1351647232,
-                    b"e\x02\x1e~!\x1b2F\xc9\xf0\xf9 $\xec!~3\x05\xe6\xfc3\xe7\x1d\xdb",
-                ),
-                (
-                    1355841536,
-                    b"H\x17\x04?\xe1\xee\xf9\xa4a\xf5\xe7\xf4/\x1c\x05\x07\xcc\xf5\x11",
-                ),
-            ],
-        },
-        {
-            "stage": "cnn_configure",
-            "instructions": [
-                "// Layer 0 quadrant 0",
-                ("CNNx16_0_L0_RCNT", 65569),
-                ("CNNx16_0_L0_CCNT", 65569),
-                ("CNNx16_0_L0_WPTR_BASE", 4096),
-                ("CNNx16_0_L0_WPTR_MOFF", 8192),
-                ("CNNx16_0_L0_LCTRL0", 11040),
-                ("CNNx16_0_L0_MCNT", 504),
-                ("CNNx16_0_L0_TPTR", 31),
-                ("CNNx16_0_L0_EN", 458759),
-                ("CNNx16_0_L0_LCTRL1", 129024),
-                "",
-                "// Layer 0 quadrant 1",
-                ("CNNx16_1_L0_RCNT", 65569),
-                ("CNNx16_1_L0_CCNT", 65569),
-                ("CNNx16_1_L0_WPTR_BASE", 4096),
-                ("CNNx16_1_L0_WPTR_MOFF", 8192),
-                ("CNNx16_1_L0_LCTRL0", 2848),
-                ("CNNx16_1_L0_MCNT", 504),
-                ("CNNx16_1_L0_TPTR", 31),
-                ("CNNx16_1_L0_POST", 4224),
-                ("CNNx16_1_L0_LCTRL1", 129024),
-                "",
-                "// Layer 0 quadrant 2",
-                ("CNNx16_2_L0_RCNT", 65569),
-                ("CNNx16_2_L0_CCNT", 65569),
-                ("CNNx16_2_L0_WPTR_BASE", 4096),
-                ("CNNx16_2_L0_WPTR_MOFF", 8192),
-                ("CNNx16_2_L0_LCTRL0", 2848),
-                ("CNNx16_2_L0_MCNT", 504),
-                ("CNNx16_2_L0_TPTR", 31),
-                ("CNNx16_2_L0_LCTRL1", 129024),
-                "",
-                "// Layer 0 quadrant 3",
-                ("CNNx16_3_L0_RCNT", 65569),
-                ("CNNx16_3_L0_CCNT", 65569),
-                ("CNNx16_3_L0_WPTR_BASE", 4096),
-                ("CNNx16_3_L0_WPTR_MOFF", 8192),
-                ("CNNx16_3_L0_LCTRL0", 2848),
-                ("CNNx16_3_L0_MCNT", 504),
-                ("CNNx16_3_L0_TPTR", 31),
-                ("CNNx16_3_L0_LCTRL1", 129024),
-                "",
-            ],
-        },
-        {"stage": "load_input", "instructions": []},
-        {
-            "stage": "cnn_start",
-            "instructions": [
-                ("CNNx16_0_CTRL", 1050632),
-                ("CNNx16_1_CTRL", 1050633),
-                ("CNNx16_2_CTRL", 1050633),
-                ("CNNx16_3_CTRL", 1050633),
-                "",
-                ("CNNx16_0_CTRL", 1048585),
-            ],
-        },
-        {"stage": "done", "instructions": []},
-    ]
-
-
 def check_off_by_one_error(
     origval: bytes, val_under_test: bytes, quad: int, fieldname: str
 ) -> list:
@@ -605,7 +497,9 @@ async def test_metrics_dict_with_virtual_serialport(measurement, expected):
 )
 @pytest.mark.asyncio
 async def test_metrics_collect_with_virtual_serialport(
-    open_serial_connection_virtual_device, mode, expected
+    open_serial_connection_virtual_device,  # noqa: F811
+    mode,
+    expected,
 ):
     with mock.patch(
         "serial_asyncio.open_serial_connection", open_serial_connection_virtual_device

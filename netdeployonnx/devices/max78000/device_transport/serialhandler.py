@@ -123,10 +123,12 @@ class KeepaliveTimer:
             elapsed = time.monotonic() - self.last_reset
             self.timer = int(elapsed / self.TIMER_TICK)  # TIMER_TICK is 0.1
             await asyncio.sleep(self.TIMER_TICK)
+            # print(self.timer, self.timer_max_val,
+            # (self.timer / self.timer_max_val)
+            # )
             if not self.warning and (self.timer / self.timer_max_val) > 0.5:
                 logging.warning("Keepalive hickup ~ 50%")
                 self.warning = True
-        # raise asyncio.TimeoutError("Keepalive-Timer ran out")
 
     async def print_statistics(self):
         try:
@@ -510,6 +512,51 @@ async def await_closing_handle_serial(
     await asyncio.sleep(0.5)
 
 
+class FakeAioserialWriter:
+    def __init__(self, aioserial_instance):
+        self.aioserial_instance = aioserial_instance
+        self.data = b""
+
+    def write(self, data):
+        self.data += data
+
+    def close(self):
+        self.aioserial_instance.close()
+
+    async def wait_closed(self):
+        # we need to kill all worker threads of aioserial_instance
+        while True:
+            tasks = [task for task in asyncio.all_tasks() if not task.done()]
+            for task in tasks:
+                try:
+                    task.cancel("kill on wait_closed of aio serial writer")
+                    await asyncio.wait_for(task, 0.5)
+                except Exception:
+                    import traceback
+
+                    traceback.print_exc()
+            if len(tasks) == 0:
+                break
+
+    async def drain(self):
+        ret = await self.aioserial_instance.write_async(self.data)
+        self.data = b""
+        return ret
+
+
+class FakeAioserialReader:
+    def __init__(self, aioserial_instance):
+        self.aioserial_instance = aioserial_instance
+
+    async def read(self, size):
+        # logging.debug(f"### bfore read {self.aioserial_instance.in_waiting}")
+        ret = await self.aioserial_instance.read_async(
+            self.aioserial_instance.in_waiting
+        )
+        logging.debug(f"### after read {len(ret)}")
+        return ret
+
+
 async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     """wrapper for aioserial with interface of serial_asyncio.open_serial_connection"""
     import aioserial
@@ -520,35 +567,9 @@ async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     )
     aioserial_instance.set_low_latency_mode(True)
 
-    class FakeWriter:
-        def __init__(self, aioserial_instance):
-            self.aioserial_instance = aioserial_instance
-            self.data = b""
-
-        def write(self, data):
-            self.data += data
-
-        def close(self): ...
-        async def wait_closed(self): ...
-
-        async def drain(self):
-            ret = await self.aioserial_instance.write_async(self.data)
-            self.data = b""
-            return ret
-
-    class FakeReader:
-        def __init__(self, aioserial_instance):
-            self.aioserial_instance = aioserial_instance
-
-        async def read(self, size):
-            # logging.debug(f"### bfore read {self.aioserial_instance.in_waiting}")
-            ret = await self.aioserial_instance.read_async(
-                self.aioserial_instance.in_waiting
-            )
-            # logging.debug("### after read")
-            return ret
-
-    return FakeReader(aioserial_instance), FakeWriter(aioserial_instance)
+    return FakeAioserialReader(aioserial_instance), FakeAioserialWriter(
+        aioserial_instance
+    )
 
 
 async def handle_write(data_handler, writer):
@@ -591,7 +612,7 @@ async def handle_serial(
         while not commands.set_exit_request:
             try:
                 data_handler.keepalive_timer.check_and_raise()
-                await asyncio.gather(
+                read_res, write_res = await asyncio.gather(
                     handle_read(data_handler, writer, timeout),
                     handle_write(data_handler, writer),
                 )
