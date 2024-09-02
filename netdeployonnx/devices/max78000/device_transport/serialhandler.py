@@ -109,7 +109,7 @@ class KeepaliveTimer:
             self.timer = int(elapsed / self.TIMER_TICK)  # TIMER_TICK is 0.1
             await asyncio.sleep(self.TIMER_TICK)
             if not self.warning and (self.timer / self.timer_max_val) > 0.5:
-                logging.warning("Keepalive hickup ~ 50%")
+                # logging.warning("Keepalive hickup ~ 50%") # TODO: enable this line
                 self.warning = True
         # raise asyncio.TimeoutError("Keepalive-Timer ran out")
 
@@ -140,11 +140,12 @@ class KeepaliveTimer:
                     self.keepalive_list = []
                     self.keepalive_inqueue = []
                     self.keepalive_outqueue = []
-                    print(
-                        f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
-                        f"max={v_max:2.2f}"
-                        f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
-                    )
+                    # print(
+                    #     f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
+                    #     f"max={v_max:2.2f}"
+                    #     f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
+                    # )
+                    # TODO: enable this line
         except Exception:
             traceback.print_exc()
 
@@ -184,6 +185,7 @@ class PacketOrderSender:
         self.data_handler = data_handler
         self.current_sequence = 0  # 0xFFFF_FFF0
         self.sent_sequence = self.current_sequence
+        self.wait_queue = {}
         self.sequence_queue = {}
         self.sendqueue = []
         self.resend = False
@@ -196,6 +198,13 @@ class PacketOrderSender:
 
     def accept_acknowledge(self, sequence: int) -> bool:
         if self.current_sequence == sequence:
+            # accept it by removing it from the sendqueue
+            if len(self.sendqueue) > 0:
+                self.sendqueue.pop(0)
+            else:
+                raise Exception("when does this happen?")
+            if sequence in self.wait_queue:
+                self.wait_queue[sequence].set_result(True)
             self.current_sequence += 1
             return True
         else:
@@ -220,9 +229,22 @@ class PacketOrderSender:
                 else:
                     break  # stop when we tested a nonexistant sequence
             # send the queue
-            await self.data_handler.send_msgs(self.sendqueue)
+            for i in range(len(self.sendqueue)):
+                msg = self.sendqueue[i]
+                self.data_handler.external_send_queue.append(
+                    (msg, asyncio.Future(), time.monotonic())
+                )
+        else:
+            # sendqueue is still full, so we need to wait until accepted
+            ...
+        # await asyncio.sleep(0.5)
 
-    async def wait_for_sequence(self, sequence) -> None: ...
+    async def wait_for_sequence(self, sequence) -> None:
+        self.wait_queue[sequence] = asyncio.Future()
+        logging.debug(">>>start waiting for sequence")
+        await self.wait_queue[sequence]
+        logging.debug("<<<done  waiting for sequence")
+        return self.wait_queue[sequence].result()
 
 
 class DataHandler:
@@ -231,9 +253,6 @@ class DataHandler:
         self.writer = writer
         self.debug = debug
         self.handlers: list[MessageHandler] = [self.keepalive_handler, self.ack_handler]
-
-        self.sequence = 0xFFFF_FFF0
-        self.to_be_acknowledged: dict[int, asyncio.Future] = {}
 
         self.msgs = []
         self.external_send_queue = []
@@ -258,7 +277,11 @@ class DataHandler:
             try:
                 # print("ACK", msg.sequence)
                 seq = msg.sequence
-                assert self.packet_order_sender.accept_acknowledge(seq)
+                assert self.packet_order_sender.accept_acknowledge(seq), (
+                    f"cannot accept seq {seq} (with: "
+                    f"{self.packet_order_sender.current_sequence}, "
+                    f"{self.packet_order_sender.sent_sequence})"
+                )
             except Exception:
                 import traceback
 
@@ -275,11 +298,11 @@ class DataHandler:
                         logging.warning(
                             f"[{msg.keepalive.ticks:06d}] Device: {warning_text}"
                         )
-                logging.debug(
-                    f"[ALIVE n={msg.keepalive.next_tick}] {msg.keepalive.ticks}"
-                    f" [I: {msg.keepalive.inqueue_size:03d} "
-                    f"/ O: {msg.keepalive.outqueue_size:03d}]"
-                )
+                # logging.debug(
+                #     f"[ALIVE n={msg.keepalive.next_tick}] {msg.keepalive.ticks}"
+                #     f" [I: {msg.keepalive.inqueue_size:03d} "
+                #     f"/ O: {msg.keepalive.outqueue_size:03d}]"
+                # )
                 if msg.keepalive.ticks > 0:
                     self.last_tick_id = msg.keepalive.ticks
                 # maybe answer?
@@ -315,6 +338,7 @@ class DataHandler:
 
     async def handle_sendqueue(self, writer) -> None:
         # sending
+        await self.packet_order_sender.work()
         if self.debug:
             ret1 = writer.write(self.debug_data)
             ret2 = await writer.drain()
@@ -326,22 +350,15 @@ class DataHandler:
                     if msg is None:
                         future.set_result(16)
                         return
-                    # if msg.WhichOneof('message_type') == 'payload':
-                    #     if len(msg.payload.registers):
-                    #         print(len(msg.payload.registers))
-                    #     if len(msg.payload.memory):
-                    #         print(sum(len(mem.data) for mem in msg.payload.memory),msg.payload) # noqa E501
-
-                    # set the sequence
-                    self.sequence = (self.sequence + 1) & 0xFFFFFFFF  # keep at 32bit
-                    msg.sequence = self.sequence
-                    self.to_be_acknowledged[msg.sequence] = future
 
                     # carefully craft the crc of the message to be 0x0
                     msg.checksum = recalc_crc(msg)
                     serdata = msg.SerializeToString()
                     if not msg.keepalive.ticks:
-                        logging.debug(f"sent msg [len={len(serdata)}]")
+                        msgstr = str(msg).replace("\n", " ")
+                        logging.debug(
+                            f"sent msg [len={len(serdata)}, seq={msg.sequence}, msg{msgstr}]"
+                        )
                     if len(serdata) > BUFFER_COMPARE_SIZE:
                         future.set_result(32)
                         # we dont want to overload the smol buffer
@@ -360,17 +377,22 @@ class DataHandler:
     async def next_msg(self, timeout=DEFAULT_TIMEOUT):
         if len(self.msgs) > 0:
             return self.msgs.pop(0)
-        self.keepalive_timer.init_once(timeout)
+        # self.keepalive_timer.init_once(timeout)
         start = time.monotonic()
+        logging.debug("### bfore read")
         self.datastream += await asyncio.wait_for(
             self.reader.read(BUFFER_READ_SIZE), timeout
         )  # should return after reading 1 byte
+        logging.debug("### read done")
         await asyncio.sleep(0)
+        logging.debug("### sleep done")
         stop = time.monotonic()
         # print(f"reader {stop-start:2.2f}")
         msgs, self.datastream = self.search_protobuf_messages(self.datastream)
         self.msgs += msgs
         if len(self.msgs) > 0:
+            msg0 = str(self.msgs[0]).replace("\n", " ")
+            logging.debug(f"received {len(self.msgs)} messages: [{msg0}")
             return self.msgs.pop(0)
 
     async def receive(self, message_filter=lambda msg: False, timeout=1):
@@ -422,7 +444,8 @@ class DataHandler:
                     if message.ByteSize() > 0:
                         messages.append(message)
                         if startindex > 1:
-                            # logging.warning(f"skipped data: {datastream[0:startindex]}")
+                            # logging.warning(
+                            # f"skipped data: {datastream[0:startindex]}")
                             pass
                         # Update the datastream to point to the next message
                         datastream = datastream[startindex + message.ByteSize() :]
@@ -451,10 +474,7 @@ async def await_closing_handle_serial(
 ):
     if data_handler:
         # before we exit, we need to cancel all sendqueue futures
-        for msg, future in data_handler.external_send_queue:
-            future.cancel(reason_to_exit)
-        # TODO: maybe also kill the ones to be acknowledged
-        for sequence, future in data_handler.to_be_acknowledged.items():
+        for msg, future, timestamp in data_handler.external_send_queue:
             future.cancel(reason_to_exit)
     # we also want to kill the keepalive timer
     if data_handler:
@@ -500,8 +520,10 @@ async def handle_serial(
         while not commands.set_exit_request:
             try:
                 data_handler.keepalive_timer.check_and_raise()
+                logging.debug("next_msg")
                 msg = await data_handler.next_msg(timeout=timeout)
                 if msg:
+                    logging.debug("message found")
                     try:
                         await data_handler.find_message_handler(msg, writer)
                         await data_handler.handle_sendqueue(writer)

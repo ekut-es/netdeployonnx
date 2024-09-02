@@ -9,23 +9,52 @@ from netdeployonnx.devices.max78000.device_transport.commands import Commands
 from netdeployonnx.devices.max78000.device_transport.serialhandler import handle_serial
 
 
+async def debug_queue():
+    while True:
+        tasks = [task for task in asyncio.all_tasks() if not task.done()]
+        logging.debug(f"Current tasks in the execution queue ({len(tasks)}):")
+        for task in tasks:
+            coro = task.get_coro()
+            location = f"{coro.cr_frame.f_code.co_filename}:{coro.cr_frame.f_lineno}"
+            logging.debug(f"- {coro.__name__}: {location[-50:]}")
+        await asyncio.sleep(0.1)
+
+
 async def asyncmain(args, tty, debug, timeout):
     commands = Commands()
     funcs = []
     funcs += [handle_serial(commands, tty, debug, timeout)]
     funcs += [cli(commands, debug, timeout)]
+    funcs += [debug_queue()]
     await asyncio.gather(*funcs)
+
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        # Custom format for relativeCreated as 3.3f
+        record.relativeCreated = (
+            f"{record.relativeCreated / 1000:3.3f}"  # Convert ms to seconds
+        )
+        return super().format(record)
 
 
 # Configure logging to output to stdout and file 'debug.log'
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s: %(message)s",
+    level=logging.DEBUG,
+    format="[%(relativeCreated)s] %(levelname)s: %(message)s",
     handlers=[
         logging.StreamHandler(),
         # logging.FileHandler('debug.log')
     ],
 )
+# Create a custom formatter
+custom_formatter = CustomFormatter(
+    "[%(relativeCreated)s] %(levelname)s: %(message)s",
+)
+
+# Apply the custom formatter to all handlers of the root logger
+for handler in logging.getLogger().handlers:
+    handler.setFormatter(custom_formatter)
 
 
 @click.command()

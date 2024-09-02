@@ -822,25 +822,35 @@ class Commands:
             logging.warning("please enable debug mode")
 
     async def assert_weights(self, *args, **kwargs):
-        msg = self.new_message()
-        msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS
+        def create_msg():
+            msg = self.new_message()
+            msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS
+            return msg
+
         # print("sending...")
         import time
 
         total_time_for_150 = time.monotonic()
         for i in range(150):
             start = time.monotonic()
-            print(await self.send(msg), f"{time.monotonic() - start:2.2f}")
+            print(await self.send(create_msg()), f"{time.monotonic() - start:2.2f}")
         print("yeah", time.monotonic() - total_time_for_150)
 
     async def assert_weightsX(self, *args, **kwargs):
-        msg = self.new_message()
-        msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS
+        def create_msg():
+            msg = self.new_message()
+            msg.action.execute_measurement = main_pb2.ActionEnum.ASSERT_WEIGHTS
+            return msg
+
         # print("sending...")
         import time
 
         total_time_for_150 = time.monotonic()
         for i in range(15):
             start = time.monotonic()
-            print(await self.send_batch([msg] * 10), f"{time.monotonic() - start:2.2f}")
+            print(
+                "await send_batch",
+                await self.send_batch([create_msg() for i in range(10)]),
+                f"{time.monotonic() - start:2.2f}",
+            )
         print("yeah", time.monotonic() - total_time_for_150)
