@@ -253,45 +253,12 @@ class DataHandler:
         self.packet_order_sender = PacketOrderSender(self)
 
     async def ack_handler(self, msg, writer) -> bool:
-        "we can free the handle and sequence now"
-
-        def is_future_running(future) -> bool:
-            try:
-                future.result()
-            except asyncio.InvalidStateError:
-                # it is running?
-                return True
-            except asyncio.CancelledError:
-                ...
-            except Exception:
-                # maybe set_exception
-                ...
-            return False
-
         if msg.WhichOneof("message_type") == "ack":
             try:
                 # print("ACK", msg.sequence)
                 seq = msg.sequence
-                if seq in self.to_be_acknowledged:
-                    future = self.to_be_acknowledged[seq]
-                    if is_future_running(future):  # TODO: check if future is running?
-                        # we can only set the result if the previous futures have been set
-                        if (seq - 1) in self.to_be_acknowledged:
-                            # yes, there is a previous one, but is it ack'd?
-                            if not is_future_running(self.to_be_acknowledged[seq - 1]):
-                                # it is not running, so we can set it
-                                future.set_result(0)
-                            else:
-                                # it is still running, we are out of order
-                                raise Exception("sequence out of order")
-                        else:
-                            # its not in there?
-                            # then it must be the first
-                            future.set_result(0)
-                    else:
-                        print("future is not running anymore?", future)
-                else:
-                    print("weird, i didnt ask for this seq")
+                self.packet_order_sender.accept_acknowledge(seq)
+                await self.packet_order_sender.work()
             except Exception:
                 import traceback
 
