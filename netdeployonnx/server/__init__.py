@@ -5,9 +5,15 @@ import json
 import logging
 import pickle
 import time
+import traceback
 import uuid
 
 import grpc
+
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
 
 from netdeployonnx.common import device_pb2_grpc
 from netdeployonnx.common.device_pb2 import (
@@ -88,6 +94,8 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
+            if uvloop:
+                asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         return loop
@@ -131,16 +139,18 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             # put the reqid in a queue
             run_id = "run" + str(uuid.uuid4())
             if run_id not in self.run_queue:
+
                 async def task(device, payload, input_payload):
                     # import aiomonitor
                     # with aiomonitor.start_monitor(loop=asyncio.get_running_loop()):
                     if 1:
-                        await device.run_async(
+                        return await device.run_async(
                             Payload_Datatype.Name(payload.datatype),
                             payload.data,
                             Payload_Datatype.Name(input_payload.datatype),
                             input_payload.data,
                         )
+
                 self.run_queue[run_id] = self.loop.create_task(
                     task(device, payload, input_payload)
                 )
@@ -159,25 +169,28 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             if self.run_queue[run_id].done():
                 try:
                     result = self.run_queue[run_id].result()
-                    assert isinstance(
-                        result, dict
-                    ), f"return value is not dict but {type(result)}"
-                    if "exception" in result:
-                        raise Exception(result["exception"])
-                    if "json":
-                        payload = Payload(
-                            datatype="json",
-                            data=json.dumps(result).encode("utf-8"),
-                        )
-                    else:
-                        payload = Payload(
-                            datatype=Payload_Datatype.pickle,
-                            data=pickle.dumps(result),
-                        )
+                    if not self.run_queue[run_id].exception():  # this raises the exc
+                        assert isinstance(
+                            result, dict
+                        ), f"return value is not dict but {type(result)}"
+                        if "exception" in result:
+                            e = result["exception"]
+                            raise e
+                        if "json":
+                            payload = Payload(
+                                datatype="json",
+                                data=json.dumps(result).encode("utf-8"),
+                            )
+                        else:
+                            payload = Payload(
+                                datatype=Payload_Datatype.pickle,
+                                data=pickle.dumps(result),
+                            )
                 except Exception as ex:
+                    tb = traceback.extract_tb(ex.__traceback__)
                     payload = Payload(
                         datatype=Payload_Datatype.exception,
-                        data=pickle.dumps(ex),
+                        data=pickle.dumps((ex, tb)),
                     )
                 finally:
                     del self.run_queue[run_id]  # we dont need that anymore
@@ -272,11 +285,13 @@ def listen(config: AppConfig):
         print(f"- {device.name}")
         for dev_property_name, field in device.model_fields.items():
             print(f"\t{dev_property_name}: {getattr(device, dev_property_name)}")
+
     server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
     device_pb2_grpc.add_DeviceServiceServicer_to_server(DeviceService(config), server)
     server.add_insecure_port(f"{config.server.host}:{config.server.port}")
     server.start()
     server.wait_for_termination()
+
 
 if __name__ == "__main__":
     listen(AppConfig())

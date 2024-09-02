@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import grpc
@@ -18,8 +19,8 @@ def connect(config: AppConfig):
         # load the cifar10 net
         data_folder = Path(__file__).parent.parent.parent / "test" / "data"
         with open(data_folder / "cifar10.onnx", "rb") as fx:
+            # with open(data_folder / "ai8x_net_0.onnx", "rb") as fx:
             data = fx.read()
-
 
         # Run payload
         payload = device_pb2.RunPayloadRequest(
@@ -27,26 +28,46 @@ def connect(config: AppConfig):
             payload=device_pb2.Payload(
                 data=data,
                 datatype=device_pb2.Payload_Datatype.onnxb,
-            )
+            ),
         )
-        async_response:RunPayloadResponse = stub.RunPayloadAsynchronous(payload)
+        async_response: device_pb2.RunPayloadResponse = stub.RunPayloadAsynchronous(
+            payload
+        )
         print("RUN-ID:", async_response.run_id)
         while True:
-            response = stub.CheckPayloadAsynchronous(device_pb2.CheckPayloadRequest(
-                run_id=async_response.run_id,
-            ))
+            response = stub.CheckPayloadAsynchronous(
+                device_pb2.CheckPayloadRequest(
+                    run_id=async_response.run_id,
+                )
+            )
             if response.payload != device_pb2.Payload():
                 break
             print("checking soon...")
-            import time; time.sleep(1)
-        print(f"Payload result: {response.payload}")
+            time.sleep(1)
+        if response.payload.datatype == device_pb2.Payload_Datatype.exception:
+            # unpickle
+            import pickle
+
+            exception, traceback = pickle.loads(response.payload.data)
+            print(f"Exception: {exception}")
+            for frame in traceback:
+                print(
+                    f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
+                )
+                print(f"    {frame.line}")
+        else:
+            print(f"Result: {response.payload}")
 
         # Get device info
-        response = stub.GetDeviceInfo(device_pb2.GetDeviceInfoRequest(deviceHandle=deviceHandle))
+        response = stub.GetDeviceInfo(
+            device_pb2.GetDeviceInfoRequest(deviceHandle=deviceHandle)
+        )
         print(f"Device model: {response.device.model}")
         print(f"Device manufacturer: {response.device.manufacturer}")
         print(f"Device firmware version: {response.device.firmware_version}")
-        freed = stub.FreeDeviceHandle(device_pb2.FreeDeviceHandleRequest(deviceHandle=deviceHandle))
+        freed = stub.FreeDeviceHandle(
+            device_pb2.FreeDeviceHandleRequest(deviceHandle=deviceHandle)
+        )
         if freed.ok:
             print("device freed.")
 

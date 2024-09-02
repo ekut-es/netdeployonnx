@@ -127,7 +127,12 @@ class RemoteDevice:
         except TimeoutError:
             raise TimeoutError("waiting for CheckPayloadResponse")
         if result.payload.datatype == Payload_Datatype.exception:
-            exc = pickle.loads(result.payload.data)
+            exc, traceback = pickle.loads(result.payload.data)
+            for frame in traceback:
+                print(
+                    f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
+                )
+                print(f"    {frame.line}")
             raise exc
         else:
             if result.payload.datatype == Payload_Datatype.none:

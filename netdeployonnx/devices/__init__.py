@@ -192,12 +192,9 @@ class Device(abc.ABC):
             }
             metrics.update(collected_metrics.as_dict())
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
             metrics = {
                 "result": None,
-                "exception": f"{type(e).__name__}: {e}",
+                "exception": e,
             }
         return metrics
 
