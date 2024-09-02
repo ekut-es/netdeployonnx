@@ -29,6 +29,7 @@ from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
 from .test_serialhandler import (
     MeasureDevice,
     print_chunks,
+    open_serial_connection_virtual_device
 )
 
 logging.basicConfig(
