@@ -37,6 +37,7 @@ tqdm = "^4.66.5"
 fastcrc = "^0.3.0"
 crc = "^7.0.0"
 progressbar = "^2.5"
+uvloop = "^0.20.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
