@@ -40,7 +40,7 @@ class CustomFormatter(logging.Formatter):
 
 # Configure logging to output to stdout and file 'debug.log'
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="[%(relativeCreated)s] %(levelname)s: %(message)s",
     handlers=[
         logging.StreamHandler(),

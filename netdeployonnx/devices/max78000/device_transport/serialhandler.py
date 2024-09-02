@@ -86,12 +86,12 @@ def recalc_crc(msg: "main_pb2.ProtocolMessage") -> int:
 
 class KeepaliveTimer:
     def __init__(self):
-        self.TIMER_TICK = 0.01
+        self.TIMER_TICK = 0.1
         self.timer = 0
         self.timer_max_val = 10  # default 10 ticks @ 100ms => 1s
         self.initialized = False
         self.warning = False
-        self.last_reset = time.time()
+        self.last_reset = time.monotonic()
         self.keepalive_list = []
         self.keepalive_inqueue = []
         self.keepalive_outqueue = []
@@ -114,25 +114,24 @@ class KeepaliveTimer:
             self.initialized = True
 
     def _init(self, timer_max_val: int):
-        self.start_time = time.monotonic()
         self.timer_max_val = timer_max_val
         self.task_timer = asyncio.create_task(self.timer_task())
         self.task_stats = asyncio.create_task(self.print_statistics())
 
     async def timer_task(self):
         while self.timer < self.timer_max_val:
-            elapsed = time.monotonic() - self.start_time
+            elapsed = time.monotonic() - self.last_reset
             self.timer = int(elapsed / self.TIMER_TICK)  # TIMER_TICK is 0.1
             await asyncio.sleep(self.TIMER_TICK)
             if not self.warning and (self.timer / self.timer_max_val) > 0.5:
-                # logging.warning("Keepalive hickup ~ 50%") # TODO: enable this line
+                logging.warning("Keepalive hickup ~ 50%")
                 self.warning = True
         # raise asyncio.TimeoutError("Keepalive-Timer ran out")
 
     async def print_statistics(self):
         try:
             while self.task_timer is not None:
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
                 if len(self.keepalive_list) > 0:
                     if len(self.keepalive_inqueue) == 0:
                         self.keepalive_inqueue = [0]
@@ -156,26 +155,24 @@ class KeepaliveTimer:
                     self.keepalive_list = []
                     self.keepalive_inqueue = []
                     self.keepalive_outqueue = []
-                    # print(
-                    #     f"Keepalive: (min={v_min:2.2f}, mean={v_max:2.2f}, "
-                    #     f"max={v_max:2.2f}"
-                    #     f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
-                    # )
-                    # TODO: enable this line
+                    print(
+                        f"Keepalive: (min={v_min:2.2f}, mean={v_mean:2.2f}, "
+                        f"max={v_max:2.2f}"
+                        f"[I={in_mean:2.2f}/O={out_mean:2.2f}])"
+                    )
         except Exception:
             traceback.print_exc()
 
     def check_and_raise(self):
         if self.timer >= self.timer_max_val:
             self.task_timer = None
-            # raise asyncio.TimeoutError("Keepalive-Timer ran out")
-            # # TODO: remove this comment
+            raise asyncio.TimeoutError("Keepalive-Timer ran out")
 
     def reset(self):
-        now = time.time()
+        now = time.monotonic()
         if (now - self.last_reset) > 0.005:
             self.keepalive_list.append(round((now - self.last_reset) * 1000, 2))
-        self.last_reset = time.time()
+        self.last_reset = time.monotonic()
         self.timer = 0
         self.warning = False
 
@@ -220,7 +217,6 @@ class PacketOrderSender:
                 self.sendqueue.pop(0)
             else:
                 raise Exception("when does this happen?")
-            # logging.debug(f"we could update sequence {sequence}")
             if sequence in self.wait_queue:
                 self.wait_queue[sequence].set_result(True)
             self.current_sequence += 1
@@ -311,7 +307,6 @@ class DataHandler:
     async def keepalive_handler(self, msg, writer) -> bool:
         if msg.WhichOneof("message_type") == "keepalive":
             try:
-                return True
                 for warning_id, warning_text in inverted_warning_flags.items():
                     if msg.keepalive.warning & warning_id:
                         logging.warning(
@@ -396,14 +391,12 @@ class DataHandler:
     async def next_msg(self, timeout=DEFAULT_TIMEOUT):
         if len(self.msgs) > 0:
             return self.msgs.pop(0)
-        # self.keepalive_timer.init_once(timeout)
-        start = time.monotonic()  # noqa: F841
+        self.keepalive_timer.init_once(timeout)
+
         self.datastream += await asyncio.wait_for(
             self.reader.read(BUFFER_READ_SIZE), timeout
         )  # should return after reading 1 byte
-        await asyncio.sleep(0)
-        stop = time.monotonic()  # noqa: F841
-        # print(f"reader {stop-start:2.2f}")
+
         msgs, self.datastream = self.search_protobuf_messages(self.datastream)
         self.msgs += msgs
         if len(self.msgs) > 0:
@@ -493,7 +486,6 @@ class DataHandler:
                     return True
             except Exception:
                 ...
-                # traceback.print_exc()
         return await self.default_handle_msg(msg, writer)
 
 
@@ -516,17 +508,12 @@ async def await_closing_handle_serial(
         writer.close()
         await writer.wait_closed()
     await asyncio.sleep(0.5)
-    # exit(0)
 
 
 async def open_serial_connection(*, loop=None, limit=None, **kwargs):
-    """wrapper for serial_asyncio.open_serial_connection"""
+    """wrapper for aioserial with interface of serial_asyncio.open_serial_connection"""
     import aioserial
 
-    print("open_serial_connection", kwargs)
-    # return await serial_asyncio.open_serial_connection(
-    # loop=loop, limit=limit, **kwargs
-    # )
     aioserial_instance: aioserial.AioSerial = aioserial.AioSerial(
         port=kwargs.get("url"),
         baudrate=kwargs.get("baudrate"),
@@ -593,7 +580,6 @@ async def handle_serial(
     data_handler = None
     writer = None
     try:
-        # import debugpy;debugpy.listen(4567);debugpy.wait_for_client();
         reader, writer = await open_serial_connection_patchable(
             url=tty,
             baudrate=1_500_000,
@@ -605,7 +591,6 @@ async def handle_serial(
         while not commands.set_exit_request:
             try:
                 data_handler.keepalive_timer.check_and_raise()
-                # logging.debug("next_msg")
                 await asyncio.gather(
                     handle_read(data_handler, writer, timeout),
                     handle_write(data_handler, writer),
