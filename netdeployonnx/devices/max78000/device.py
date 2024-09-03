@@ -156,7 +156,7 @@ class MAX78000Metrics(Metrics):
         )
         yield reader, writer
         writer.close()
-        try:
+        try:  # noqa: SIM105
             await asyncio.wait_for(writer.wait_closed(), timeout=0.5)
         except TimeoutError:
             # if it does not return, i dont fcare
@@ -501,11 +501,22 @@ class MAX78000(Device):
                 for stagename, stage_messages in messages_per_stage:
                     for stagemsg in stage_messages:
                         messages = commands.split_message(stagemsg)
+                        if stagename == "cnn_load_weights":
+                            messages = messages[40:]
                         progress.reset(tasks[stagename], total=len(messages))
                         batchsize = 10
                         for batch in batched(enumerate(messages), batchsize):
-                            await commands.send_batch(
-                                submessage for index_submessage, submessage in batch
+                            print(
+                                [
+                                    len(submessage.SerializeToString())
+                                    for index_submessage, submessage in batch
+                                ]
+                            )
+                            await asyncio.wait_for(
+                                commands.send_batch(
+                                    submessage for index_submessage, submessage in batch
+                                ),
+                                timeout=1 * batchsize,
                             )  # these can throw a CancelledError
                             progress.advance(tasks[stagename], len(batch))
         except asyncio.exceptions.CancelledError:

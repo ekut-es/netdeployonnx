@@ -332,21 +332,57 @@ async def test_backend_ai8xize_run_onnx(open_serial_connection_virtual_device):
 
 
 @pytest.mark.asyncio
-async def test_backend_ai8xize_execute_cifar10(
+async def test_backend_ai8xize_execute_cifar10_riched(
     open_serial_connection_virtual_device,
 ):
     with mock.patch(
         "serial_asyncio.open_serial_connection",
         open_serial_connection_virtual_device,
     ) as mock_open_serial_connection:  # noqa: F841
-        dev = MAX78000_ai8xize()
+        dev = MAX78000_ai8xize(
+            communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+        )
 
         data_folder = Path(__file__).parent / "data"
         model = onnx.load(data_folder / "cifar10.onnx")
         layout = await dev.layout_transform(model)
         instr = await dev.compile_instructions(layout)
         res = await dev.execute(
-            instructions=instr, metrics=MAX78000Metrics("/dev/null")
+            instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
+        )
+
+        assert res
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_execute_cifar10_unriched(
+    open_serial_connection_virtual_device,
+):
+    progress_obj_mock = mock.MagicMock()
+
+    @contextlib.contextmanager
+    def progress_mock(*args):
+        yield progress_obj_mock
+
+    progress_obj_mock.add_task = lambda *args, **kwargs: (args, kwargs)
+    progress_obj_mock.advance = print
+    with (
+        mock.patch("netdeployonnx.devices.max78000.device.Progress", progress_mock),
+        mock.patch(
+            "serial_asyncio.open_serial_connection",
+            open_serial_connection_virtual_device,
+        ) as mock_open_serial_connection,  # noqa: F841
+    ):  # noqa: F841
+        dev = MAX78000_ai8xize(
+            communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+        )
+
+        data_folder = Path(__file__).parent / "data"
+        model = onnx.load(data_folder / "cifar10.onnx")
+        layout = await dev.layout_transform(model)
+        instr = await dev.compile_instructions(layout)
+        res = await dev.execute(
+            instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
         )
 
         assert res
