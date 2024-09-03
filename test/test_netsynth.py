@@ -1,3 +1,4 @@
+import pickle
 import time
 from pathlib import Path
 from unittest import mock
@@ -111,6 +112,92 @@ def test_net_deploy(grpc_stub: DeviceService):
         assert (
             result.payload.datatype != device_pb2.Payload_Datatype.exception
         ), result.payload.data
+
+        # free handle
+        grpc_stub.FreeDeviceHandle(
+            device_pb2.FreeDeviceHandleRequest(
+                deviceHandle=device_pb2.DeviceHandle(handle=handle)
+            )
+        )
+
+
+def test_net_deploy_ai8xize(grpc_stub: DeviceService):
+    """
+    Test that the device ai8xize can be deployed
+    """
+    with (
+        mock.patch("netdeployonnx.server.list_devices") as mock_list_devices,
+    ):
+        mock_list_devices.return_value = {
+            "1": MAX78000_ai8xize(
+                "EvKit_V1",
+                "MAXIM",
+                "?",
+                communication_port="/dev/ttyUSB0",
+                energy_port="/dev/tty",
+            ),
+            "2": MAX78000("FTHR_RevA", "MAXIM", "?"),
+            "3": DummyDevice("Test", "test", "."),
+        }
+
+        handle = grpc_stub.GetDeviceHandle(
+            device_pb2.GetDeviceHandleRequest(
+                filters=[device_pb2.DeviceInfo(model="EvKit_V1")]
+            )
+        ).deviceHandle.handle
+        print("handle=", handle)
+        response = grpc_stub.GetDeviceInfo(
+            device_pb2.GetDeviceInfoRequest(
+                deviceHandle=device_pb2.DeviceHandle(handle=handle)
+            )
+        )
+        assert isinstance(response, device_pb2.GetDeviceInfoResponse)
+        assert isinstance(response.device, device_pb2.DeviceInfo)
+        print("response.device=", response.device, "#")
+        assert response.device.model == "EvKit_V1"
+        assert response.device.manufacturer == "MAXIM"
+        assert response.device.firmware_version == "?"
+
+        handle = grpc_stub.GetDeviceHandle(
+            device_pb2.GetDeviceHandleRequest(
+                filters=[device_pb2.DeviceInfo(model="EvKit_V1")]
+            )
+        ).deviceHandle.handle
+
+        # load the cifar10 net
+        data_folder = Path(__file__).parent / "data"
+        with open(data_folder / "cifar10.onnx", "rb") as fx:
+            data = fx.read()
+
+        response = grpc_stub.RunPayloadAsynchronous(
+            device_pb2.RunPayloadRequest(
+                deviceHandle=device_pb2.DeviceHandle(handle=handle),
+                payload=device_pb2.Payload(
+                    data=data, datatype=device_pb2.Payload_Datatype.onnxb
+                ),
+            )
+        )
+
+        run_id = response.run_id
+        assert len(run_id) > 0
+        time.sleep(0.05)  # wait for it to return
+        while True:
+            result: device_pb2.CheckPayloadResponse = (
+                grpc_stub.CheckPayloadAsynchronous(
+                    device_pb2.CheckPayloadRequest(
+                        run_id=run_id,
+                    )
+                )
+            )
+            if result.payload != device_pb2.Payload():
+                break
+            print("checking soon...")
+            time.sleep(1)
+        assert result
+        assert result.payload
+        assert (
+            result.payload.datatype != device_pb2.Payload_Datatype.exception
+        ), pickle.loads(result.payload.data)
 
         # free handle
         grpc_stub.FreeDeviceHandle(

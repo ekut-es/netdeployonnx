@@ -351,6 +351,13 @@ async def test_backend_ai8xize_execute_cifar10_riched(
             instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
         )
 
+        dev.commands.exit_request()
+        await asyncio.sleep(0.1)  # wait for exit
+
+        async def cleanup():
+            await dev.handle_serial_task_closed
+
+        await cleanup()
         assert res
 
 
@@ -385,6 +392,13 @@ async def test_backend_ai8xize_execute_cifar10_unriched(
             instructions=instr, metrics=MAX78000Metrics(dev.energy_port)
         )
 
+        dev.commands.exit_request()
+        await asyncio.sleep(0.1)  # wait for exit
+
+        async def cleanup():
+            await dev.handle_serial_task_closed
+
+        await cleanup()
         assert res
 
 
@@ -484,9 +498,14 @@ async def test_backend_ai8xize_real_execute_exampledata_unpatched(
     except TimeoutError:
         raise TimeoutError("timeout")
 
-    dev.commands.exit_request()
-    await asyncio.sleep(0.1)  # wait for exit
-    assert res
+        dev.commands.exit_request()
+        await asyncio.sleep(0.1)  # wait for exit
+
+        async def cleanup():
+            await dev.handle_serial_task_closed
+
+        await cleanup()
+        assert res
 
 
 @pytest.mark.asyncio
@@ -515,9 +534,14 @@ async def test_backend_ai8xize_real_execute_exampledata_patched(
         except TimeoutError:
             raise TimeoutError("timeout")
 
-    dev.commands.exit_request()
-    await asyncio.sleep(0.1)  # wait for exit
-    assert res
+        dev.commands.exit_request()
+        await asyncio.sleep(0.1)  # wait for exit
+
+        async def cleanup():
+            await dev.handle_serial_task_closed
+
+        await cleanup()
+        assert res
 
 
 @pytest.mark.asyncio
@@ -548,4 +572,9 @@ async def test_backend_ai8xize_virtual_execute_exampledata(
 
         dev.commands.exit_request()
         await asyncio.sleep(0.1)  # wait for exit
+
+        async def cleanup():
+            await dev.handle_serial_task_closed
+
+        await cleanup()
         assert res

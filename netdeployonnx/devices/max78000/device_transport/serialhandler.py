@@ -100,12 +100,12 @@ class KeepaliveTimer:
 
     async def close_tasks(self):
         if self.task_timer:
-            self.task_timer.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            with contextlib.suppress(asyncio.CancelledError, RuntimeError):
+                self.task_timer.cancel()
                 await self.task_timer
         if self.task_stats:
-            self.task_stats.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            with contextlib.suppress(asyncio.CancelledError, RuntimeError):
+                self.task_stats.cancel()
                 await self.task_stats
 
     def init_once(self, timeout_in_s: float):
@@ -595,6 +595,7 @@ async def handle_serial(
     debug: bool = False,
     timeout: float = 1,  # noqa: ASYNC109
     open_serial_connection_patchable=open_serial_connection,
+    closed_future: asyncio.Future = None,
 ):
     global data
     reason_to_exit = ""
@@ -626,7 +627,10 @@ async def handle_serial(
         traceback.print_exc()
         reason_to_exit = str(loop_breaking_exception)
     finally:
-        await await_closing_handle_serial(data_handler, reason_to_exit, writer)
+        with contextlib.suppress(RuntimeError):
+            await await_closing_handle_serial(data_handler, reason_to_exit, writer)
+    if closed_future:
+        closed_future.set_result(reason_to_exit)
 
 
 async def main(): ...

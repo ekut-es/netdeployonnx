@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Any
 
 import onnx
@@ -220,6 +220,7 @@ class MAX78000(Device):
         self.commands = Commands()
         # get communication task
         self.handle_serial_task = None
+        self.handle_serial_task_closed = None
 
     def __del__(self):
         # make sure the task is cancelled
@@ -228,11 +229,17 @@ class MAX78000(Device):
 
     async def get_handle_serial_task(self, loop: None) -> asyncio.Task:
         if self.handle_serial_task is None:
+            if self.handle_serial_task_closed is not None:
+                # we have a problem, it has to be closed
+                raise RuntimeError("handle_serial_task_closed is not None")
+            else:
+                self.handle_serial_task_closed = asyncio.Future()
             self.handle_serial_task = loop.create_task(
                 serialhandler.handle_serial(
                     self.commands,
                     tty=self.port,
                     timeout=4,
+                    closed_future=self.handle_serial_task_closed,
                 )
             )
         return self.handle_serial_task
@@ -506,12 +513,12 @@ class MAX78000(Device):
                         progress.reset(tasks[stagename], total=len(messages))
                         batchsize = 10
                         for batch in batched(enumerate(messages), batchsize):
-                            print(
-                                [
-                                    len(submessage.SerializeToString())
-                                    for index_submessage, submessage in batch
-                                ]
-                            )
+                            # print(
+                            #     [
+                            #         len(submessage.SerializeToString())
+                            #         for index_submessage, submessage in batch
+                            #     ]
+                            # )
                             await asyncio.wait_for(
                                 commands.send_batch(
                                     submessage for index_submessage, submessage in batch
@@ -529,3 +536,14 @@ class MAX78000(Device):
             2,
             3,
         ]
+
+    async def free(self):
+        "free the device; this means close the handle_serial task"
+        with suppress(Exception):
+            if self.handle_serial_task:
+                self.commands.set_exit_request = True
+                await self.handle_serial_task
+                self.handle_serial_task = None
+                await self.handle_serial_task_closed
+                self.handle_serial_task_closed = None
+        await asyncio.sleep(0.1)

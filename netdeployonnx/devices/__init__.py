@@ -128,6 +128,13 @@ class Device(abc.ABC):
         """
         raise NotImplementedError("acquire_metrics not implemented")
 
+    @abc.abstractmethod
+    async def free(self):
+        """
+        Free the device
+        """
+        raise NotImplementedError("free not implemented")
+
     @classmethod
     @abc.abstractmethod
     def create_device_from_name_and_ports(
@@ -232,6 +239,9 @@ class Device(abc.ABC):
 
 
 class DummyDevice(Device):
+    async def free(self):
+        pass
+
     async def layout_transform(self, model: onnx.ModelProto) -> Any:
         return None
 

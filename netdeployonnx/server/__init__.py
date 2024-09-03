@@ -100,6 +100,19 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
             asyncio.set_event_loop(loop)
         return loop
 
+    @property
+    def executor(self) -> concurrent.futures.ThreadPoolExecutor:
+        return concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+    def run_async_method(self, coro, complete=False):
+        if complete:
+            return self.loop.run_until_complete(coro)
+        use_executor = False
+        if use_executor:
+            return self.loop.run_in_executor(self.executor, lambda: asyncio.run(coro))
+        else:
+            return self.loop.create_task(coro)
+
     def ListDevices(self, request, context):  # noqa: N802
         devices = list_devices(self.config)
         return ListDevicesResponse(
@@ -151,12 +164,12 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                             input_payload.data,
                         )
 
-                self.run_queue[run_id] = self.loop.create_task(
+                self.run_queue[run_id] = self.run_async_method(
                     task(device, payload, input_payload)
                 )
                 # we need to make sure that our task has the
                 # possibility to run atleast once
-                self.loop.run_until_complete(asyncio.sleep(0))
+                self.run_async_method(asyncio.sleep(0), complete=True)
             return RunPayloadResponse(run_id=run_id)
         return RunPayloadResponse(payload=None)
 
@@ -165,7 +178,9 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
         run_id = request.run_id
         if run_id in self.run_queue:
             # queue update -> start a thread sync
-            self.loop.run_until_complete(asyncio.sleep(0))
+            self.run_async_method(
+                asyncio.sleep(0.01), complete=True
+            )  # cant do sleep(0)
             if self.run_queue[run_id].done():
                 try:
                     result = self.run_queue[run_id].result()
@@ -270,8 +285,14 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
         handle: str = request.deviceHandle.handle
         if handle in self.device_handles:
             try:
-                del self.device_handles[handle]
-                worked = True
+                # delete the entry from the dict
+                try:
+                    # we may need to await to kill the device
+                    device = self.device_handles[handle]
+                    self.run_async_method(device.free(), complete=True)
+                    worked = True
+                finally:
+                    del self.device_handles[handle]
             except Exception as ex:
                 worked = False
                 logging.exception("Failed to free device handle", ex)
@@ -285,12 +306,14 @@ def listen(config: AppConfig):
         print(f"- {device.name}")
         for dev_property_name, field in device.model_fields.items():
             print(f"\t{dev_property_name}: {getattr(device, dev_property_name)}")
-
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
-    device_pb2_grpc.add_DeviceServiceServicer_to_server(DeviceService(config), server)
-    server.add_insecure_port(f"{config.server.host}:{config.server.port}")
-    server.start()
-    server.wait_for_termination()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        server = grpc.server(executor)
+        device_pb2_grpc.add_DeviceServiceServicer_to_server(
+            DeviceService(config), server
+        )
+        server.add_insecure_port(f"{config.server.host}:{config.server.port}")
+        server.start()
+        server.wait_for_termination()
 
 
 if __name__ == "__main__":
