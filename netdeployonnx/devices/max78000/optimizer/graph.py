@@ -22,12 +22,14 @@ class Node:
 
     @property
     def source_nodes(self) -> Iterator["Node"]:
+        self.graph.update_io_maps()
         for input in self.input:
             if input and input in self.graph.output_map:
                 yield self.graph.output_map[input]
 
     @property
     def target_nodes(self) -> Iterator["Node"]:
+        self.graph.update_io_maps()
         for output in self.output:
             if output and output in self.graph.input_map:
                 yield self.graph.input_map[output]
@@ -128,13 +130,18 @@ class Graph:
         self.sparse_initializer = set(graph.sparse_initializer)
 
         # TODO: fix this
+        self.update_io_maps()
+        self.maingraph = set()
+        self.update_maingraph()
+
+    def update_io_maps(self):
+        self.input_map = {}
+        self.output_map = {}
         for nodex in self:
             for node_input in nodex.input:
                 self.input_map[node_input] = nodex
             for node_output in nodex.output:
                 self.output_map[node_output] = nodex
-        self.maingraph = set()
-        self.update_maingraph()
 
     def __iter__(self) -> Iterator[Node]:
         for node in self.nodes:
@@ -154,8 +161,17 @@ class Graph:
         # we need to find the main graph
         self.maingraph = set()
         input_node = next(
-            node for input, node in self.input_map.items() if input in self.input
+            # TODO: document this
+            node
+            for input, node in self.input_map.items()
+            if input in self.input and input == "input"
         )
+
+        # assert that there are no duplicate names
+        assert len(self.nodes) == len(
+            set([node.name for node in self.nodes])
+        ), "Duplicate names in graph"
+
         # now bfs to find all nodes
         queue = [input_node]
         while queue:
@@ -219,8 +235,10 @@ class Graph:
         onnxgraph = self.onnx()
 
         def resolve_input_name(
-            onnxgraph: "onnx.GraphProto", input_name: str
+            onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
         ) -> np.ndarray:
+            if input_name is None:
+                return None
             # Resolve input name
             for initializer in onnxgraph.initializer:
                 if initializer.name == input_name:
@@ -230,6 +248,24 @@ class Graph:
                     return np.zeros(
                         [d.dim_value for d in node.type.tensor_type.shape.dim]
                     )
+            for node in onnxgraph.node:
+                if input_name in node.output:
+                    if node.op_type == "Constant":
+                        attributes = {attr.name: attr for attr in node.attribute}
+                        if "value" in attributes:
+                            t = attributes["value"].t
+                            return np.zeros(t.dims)
+            # if input_name in visited_nodes:
+            #     # prevent infinite loop
+            #     return None
+            # for node in onnxgraph.node:
+            #     # if the input is a node, we need to resolve it
+            #     if node.name == input_name:
+            #         return resolve_input_name(
+            #             onnxgraph=onnxgraph,
+            #             input_name="",
+            #             visited_nodes=visited_nodes + [input_name],)
+            # raise Exception(f"inputname '{input_name}' not found in graph")
             return None
 
         # Add nodes and edges
@@ -237,12 +273,15 @@ class Graph:
             kwargs = {}
             if node.op_type.startswith("Conv") or node.op_type.startswith("Gemm"):
                 node_input = list(node.input)
-                if len(node_input) >= 2:
-                    kwargs["weights"] = resolve_input_name(onnxgraph, node_input[1])
-                if len(node_input) >= 3:
-                    kwargs["bias"] = resolve_input_name(onnxgraph, node_input[2])
-                if len(node_input) >= 1:
-                    kwargs["input"] = resolve_input_name(onnxgraph, node_input[0])
+                kwargs["weights"] = resolve_input_name(
+                    onnxgraph, node_input[1] if len(node_input) >= 2 else None
+                )
+                kwargs["bias"] = resolve_input_name(
+                    onnxgraph, node_input[2] if len(node_input) >= 3 else None
+                )
+                kwargs["input"] = resolve_input_name(
+                    onnxgraph, node_input[0] if len(node_input) >= 1 else None
+                )
                 for i, (attribute_name, attribute) in enumerate(
                     (attr.name, onnx.helper.get_attribute_value(attr))
                     for attr in node.attribute

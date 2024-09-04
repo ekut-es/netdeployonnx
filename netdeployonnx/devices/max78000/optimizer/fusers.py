@@ -18,10 +18,54 @@ class FuseConvRelu(Optimizer):
         Run on a conv layer, that is followed by a relu layer
         """
         assert len(node.input) == 3, "Conv should have 3 inputs: X, W, B"
-        assert len(node.output) == 1, "Conv should have only one output"
+        assert len(node.output) == 1, (
+            f"Conv should have only one output "
+            f"and has {len(node.output)} [{node.name}]"
+        )
 
         node.op_type += "Relu"
-        node.name = "/".join(node.name.split("/")[:-1] + [node.op_type])
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + [node.op_type])
+        # delete the following relu node
+        outputs = set()
+        for target_node in self.target(node)():
+            if not target_node.op_type.startswith("Relu"):
+                # we should not be able to fuse that then?
+                raise ValueError("We can only fuse if all outputs are Relu")
+            assert len(target_node.output) == 1, "Relu should have only one output"
+            outputs |= set(target_node.output)
+            for attrname, attrval in target_node.attributes.items():
+                newattr = f"_relu_{attrname}"
+                if newattr in node.attributes:
+                    raise ValueError(f"Attribute {newattr} already exists in node")
+                node.attributes[newattr] = attrval
+            target_node.deleted = True
+        # now we need to replace the output of the node
+        node.output = list(outputs)
+        node.attributes["activation"] = "relu"
+        return NodeTransformType.MODIFY
+
+
+class FuseGemmRelu(Optimizer):
+    """
+    Fuse conv+relu nodes from the graph
+    """
+
+    def match(self, node: Node) -> bool:
+        # only match conv + relu if all the outputs are relu
+        return node.op_type.startswith("Gemm") and all(
+            self.target(node).op_type.startswith("Relu")
+        )
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        """
+        Run on a conv layer, that is followed by a relu layer
+        """
+        assert len(node.input) == 3, "Gemm should have 3 inputs: X, W, B"
+        assert len(node.output) == 1, (
+            f"Gemm should have only one output "
+            f"and has {len(node.output)} [{node.name}]"
+        )
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + [node.op_type])
         # delete the following relu node
         outputs = set()
         for target_node in self.target(node)():
@@ -83,7 +127,7 @@ class FuseConvMaxPool(Optimizer):
         assert len(inputs) == 1, f"inputs={inputs}"
         node.input = list(inputs) + node.input[1:]
         node.op_type += "MaxPool"
-        node.name = "/".join(node.name.split("/")[:-1] + [node.op_type])
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + [node.op_type])
         return NodeTransformType.MODIFY
 
 
@@ -94,16 +138,17 @@ class FuseReshape(Optimizer):
 
     def match(self, node: Node) -> bool:
         # only match conv + relu if all the outputs are relu
-        return node.op_type.startswith("Gemm") and all(
-            self.source(node).op_type.startswith("Reshape")
+        return node.op_type.startswith("Gemm") and (
+            all(self.source(node).op_type.startswith("Reshape"))
+            or all(self.source(node).op_type.startswith("Flatten"))
         )
 
     def run_transformation(self, node: Node) -> NodeTransformType:
         """
         Run on a conv layer, that is followed by a relu layer
         """
-        assert len(node.input) == 3, "Conv should have 3 inputs: X, W, B"
-        assert len(node.output) == 1, "Conv should have only one output"
+        assert len(node.input) in [2, 3], "Conv/Gemm should have 2 or 3 inputs: X, W, B"
+        assert len(node.output) == 1, "Conv/Gemm should have only one output"
 
         # delete the following relu node
         inputs = list(node.input)
@@ -111,20 +156,30 @@ class FuseReshape(Optimizer):
             if source_node.deleted:
                 continue
 
-            node.op_type += "Reshape"
-            node.name = "/".join(node.name.split("/")[:-1] + [node.op_type])
+            # node.op_type += "Reshape"
+            node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Reshape"])
             # we should only have one as node.output == 1
-            if not source_node.op_type.startswith("Reshape"):
+            if not source_node.op_type.startswith(
+                "Reshape"
+            ) and not source_node.op_type.startswith("Flatten"):
                 # we should not be able to fuse that then?
-                raise ValueError("We can only fuse if all inputs are Reshape")
+                raise ValueError("We can only fuse if all inputs are Reshape/Flatten")
             assert len(source_node.output) == 1, "Reshape should have only one output"
             inputs[0] = source_node.input[0]
             for attrname, attrval in source_node.attributes.items():
-                newattr = f"_reshape_{attrname}"
+                newattr = {
+                    "Reshape": f"_reshape_{attrname}",
+                    "Flatten": f"_flatten_{attrname}",
+                }[source_node.op_type]
                 if newattr in source_node.attributes:
                     raise ValueError(f"Attribute {newattr} already exists in node")
                 node.attributes[newattr] = attrval
-            node.attributes["_reshape__shape"] = source_node.input[1]  # input1 is shape
+            if source_node.op_type.startswith("Reshape"):
+                node.attributes["_reshape__shape"] = source_node.input[
+                    1
+                ]  # input1 is shape
+            elif source_node.op_type.startswith("Flatten"):
+                node.attributes["_flatten__axis"] = source_node.attributes["axis"]
 
             for supersource in self.source(source_node)():
                 idx = supersource.output.index(source_node.input[0])
@@ -137,6 +192,47 @@ class FuseReshape(Optimizer):
             return NodeTransformType.MODIFY
             break
         return NodeTransformType.NO_CHANGE
+
+
+class FuseQuantizeDequantizeLinear(Optimizer):
+    """
+    Fuse quantize and dequantize linear nodes from the graph to a pass node
+    """
+
+    def match(self, node: Node) -> bool:
+        return node.op_type.startswith("DequantizeLinear") and any(
+            self.source(node).op_type.startswith("QuantizeLinear")
+        )
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        """
+        modifiy the dequant node (this one), so it is a pass
+        then reroute the input of the quantize node
+        then delete the quantize node
+        """
+        logger.debug(f"running transformation on node {node.op_type} {node.name}")
+
+        # we need to find the quantize node
+        source_nodes = self.source(node)()
+        assert len(source_nodes) >= 1, f"len={len(source_nodes)}"
+        quantize_node = source_nodes[0]
+        assert quantize_node
+        assert quantize_node.op_type.startswith("QuantizeLinear")
+
+        # we are targeting the dequantize node
+        node.op_type = "Pass"
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Pass"])
+
+        # now set our nodes input to the previous nodes output
+        node.attributes["dequantize_x_scale"] = node.input[1]
+        node.attributes["dequantize_x_zero_point"] = node.input[2]
+        node.attributes["quantize_y_scale"] = quantize_node.input[1]
+        node.attributes["quantize_y_zero_point"] = quantize_node.input[2]
+        node.input = [quantize_node.input[0]]
+        # now we need to destroy the quantize node
+        quantize_node.deleted = True
+
+        return NodeTransformType.MODIFY
 
 
 class FuseClipQuantization(Optimizer):
@@ -175,7 +271,7 @@ class FuseClipQuantization(Optimizer):
 
         # now we change this node
         node.op_type = "Pass"
-        node.name = "/".join(node.name.split("/")[:-1] + ["Pass"])
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Pass"])
         node.input = [good_input]
         node.output = [good_output]
 
@@ -186,7 +282,7 @@ class FuseClipQuantization(Optimizer):
 
 class FuseSqueeze(Optimizer):
     """
-    Eliminate quantization nodes from the graph
+    Fuse Mul(Div(), Pow()) quantization nodes from the graph
     """
 
     DIV = "Div"
@@ -229,7 +325,7 @@ class FuseSqueeze(Optimizer):
 
         # we need to modify this node
         node.op_type = "Squeeze"
-        node.name = "/".join(node.name.split("/")[:-1]) + "/Squeeze"
+        node.name = "/".join(node.name.split("/")[:]) + "_" + "/Squeeze"
         # factor wieder drinne
         factor = pow_base**pow_expo / div_value
         node.attributes["factor"] = [factor]
@@ -266,3 +362,15 @@ class FuseConvSqueeze(Optimizer):
         assert self.make_connection(source_node, target_node)
 
         return NodeTransformType.DESTROY
+
+
+class ReplaceMatMulWithGemm(Optimizer):
+    def match(self, node: Node) -> bool:
+        return node.op_type.startswith("MatMul")
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        logger.debug(f"FuseSqueeze on node {node.op_type} {node.name}")
+        # we are targeting Squeeze
+        node.op_type = "Gemm"
+
+        return NodeTransformType.MODIFY

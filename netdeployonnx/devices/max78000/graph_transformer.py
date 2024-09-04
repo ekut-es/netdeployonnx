@@ -1,15 +1,21 @@
 import onnx
 
 from netdeployonnx.devices.max78000.optimizer import (
+    Augment_Conv_Kernelshape,
+    Augment_Conv_WeightsBias,
+    EliminateBatchNorm,
     EliminateDanglingNodes,
     EliminatePassthrough,
     FuseClipQuantization,
     FuseConvMaxPool,
     FuseConvRelu,
     FuseConvSqueeze,
+    FuseGemmRelu,
+    FuseQuantizeDequantizeLinear,
     FuseReshape,
     FuseSqueeze,
     Graph,
+    ReplaceMatMulWithGemm,
     logger,
 )
 
@@ -18,13 +24,19 @@ def run_optimizer(graph: Graph, last_pass=False) -> int:
     # now run
     optimizers = (
         [
+            Augment_Conv_WeightsBias(),
+            ReplaceMatMulWithGemm(),
             FuseSqueeze(),
+            FuseQuantizeDequantizeLinear(),
             FuseClipQuantization(),
             EliminatePassthrough(),
+            EliminateBatchNorm(),
             FuseConvSqueeze(),
             FuseConvRelu(),
+            FuseGemmRelu(),
             FuseConvMaxPool(),
             FuseReshape(),
+            Augment_Conv_Kernelshape(),
         ]
         if not last_pass
         else [

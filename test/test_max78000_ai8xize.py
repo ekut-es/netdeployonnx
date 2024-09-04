@@ -554,6 +554,59 @@ async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout)
         ), f"layout mismatch (len={len(core_equal_result)})"  # noqa: E501
 
 
+@pytest.mark.parametrize(
+    "onnx_filename, expected_exception, expected",
+    [(f"ai8x_net_{i}.onnx", AssertionError, None) for i in range(10)]
+    + [(f"ai8x_net_{i}_fixed.onnx", SystemExit, None) for i in range(10)],
+)
+@pytest.mark.asyncio
+async def test_backend_ai8xize_layout_hannahsamples(
+    onnx_filename, expected_exception, expected
+):
+    dev = MAX78000_ai8xize()
+
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / onnx_filename)
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            result = await dev.layout_transform(model)
+    else:
+        result = await dev.layout_transform(model)
+        assert result
+        assert isinstance(result, CNNx16Core)
+
+        core_equal_result = core_equal(result, result)
+        assert (
+            core_equal_result == []
+        ), f"layout mismatch (len={len(core_equal_result)})"
+
+
+@pytest.mark.parametrize(
+    "onnx_filename, expected_exception, expected",
+    [("cifar10_short.onnx", AssertionError, None)],
+)
+@pytest.mark.asyncio
+async def test_backend_ai8xize_layout_cifar10_short(  # noqa: F811
+    onnx_filename, expected_exception, expected
+):
+    dev = MAX78000_ai8xize()
+
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / onnx_filename)
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            result = await dev.layout_transform(model)
+    else:
+        result = await dev.layout_transform(model)
+        assert result
+        assert isinstance(result, CNNx16Core)
+
+        core_equal_result = core_equal(result, result)
+        assert (
+            core_equal_result == []
+        ), f"layout mismatch (len={len(core_equal_result)})"
+
+
 @pytest.mark.asyncio
 async def test_backend_ai8xize_layout(cifar10_layout):
     dev = MAX78000_ai8xize()
@@ -661,7 +714,7 @@ def test_layout_transform_generate_config_from_model():
     }
 
     max78000 = MAX78000_ai8xize()
-    result, input_shape = max78000.generate_config_from_model(model)
+    result, input_shape, transformed_model = max78000.generate_config_from_model(model)
     assert result
     layers = result.pop("layers")
     for layeridx, layer in enumerate(c10_layers):

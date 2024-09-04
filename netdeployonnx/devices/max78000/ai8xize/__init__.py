@@ -48,7 +48,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         )
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
-        cfg, input_shape = self.generate_config_from_model(model)
+        cfg, input_shape, transformed_model = self.generate_config_from_model(model)
         layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
         if layer0_is_not_gemm:
             # if the first layer is a CONV layer, then the input shape should be
@@ -56,7 +56,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             assert len(input_shape) == 3, f"unexpected input shape: {input_shape}"
         sample_input = np.zeros(input_shape, dtype=np.int64)
         list_of_results: list[any] = wrap_ai8ize_layout_transform(
-            cfg, model, sample_input
+            cfg, transformed_model, sample_input
         )
 
         core = CNNx16Core()
@@ -96,45 +96,76 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     def generate_config_from_model(  # noqa: C901
         self, model: onnx.ModelProto
-    ) -> tuple[dict, list[int]]:
+    ) -> tuple[dict, list[int], onnx.ModelProto]:
         # the cfg is expected in the order of the nodes in the onnx model
+        INSTANCE_WIDTH = 0x800  # noqa: N806 tc.dev.INSTANCE_WIDTH
         layers: list[AI8XizeConfigLayer] = []
         input_shape: list[int] = None
         trf_graph = self.transform_graph(model.graph)
+
+        input_channels = 1
 
         nx_graph = trf_graph.nxgraph_for_ai8x()
         for node in trf_graph.onnx().node:
             nxnode: any = nx_graph.nodes[node.name]
             op_type: dict = nxnode.get("op_type", None)
             if op_type.startswith("Conv") or op_type.startswith("Gemm"):
+                weights_shape = nxnode.get("weights", np.zeros(shape=[0])).shape
+                # fix the weights shape
+                if len(weights_shape) == 1:
+                    # assume 1D weights
+                    weights_shape = [1, weights_shape[0], 1, 1]
+                elif len(weights_shape) == 2:
+                    # assume 2D weights
+                    weights_shape = [1, weights_shape[0], weights_shape[1], 1]
+                elif len(weights_shape) == 3:
+                    weights_shape = [1] + list(weights_shape)
+                assert len(weights_shape) == 4, (
+                    f"weights shape has to be 4D," f"but is {weights_shape}"
+                )
+
                 if nxnode.get("input") is not None:
                     input_shape = list(nxnode.get("input").shape)
                     if len(input_shape) == 4:
                         input_shape = input_shape[1:]
-                    # assert (
-                    #     len(input_shape) == 3
-                    # ), f"unexpected input shape: {input_shape}"
-                    # TODO: re-enable this check
+                    assert (
+                        len(input_shape) == 3
+                    ), f"unexpected input shape: {input_shape}"
                 ly = AI8XizeConfigLayer(processors=0, out_offset=0)
                 ly.name = node.name
 
                 if len(layers) == 0:
                     ly.data_format = "HWC"
+                    input_channels = input_shape[0]
                 ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
-                if len(layers) == 0:  # TODO: generalize this
-                    input_channels = nxnode.get("input").shape[1]
-                    ly.processors = 2 ** (input_channels) - 1
-                elif len(layers) == 2:  # TODO: generalize this
-                    ly.processors = 0x00000000FFFFFFFF
-                elif len(layers) == 4:  # TODO: generalize this
-                    ly.processors = 0xFFFFFFFF00000000
-                else:
-                    ly.processors = 0xFFFFFFFFFFFFFFFF
+
+                processor_count = input_channels
+                # reduce by input channels
+                expand = input_channels // weights_shape[1]
+                # multipy by output channels
+                input_channels = expand * weights_shape[0]
+
+                if expand > 0:
+                    ly.flatten = True  # TODO: remove if not successfull?
+
+                # if op_type.startswith("Gemm"):
+                # input_channels = weights_shape[1]
+                # processor_count = weights_shape[1]
+
+                # i dont know when to shift the processors
+                processor_shift = 32 if len(layers) == 4 else 0  # TODO: generalize this
+                processor_shift = 0
+                processor_count = min(64, processor_count)
+                processor_shift = min(64 - processor_count, processor_shift)
+
+                ly.processors = (2 ** (processor_count) - 1) << processor_shift
                 ly.operation = "conv2d" if op_type.startswith("Conv") else "MLP"
                 if "Relu" in node.name:
                     ly.activate = "ReLU"
                 if "Reshape" in node.name:
                     # TODO check if it is flatten
+                    ly.flatten = True
+                if "Flatten" in node.name:
                     ly.flatten = True
                 if "MaxPool" in node.name:
                     ly.max_pool = nxnode.get("_maxpool_kernel_shape", [1, 1])
@@ -155,9 +186,16 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                         raise ValueError(
                             f"unexpected pool_stride value: {ly.pool_stride}"
                         )
+
                 if op_type.startswith("Conv"):
-                    weights_shape = nxnode.get("weights", np.zeros(shape=[0])).shape
-                    ly.kernel_size = "3x3" if weights_shape[2] == 3 else "1x1"
+                    # invalid to set for MLP/Gemm
+                    ly.kernel_size = "3x3" if weights_shape[-2] == 3 else "1x1"
+                layer_input_shape = weights_shape
+                assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16, (
+                    f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
+                    f"is too large for the core REF={INSTANCE_WIDTH * 16}"
+                )
+
                 pads = nxnode.get("pads", [0, 0, 0, 0])
                 assert len(pads) == 4 and all(p == pads[0] for p in pads)
                 ly.pad = pads[0]
@@ -168,13 +206,18 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 layers.append(ly)
 
-        layers[-1].output_width = 32  # for our output
+        layers[-1].output_width = 32  # TODO: remove / do generic
         layers[-1].output_shift -= 1  # TODO: check if this is correct
-        c10_layers = layers
-        cfg = AI8XizeConfig(
-            arch="ai85nascifarnet", dataset="CIFAR10", layers=c10_layers
+
+        transformed_model = onnx.helper.make_model(
+            trf_graph.onnx(),
+            producer_name="netdeployonnx",
+            doc_string=f"transformed by netdeployonnx for "
+            f"{self.__class__.__module__}.{self.__class__.__name__}",
         )
-        return dict(cfg.model_dump(exclude_unset=True)), input_shape
+
+        cfg = AI8XizeConfig(arch="ai85nascifarnet", dataset="CIFAR10", layers=layers)
+        return dict(cfg.model_dump(exclude_unset=True)), input_shape, transformed_model
 
     def cnn_load_weights(self, layout: Any) -> Any:
         """

@@ -33,24 +33,16 @@ class EliminateBatchNorm(Optimizer):
 
     def run_transformation(self, node: Node) -> NodeTransformType:
         # batchnorm is basically gamma*x_norm+beta, which is g*x+b
-        raise NotImplementedError("EliminateBatchNorm::run_transformation")
-        # debugpy.breakpoint()
-        # input_layer = next(
-        #     inp_layer
-        #     for inp_layer in node.input
-        #     if not inp_layer.lower().startswith("batch")
-        # )
-        # output_layer = next(out_layer for out_layer in node.output)
-        # number = int(re.match(r".*_(\d+)", node.name).group(1))
-        # return {
-        #     node.name: onnx.helper.make_node(
-        #         "LayerNormalization",
-        #         inputs=[input_layer, f"norm_scale_{number}", f"norm_bias_{number}"],
-        #         outputs=[output_layer],
-        #         name=f"LayerNormalization_{number}",
-        #     )
-        # }
-        pass
+        # BN:  is Y = (X - current_mean) / sqrt(current_var + epsilon) * scale + B
+        # gemm is Y = alpha * A’ * B’ + beta * C,
+        #
+        original_input = node.input
+        assert len(original_input) == 5, f"len(original_input)={len(original_input)}"
+        X, scale, B, mean, var = (original_input + [""] * 5)[:5]  # noqa: N806
+        node.input = [X, scale, B]  # TODO: improve this transformation, works for now
+        node.output = [node.output[0]]
+        node.op_type = "Gemm"
+        return NodeTransformType.MODIFY
 
 
 class EliminateDanglingNodes(Optimizer):

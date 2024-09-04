@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import warnings
@@ -301,7 +302,7 @@ def _get_inouts(node: onnx.NodeProto) -> tuple[list[str], list[str]]:
     return inputs, outputs
 
 
-def _process_channels(
+def _process_channels(  # noqa: C901
     model: onnx.ModelProto, _input: str, initializers: set[str]
 ) -> np.ndarray:
     """
@@ -314,12 +315,35 @@ def _process_channels(
         if node.op_type == "Conv":  # if it is a conv node
             if _input == node.input[2]:  # if the input is the bias
                 # remove kernel_shape from this bias
-                removal_idx = [attr.name for attr in node.attribute].index(
-                    "kernel_shape"
-                )
-                node.attribute.pop(removal_idx)
-                # remove kernel_shape so that we can use the function and do not add
-                # the kernel shape a second time
+                with contextlib.suppress(ValueError):
+                    removal_idx = [attr.name for attr in node.attribute].index(
+                        "kernel_shape"
+                    )
+                    node.attribute.pop(removal_idx)
+                    # remove kernel_shape so that we can use the function and do not add
+                    # the kernel shape a second time
+    # since hannah produces different models, where the initializers are empty,
+    # but the weights are in the inputs, we need to check both
+    if _input in [input.name for input in model.graph.input]:
+        # the thing is now, it has to be a weight
+        all_weights = [
+            node.input[1]
+            for node in model.graph.node
+            if len(node.input) > 1 and node.op_type in ["Conv", "Gemm"]
+        ]
+        if _input in all_weights:
+            for _input_ in model.graph.input:
+                if _input == _input_.name:
+                    # as it is an input and not an initializer, we dont have a value her
+                    # so thats why we do numpy.zeros
+                    w = np.zeros(
+                        shape=[
+                            dim.dim_value for dim in _input_.type.tensor_type.shape.dim
+                        ],
+                    ).astype(np.int64)
+                    # we have to return early here, because
+                    # we dont want to check the initializers and then return None
+                    return w
 
     # proceed with original code
     if _input in initializers:
@@ -330,6 +354,10 @@ def _process_channels(
     else:
         w = None
     return w
+
+
+def raise_instead_of_exit(code):
+    raise SystemExit(code)
 
 
 def layout_transform(
@@ -385,6 +413,7 @@ def layout_transform(
         # functional
         # mock.patch("izer.onnxcp.get_inouts", _get_inouts),
         mock.patch("izer.onnxcp.process_channels", _process_channels),
+        mock.patch("sys.exit", raise_instead_of_exit),
     ):
         izer_main()
 
