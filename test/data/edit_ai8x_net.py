@@ -1,6 +1,6 @@
 from pathlib import Path
-import numpy as np
 
+import numpy as np
 import onnx
 
 
@@ -16,7 +16,7 @@ def fix_w2_in_files(onnx_filename):
             print(f"Fixing {onnx_filename}")
             old_tensor = [dim.dim_value for dim in input.type.tensor_type.shape.dim]
             print(old_tensor)
-            while np.prod(old_tensor) > 32768:
+            while np.prod(old_tensor+[32]) > 32768:
                 old_tensor[0] //= 2
             input.type.tensor_type.shape.ClearField("dim")
             input.type.tensor_type.shape.dim.extend(
