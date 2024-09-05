@@ -311,13 +311,13 @@ def test_fuse_conv_relu():
     # relu should not be in graph
     assert all(node.op_type != "Relu1" for node in transformed_graph)
     # relu should not be in graph
-    assert any(node.op_type == "ConvRelu" for node in transformed_graph)
+    # we dont rename the type anymore.
+    assert any(node.op_type == "Conv" for node in transformed_graph)
+    assert any(node.name.endswith("Relu") for node in transformed_graph)
 
     # is the input connected in both ways?
     init_node = next(node for node in transformed_graph if node.op_type == "Init")
-    convrelu_node = next(
-        node for node in transformed_graph if node.op_type == "ConvRelu"
-    )
+    convrelu_node = next(node for node in transformed_graph if node.op_type == "Conv")
     outro_node = next(node for node in transformed_graph if node.op_type == "Out")
 
     assert init_node.output[0] == convrelu_node.input[0]
@@ -354,13 +354,13 @@ def test_fuse_conv_maxpool():
     # relu should not be in graph
     assert all(node.op_type != "MaxPool" for node in transformed_graph)
     # relu should not be in graph
-    assert any(node.op_type == "ConvMaxPool" for node in transformed_graph)
+    # we dont rename the type anymore.
+    assert any(node.op_type == "Conv" for node in transformed_graph)
+    assert any(node.name.endswith("MaxPool") for node in transformed_graph)
 
     # is the input connected in both ways?
     init_node = next(node for node in transformed_graph if node.op_type == "Init")
-    convrelu_node = next(
-        node for node in transformed_graph if node.op_type == "ConvMaxPool"
-    )
+    convrelu_node = next(node for node in transformed_graph if node.op_type == "Conv")
     outro_node = next(node for node in transformed_graph if node.op_type == "Out")
 
     assert init_node.output[0] == convrelu_node.input[0]
@@ -438,13 +438,13 @@ def test_fuse_reshape():
     # Gemm should not be in graph
     assert any(node.op_type != "Gemm" for node in transformed_graph)
     # GemmReshape should be in graph
-    assert any(node.op_type == "GemmReshape" for node in transformed_graph)
+    # we dont rename anymore.
+    assert any(node.op_type == "Gemm" for node in transformed_graph)
+    assert any(node.name.endswith("Reshape") for node in transformed_graph)
 
     # is the input connected in both ways?
     init_node = next(node for node in transformed_graph if node.op_type == "Init")
-    fuse_node = next(
-        node for node in transformed_graph if node.op_type == "GemmReshape"
-    )
+    fuse_node = next(node for node in transformed_graph if node.op_type == "Gemm")
     outro_node = next(node for node in transformed_graph if node.op_type == "Out")
 
     assert init_node.output[0] == fuse_node.input[0]

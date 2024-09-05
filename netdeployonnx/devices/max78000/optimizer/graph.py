@@ -135,13 +135,30 @@ class Graph:
         self.update_maingraph()
 
     def update_io_maps(self):
-        self.input_map = {}
-        self.output_map = {}
+        self.input_map: dict[str, Node] = {}
+        self.output_map: dict[str, Node] = {}
         for nodex in self:
             for node_input in nodex.input:
                 self.input_map[node_input] = nodex
             for node_output in nodex.output:
                 self.output_map[node_output] = nodex
+
+        for input in self.input:
+            if input not in self.output_map:  # graph inputs are outputs for nodes
+                self.output_map[input] = Node(
+                    self,
+                    onnx.helper.make_node(
+                        "INPUT", inputs=[], outputs=[input], name=input
+                    ),
+                )
+        for output in self.output:
+            if output not in self.input_map:  # graph outputs are inputs for nodes
+                self.input_map[output] = Node(
+                    self,
+                    onnx.helper.make_node(
+                        "OUTPUT", inputs=[output], outputs=[], name=output
+                    ),
+                )
 
     def __iter__(self) -> Iterator[Node]:
         for node in self.nodes:
@@ -164,7 +181,12 @@ class Graph:
             # TODO: document this
             node
             for input, node in self.input_map.items()
-            if input in self.input and input == "input"
+            if input in self.input
+            and input
+            in [
+                "input",
+                "input1",
+            ]
         )
 
         # assert that there are no duplicate names

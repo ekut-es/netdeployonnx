@@ -72,7 +72,7 @@ class ConditionCollector:
 
 class NodeTransformType(enum.Enum):
     # do nothing
-    NO_CHANGE = 0
+    NO_CHANGE = 0  # has to be 0
     # destroy the node
     DESTROY = 1
     # modify the node
@@ -104,6 +104,10 @@ class Optimizer(abc.ABC):
         for node in graph:
             if not node.deleted and self.match(node):
                 replacement_node: NodeTransformType = self.run_transformation(node)
+                assert len(node.output) == 1, (
+                    f"only one output supported, faulty optimizer "
+                    f"{self.__class__.__name__}"
+                )
                 assert isinstance(
                     replacement_node, NodeTransformType
                 ), f"transformer {self.get_pass_name()} did not return a valid NodeTransformType"  # noqa: E501

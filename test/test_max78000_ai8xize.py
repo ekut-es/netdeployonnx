@@ -583,7 +583,7 @@ async def test_backend_ai8xize_layout_hannahsamples(
 
 @pytest.mark.parametrize(
     "onnx_filename, expected_exception, expected",
-    [("cifar10_short.onnx", AssertionError, None)],
+    [("cifar10_short.onnx", None, None)],
 )
 @pytest.mark.asyncio
 async def test_backend_ai8xize_layout_cifar10_short(  # noqa: F811

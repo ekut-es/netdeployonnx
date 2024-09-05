@@ -50,8 +50,34 @@ def reduce_layers(onnx_filename):
         if node.name in ["onnx::Pow_394", "onnx::Pow_384", "Identity"]:
             nodes_to_add.append(node)
         if node.name == "/conv2_2/clamp/Clip_1":
+            # we need to modify the weights output channels
             node.ClearField('output')
             node.output.extend(["output"])
+    # initializer = [i for i in model.graph.initializer if i.name == "onnx::Conv_357" or i.name == "onnx::Conv_358"]
+    # target_shape = [16,32, 1, 1]
+    # # we cant just reshape, but just remove channels 16...64
+    # orig_array = onnx.numpy_helper.to_array(initializer[0])
+    # print(orig_array.shape)
+    # reduced_array = orig_array[:target_shape[0], :, :, :]
+    # print (reduced_array.shape)
+    # assert reduced_array.shape == tuple(target_shape)
+    # model.graph.initializer.remove(initializer[0])
+    # model.graph.initializer.append(onnx.helper.make_tensor(
+    #     name="onnx::Conv_357",
+    #     data_type=initializer[0].data_type,
+    #     dims=target_shape,
+    #     vals=reduced_array.tobytes(),
+    #     raw=True,
+    #     ))
+    # model.graph.initializer.remove(initializer[1])
+    # model.graph.initializer.append(onnx.helper.make_tensor(
+    #     name="onnx::Conv_359",
+    #     data_type=initializer[1].data_type,
+    #     dims=initializer[1].dims,
+    #     vals=reduced_array.tobytes(),
+    #     raw=True,
+    #     ))
+
 
     graph = onnx.helper.make_graph(
         nodes_to_add,

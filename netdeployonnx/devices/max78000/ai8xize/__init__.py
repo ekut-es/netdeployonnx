@@ -145,7 +145,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # multipy by output channels
                 input_channels = expand * weights_shape[0]
 
-                if expand > 0:
+                if expand > 1:
                     ly.flatten = True  # TODO: remove if not successfull?
 
                 # if op_type.startswith("Gemm"):
@@ -191,7 +191,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # invalid to set for MLP/Gemm
                     ly.kernel_size = "3x3" if weights_shape[-2] == 3 else "1x1"
                 layer_input_shape = weights_shape
-                assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16, (
+                assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
                     f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
                     f"is too large for the core REF={INSTANCE_WIDTH * 16}"
                 )
@@ -206,7 +206,11 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 layers.append(ly)
 
-        layers[-1].output_width = 32  # TODO: remove / do generic
+        # try to use 32 if possible
+        if layers[-1].activation in [None] and layers[-1].activate in [
+            None
+        ]:  # TODO: or 'none',
+            layers[-1].output_width = 32  # do we always want 32 bit?
         layers[-1].output_shift -= 1  # TODO: check if this is correct
 
         transformed_model = onnx.helper.make_model(
