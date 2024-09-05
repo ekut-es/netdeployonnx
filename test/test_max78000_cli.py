@@ -76,7 +76,7 @@ async def test_cli_connect(event_loop, open_serial_connection_virtual_device):
     with mock.patch(
         "netdeployonnx.devices.max78000.device_transport.serialhandler.open_serial_connection",
         open_serial_connection_virtual_device,
-    ) as mock_open_serial_connection:
+    ) as mock_open_serial_connection:  # noqa: F841
         # we have at first a task
         commands = Commands()
         task = event_loop.create_task(
