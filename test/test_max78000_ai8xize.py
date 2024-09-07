@@ -556,8 +556,28 @@ async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout)
 
 @pytest.mark.parametrize(
     "onnx_filename, expected_exception, expected",
-    [(f"ai8x_net_{i}.onnx", AssertionError, None) for i in range(10)]
-    + [(f"ai8x_net_{i}_fixed.onnx", SystemExit, None) for i in range(10)],
+    [
+        ("ai8x_net_0.onnx", AssertionError, None),
+        ("ai8x_net_1.onnx", AssertionError, None),
+        ("ai8x_net_2.onnx", AssertionError, None),
+        ("ai8x_net_3.onnx", AssertionError, None),
+        ("ai8x_net_4.onnx", SystemExit, None),
+        ("ai8x_net_5.onnx", AssertionError, None),
+        ("ai8x_net_6.onnx", SystemExit, None),
+        ("ai8x_net_7.onnx", SystemExit, None),
+        ("ai8x_net_8.onnx", SystemExit, None),
+        ("ai8x_net_9.onnx", SystemExit, None),
+        ("ai8x_net_0_fixed.onnx", SystemExit, None),
+        ("ai8x_net_1_fixed.onnx", SystemExit, None),
+        ("ai8x_net_2_fixed.onnx", SystemExit, None),
+        ("ai8x_net_3_fixed.onnx", SystemExit, None),
+        ("ai8x_net_4_fixed.onnx", SystemExit, None),
+        ("ai8x_net_5_fixed.onnx", SystemExit, None),
+        ("ai8x_net_6_fixed.onnx", SystemExit, None),
+        ("ai8x_net_7_fixed.onnx", SystemExit, None),
+        ("ai8x_net_8_fixed.onnx", SystemExit, None),
+        ("ai8x_net_9_fixed.onnx", SystemExit, None),
+    ],
 )
 @pytest.mark.asyncio
 async def test_backend_ai8xize_layout_hannahsamples(
@@ -575,7 +595,9 @@ async def test_backend_ai8xize_layout_hannahsamples(
         assert result
         assert isinstance(result, CNNx16Core)
 
-        core_equal_result = core_equal(result, result)
+        core_equal_result = (
+            core_equal(result, expected) if expected else core_equal(result, result)
+        )
         assert (
             core_equal_result == []
         ), f"layout mismatch (len={len(core_equal_result)})"

@@ -8,10 +8,12 @@ from netdeployonnx.devices.max78000.optimizer import (
     EliminateDanglingNodes,
     EliminatePassthrough,
     EliminateSqueeze,
+    FuseBatchNorm,
     FuseClipQuantization,
     FuseConvMaxPool,
-    FuseConvRelu,
     FuseConvSqueeze,
+    FuseFlatten,
+    FuseGemmConvRelu,
     FuseReshape,
     FuseSqueeze,
 )
@@ -305,7 +307,7 @@ def test_fuse_conv_relu():
             [],
         )
     )
-    changes = FuseConvRelu().run_on_graph(transformed_graph)
+    changes = FuseGemmConvRelu().run_on_graph(transformed_graph)
     assert changes == 1
     assert len(transformed_graph) == len(transformed_graph.nodes) - 1  # relu is removed
     # relu should not be in graph
@@ -444,7 +446,105 @@ def test_fuse_reshape():
 
     # is the input connected in both ways?
     init_node = next(node for node in transformed_graph if node.op_type == "Init")
+    fused_node = next(node for node in transformed_graph if node.op_type == "Gemm")
+    outro_node = next(node for node in transformed_graph if node.op_type == "Out")
+
+    assert init_node.output[0] == fused_node.input[0]
+    assert fused_node.output[0] == outro_node.input[0]
+
+
+def test_fuse_flatten():
+    # Transform the graph
+    transformed_graph = Graph(
+        onnx.helper.make_graph(
+            [
+                onnx.helper.make_node("Init", [], ["input1"], name="Initializer1"),
+                onnx.helper.make_node(
+                    "Flatten", ["input1", "shape"], ["gemm"], name="flatten1"
+                ),
+                onnx.helper.make_node(
+                    "Gemm", ["gemm", "weights", "biases"], ["out"], name="gemm1"
+                ),
+                onnx.helper.make_node("Out", ["out"], [], name="Outro1"),
+            ],
+            "test",
+            [
+                onnx.helper.make_value_info(
+                    "input1",
+                    onnx.helper.make_tensor_type_proto(1, shape=None),
+                )
+            ],
+            [],
+        )
+    )
+    changes = FuseFlatten().run_on_graph(transformed_graph)
+    assert changes == 1
+    assert len(transformed_graph) == len(transformed_graph.nodes) - 1  # relu is removed
+    # Reshape should not be in graph
+    assert all(node.op_type != "Flatten" for node in transformed_graph)
+    # Gemm should not be in graph
+    assert any(node.op_type != "Gemm" for node in transformed_graph)
+    # GemmReshape should be in graph
+    # we dont rename anymore.
+    assert any(node.op_type == "Gemm" for node in transformed_graph)
+    assert any(node.name.endswith("Flatten") for node in transformed_graph)
+
+    # is the input connected in both ways?
+    init_node = next(node for node in transformed_graph if node.op_type == "Init")
     fuse_node = next(node for node in transformed_graph if node.op_type == "Gemm")
+    outro_node = next(node for node in transformed_graph if node.op_type == "Out")
+
+    assert init_node.output[0] == fuse_node.input[0]
+    assert fuse_node.output[0] == outro_node.input[0]
+
+
+def test_fuse_batchnorm():
+    # Transform the graph
+    transformed_graph = Graph(
+        onnx.helper.make_graph(
+            [
+                onnx.helper.make_node("Init", [], ["input1"], name="Initializer1"),
+                onnx.helper.make_node(
+                    "Conv", ["input1", "weights", "biases"], ["conv"], name="conv1"
+                ),
+                onnx.helper.make_node(
+                    "BatchNormalization",
+                    ["conv", "scale", "bias", "mean", "var"],
+                    ["out", "mean", "var"],
+                    name="BatchNormalization1",
+                ),
+                onnx.helper.make_node("Out", ["out"], [], name="Outro1"),
+            ],
+            "test",
+            [
+                onnx.helper.make_value_info(
+                    "input1",
+                    onnx.helper.make_tensor_type_proto(1, shape=None),
+                )
+            ],
+            [
+                onnx.helper.make_value_info(
+                    "scale",
+                    onnx.helper.make_tensor_type_proto(1, shape=None),
+                ),
+            ],
+        )
+    )
+    changes = FuseBatchNorm().run_on_graph(transformed_graph)
+    assert changes == 1
+    assert len(transformed_graph) == len(transformed_graph.nodes) - 1  # relu is removed
+    # Reshape should not be in graph
+    assert all(node.op_type != "BatchNormalization" for node in transformed_graph)
+    # Gemm should not be in graph
+    assert any(node.op_type != "Gemm" for node in transformed_graph)
+    # GemmReshape should be in graph
+    # we dont rename anymore.
+    assert any(node.op_type == "Conv" for node in transformed_graph)
+    assert any(node.name.endswith("BatchNormalization") for node in transformed_graph)
+
+    # is the input connected in both ways?
+    init_node = next(node for node in transformed_graph if node.op_type == "Init")
+    fuse_node = next(node for node in transformed_graph if node.op_type == "Conv")
     outro_node = next(node for node in transformed_graph if node.op_type == "Out")
 
     assert init_node.output[0] == fuse_node.input[0]

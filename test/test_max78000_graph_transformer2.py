@@ -14,10 +14,10 @@ from netdeployonnx.devices.max78000.optimizer import (
     Augment_Conv_WeightsBias,
     EliminateBatchNorm,
     EliminatePassthrough,
+    FuseBatchNorm,
     FuseClipQuantization,
     FuseConvMaxPool,
-    FuseConvRelu,
-    FuseGemmRelu,
+    FuseGemmConvRelu,
     FuseQuantizeDequantizeLinear,
     FuseReshape,
     FuseSqueeze,
@@ -281,6 +281,16 @@ def test_EliminateBatchNorm(graph: Graph, should_match: bool):  # noqa: N802
 
 
 @pytest.mark.parametrize("graph, should_match", [])
+def test_FuseBatchNorm(graph: Graph, should_match: bool):  # noqa: N802
+    changes = FuseBatchNorm().run_on_graph(graph)
+
+    if not should_match:
+        assert changes == 0
+    else:
+        raise NotImplementedError()
+
+
+@pytest.mark.parametrize("graph, should_match", [])
 def test_FuseQuantizeDequantizeLinear(graph: Graph, should_match: bool):  # noqa: N802
     changes = FuseQuantizeDequantizeLinear().run_on_graph(graph)
 
@@ -323,7 +333,7 @@ def test_FuseConvSqueeze(graph: Graph, should_match: bool):  # noqa: N802
 
 @pytest.mark.parametrize("graph, should_match", [])
 def test_FuseConvRelu(graph: Graph, should_match: bool):  # noqa: N802
-    changes = FuseConvRelu().run_on_graph(graph)
+    changes = FuseGemmConvRelu().run_on_graph(graph)
 
     if not should_match:
         assert changes == 0
@@ -342,16 +352,6 @@ def test_FuseConvRelu(graph: Graph, should_match: bool):  # noqa: N802
 
         assert init_node.output[0] == convrelu_node.input[0]
         assert convrelu_node.output[0] == outro_node.input[0]
-
-
-@pytest.mark.parametrize("graph, should_match", [])
-def test_FuseGemmRelu(graph: Graph, should_match: bool):  # noqa: N802
-    changes = FuseGemmRelu().run_on_graph(graph)
-
-    if not should_match:
-        assert changes == 0
-    else:
-        raise NotImplementedError()
 
 
 @pytest.mark.parametrize("graph, should_match", [])

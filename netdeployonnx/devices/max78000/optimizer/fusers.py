@@ -2,101 +2,132 @@ from .graph import Node
 from .optimizer import NodeTransformType, Optimizer, logger
 
 
-class FuseConvRelu(Optimizer):
-    """
-    Fuse conv+relu nodes from the graph
-    """
+class FuseGemmConvGenericTarget(Optimizer):
+    def __init__(self, target_optype: str, target_optype_outputcount: int = 1):
+        self.node_optypes = ["Gemm", "Conv"]
+        self.target_optype = target_optype
+        self.target_optype_outputcount = target_optype_outputcount
 
     def match(self, node: Node) -> bool:
-        # only match conv + relu if all the outputs are relu
-        return node.op_type.startswith("Conv") and all(
-            self.target(node).op_type.startswith("Relu")
+        # only match if all the outputs are target_optype
+        matches_this = any(
+            node.op_type.startswith(node_optype) for node_optype in self.node_optypes
         )
+        matches_target = all(self.target(node).op_type.startswith(self.target_optype))
+        return matches_this and matches_target
 
     def run_transformation(self, node: Node) -> NodeTransformType:
         """
-        Run on a conv layer, that is followed by a relu layer
+        Run on a Gemm layer, that is followed by a relu layer
         """
-        assert len(node.input) == 3, "Conv should have 3 inputs: X, W, B"
-        assert len(node.output) == 1, (
-            f"Conv should have only one output "
-            f"and has {len(node.output)} [{node.name}]"
-        )
+        assert len(node.input) in [2, 3], "Conv/Gemm should have 2 or 3 inputs: X, W, B"
+        assert len(node.output) == 1, "Conv/Gemm should have only one output"
 
-        # node.op_type += "Relu"
-        node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Relu"])
-        # delete the following relu node
+        # delete the following generic
         outputs = set()
-        # print("successos", node.graph.networkx().successors(node.name))
-
         for target_node in self.target(node)():
             if target_node.deleted:
                 continue
-            if not target_node.op_type.startswith("Relu"):
+            if not target_node.op_type.startswith(self.target_optype):
                 # we should not be able to fuse that then?
-                raise ValueError("We can only fuse if all outputs are Relu")
-            assert len(target_node.output) == 1, "Relu should have only one output"
-            outputs |= set(target_node.output)
+                raise ValueError(
+                    f"We can only fuse if all outputs are {self.target_optype}"
+                )
+            assert len(target_node.output) == self.target_optype_outputcount, (
+                f"{self.target_optype} should have "
+                f"{self.target_optype_outputcount} output(s)"
+            )
+            outputs |= set([target_node.output[0]])
             for attrname, attrval in target_node.attributes.items():
-                newattr = f"_relu_{attrname}"
+                newattr = f"_{self.target_optype.lower()}_{attrname}"
                 if newattr in node.attributes:
                     raise ValueError(f"Attribute {newattr} already exists in node")
                 node.attributes[newattr] = attrval
             target_node.deleted = True
         if list(outputs) == 0:
-            raise ValueError("We should have found a relu node")
+            raise ValueError(f"We should have found a {self.target_optype} node")
         # now we need to replace the output of the node
         node.output = list(outputs)
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + [self.target_optype])
         assert len(node.output) == 1, f"outputs={node.output}"
-        node.attributes["activation"] = "relu"
         return NodeTransformType.MODIFY
 
 
-class FuseGemmRelu(Optimizer):
-    """
-    Fuse Gemm+relu nodes from the graph
-    """
+class FuseGemmConvGenericSource(Optimizer):
+    def __init__(self, source_optype: str):
+        self.node_optypes = ["Gemm", "Conv"]
+        self.source_optype = source_optype
 
     def match(self, node: Node) -> bool:
-        # only match gemm + relu if all the outputs are relu
-        return node.op_type.startswith("Gemm") and all(
-            self.target(node).op_type.startswith("Relu")
+        # only match if all the outputs are source_optype
+        matches_this = any(
+            node.op_type.startswith(node_optype) for node_optype in self.node_optypes
         )
+        matches_source = all(self.source(node).op_type.startswith(self.source_optype))
+        return matches_this and matches_source
 
     def run_transformation(self, node: Node) -> NodeTransformType:
         """
-        Run on a gemm layer, that is followed by a relu layer
+        Run on a Gemm layer, that is followed by a relu layer
         """
-        assert len(node.input) == 3, "Gemm should have 3 inputs: X, W, B"
-        assert len(node.output) == 1, (
-            f"Gemm should have only one output "
-            f"and has {len(node.output)} [{node.name}]"
-        )
-        node.name = "/".join(node.name.split("/")[:] + ["_"] + [node.op_type])
-        # delete the following relu node
-        outputs = set()
-        assert len(self.target(node)()) == 1, (
-            f"len={len(self.target(node)())}, {list(self.target(node)())}, "
-            f"outputs = {node.output}"
-        )
-        for target_node in self.target(node)():
-            if not target_node.op_type.startswith("Relu"):
+        assert len(node.input) in [2, 3], "Conv/Gemm should have 2 or 3 inputs: X, W, B"
+        assert len(node.output) == 1, "Conv/Gemm should have only one output"
+
+        # delete the following generic
+        input: str = None
+        for source_node in self.source(node)():
+            if source_node.deleted:
+                continue
+            if not source_node.op_type.startswith(self.source_optype):
                 # we should not be able to fuse that then?
-                raise ValueError("We can only fuse if all outputs are Relu")
-            assert len(target_node.output) == 1, "Relu should have only one output"
-            outputs |= set(target_node.output)
-            for attrname, attrval in target_node.attributes.items():
-                newattr = f"_relu_{attrname}"
+                raise ValueError(
+                    f"We can only fuse if all the input node is {self.target_optype}"
+                )
+            assert (
+                len(source_node.input) >= 1
+            ), f"{self.source_optype} should have atleast 1 input"
+            input = source_node.input[0]
+            for attrname, attrval in source_node.attributes.items():
+                newattr = f"_{self.source_optype.lower()}_{attrname}"
                 if newattr in node.attributes:
                     raise ValueError(f"Attribute {newattr} already exists in node")
                 node.attributes[newattr] = attrval
-            target_node.deleted = True
+            source_node.deleted = True
             break
-        # now we need to replace the output of the node
-        node.output = list(outputs)
-        assert len(node.output) == 1, f"outputs={node.output}"
-        node.attributes["activation"] = "relu"
+        if input:
+            node.input = [input] + node.input[1:]
+        else:
+            raise ValueError(f"We should have found a {self.source_optype} node")
+
+        node.name = "/".join(node.name.split("/")[:] + ["_"] + [self.source_optype])
+        assert len(node.output) == 1, f"input={node.input}"
         return NodeTransformType.MODIFY
+
+
+class FuseGemmConvRelu(FuseGemmConvGenericTarget):
+    """
+    Fuse conv+relu nodes from the graph
+    """
+
+    def __init__(self):
+        super().__init__("Relu")
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        """
+        Run on a conv layer, that is followed by a relu layer
+        """
+        ret = super().run_transformation(node)
+        node.attributes["activation"] = "relu"
+        return ret
+
+
+class FuseBatchNorm(FuseGemmConvGenericTarget):
+    """
+    Fuse batchnorm up to conv/gemm
+    """
+
+    def __init__(self):
+        super().__init__("BatchNormalization", 3)
 
 
 class FuseConvMaxPool(Optimizer):
@@ -145,69 +176,14 @@ class FuseConvMaxPool(Optimizer):
         return NodeTransformType.MODIFY
 
 
-class FuseReshape(Optimizer):
-    """
-    Fuse reshape nodes from the graph
-    """
+class FuseReshape(FuseGemmConvGenericSource):
+    def __init__(self):
+        super().__init__("Reshape")
 
-    def match(self, node: Node) -> bool:
-        # only match Gemm + relu if all the outputs are relu
-        return node.op_type.startswith("Gemm") and (
-            all(self.source(node).op_type.startswith("Reshape"))
-            or all(self.source(node).op_type.startswith("Flatten"))
-        )
 
-    def run_transformation(self, node: Node) -> NodeTransformType:
-        """
-        Run on a Gemm layer, that is followed by a relu layer
-        """
-        assert len(node.input) in [2, 3], "Conv/Gemm should have 2 or 3 inputs: X, W, B"
-        assert len(node.output) == 1, "Conv/Gemm should have only one output"
-
-        # delete the following relu node
-        inputs = list(node.input)
-        for source_node in self.source(node)():
-            if source_node.deleted:
-                continue
-
-            # node.op_type += "Reshape"
-            node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Reshape"])
-            # we should only have one as node.output == 1
-            if not source_node.op_type.startswith(
-                "Reshape"
-            ) and not source_node.op_type.startswith("Flatten"):
-                # we should not be able to fuse that then?
-                raise ValueError("We can only fuse if all inputs are Reshape/Flatten")
-            assert len(source_node.output) == 1, "Reshape should have only one output"
-            inputs[0] = source_node.input[0]
-            for attrname, attrval in source_node.attributes.items():
-                newattr = {
-                    "Reshape": f"_reshape_{attrname}",
-                    "Flatten": f"_flatten_{attrname}",
-                }[source_node.op_type]
-                if newattr in source_node.attributes:
-                    raise ValueError(f"Attribute {newattr} already exists in node")
-                node.attributes[newattr] = attrval
-            if source_node.op_type.startswith("Reshape"):
-                node.attributes["_reshape__shape"] = source_node.input[
-                    1
-                ]  # input1 is shape
-            elif source_node.op_type.startswith("Flatten"):
-                node.attributes["_flatten__axis"] = source_node.attributes["axis"]
-
-            for supersource in self.source(source_node)():
-                idx = supersource.output.index(source_node.input[0])
-                supersource.output[idx] = node.input[0]
-                break
-            source_node.deleted = True
-
-            # now we need to replace the output of the node
-            node.inputs = list(inputs)
-            return NodeTransformType.MODIFY
-            break
-
-        assert len(node.output) == 1, f"outputs={node.output}"  # gemm has only 1 output
-        return NodeTransformType.NO_CHANGE
+class FuseFlatten(FuseGemmConvGenericSource):
+    def __init__(self):
+        super().__init__("Flatten")
 
 
 class FuseQuantizeDequantizeLinear(Optimizer):
