@@ -54,6 +54,16 @@ def main():
         "ai8x_net_7.onnx",
         "ai8x_net_8.onnx",
         "ai8x_net_9.onnx",
+        "ai8x_net_0_fixed.onnx",
+        "ai8x_net_1_fixed.onnx",
+        "ai8x_net_2_fixed.onnx",
+        "ai8x_net_3_fixed.onnx",
+        "ai8x_net_4_fixed.onnx",
+        "ai8x_net_5_fixed.onnx",
+        "ai8x_net_6_fixed.onnx",
+        "ai8x_net_7_fixed.onnx",
+        "ai8x_net_8_fixed.onnx",
+        "ai8x_net_9_fixed.onnx",
         "cifar10_short.onnx",
     ]:
         transform_graph_onnx(filename)

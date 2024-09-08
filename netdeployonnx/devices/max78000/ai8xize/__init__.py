@@ -49,6 +49,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
         cfg, input_shape, transformed_model = self.generate_config_from_model(model)
+        from pprint import pprint
+
+        pprint(cfg)
+        print(onnx.printer.to_text(transformed_model.graph))
         layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
         if layer0_is_not_gemm:
             # if the first layer is a CONV layer, then the input shape should be
@@ -111,15 +115,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             op_type: dict = nxnode.get("op_type", None)
             if op_type.startswith("Conv") or op_type.startswith("Gemm"):
                 weights_shape = nxnode.get("weights", np.zeros(shape=[0])).shape
-                # fix the weights shape
-                if len(weights_shape) == 1:
-                    # assume 1D weights
-                    weights_shape = [1, weights_shape[0], 1, 1]
-                elif len(weights_shape) == 2:
-                    # assume 2D weights
-                    weights_shape = [1, weights_shape[0], weights_shape[1], 1]
-                elif len(weights_shape) == 3:
-                    weights_shape = [1] + list(weights_shape)
                 assert len(weights_shape) == 4, (
                     f"weights shape has to be 4D," f"but is {weights_shape}"
                 )
@@ -142,8 +137,19 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 processor_count = input_channels
                 # reduce by input channels
                 expand = input_channels // weights_shape[1]
+                expand_float = input_channels / weights_shape[1]
+                assert expand_float != 0, "expand is 0"
                 # multipy by output channels
                 input_channels = expand * weights_shape[0]
+
+                print(processor_count, expand, input_channels, weights_shape)
+                assert (
+                    input_channels <= 1024
+                ), f"too many input channels={input_channels}"
+                assert processor_count <= 64, f"too many processors={processor_count}"
+                assert (
+                    weights_shape[0] <= 1024
+                ), f"too many output channels={weights_shape[0]}"
 
                 if expand > 1:
                     ly.flatten = True  # TODO: remove if not successfull?
@@ -154,7 +160,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 # i dont know when to shift the processors
                 processor_shift = 32 if len(layers) == 4 else 0  # TODO: generalize this
-                processor_shift = 0
+                processor_shift = 0  # TODO: disabled for now
                 processor_count = min(64, processor_count)
                 processor_shift = min(64 - processor_count, processor_shift)
 

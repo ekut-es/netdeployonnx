@@ -422,6 +422,8 @@ def layout_transform(
         # mock.patch("izer.onnxcp.get_inouts", _get_inouts),
         mock.patch("izer.onnxcp.process_channels", _process_channels),
         mock.patch("izer.eprint.eprint", eprint_hooked),
+        mock.patch("izer.izer.eprint", eprint_hooked),
+        mock.patch("izer.backend.max7800x.eprint", eprint_hooked),
     ):
         izer_main()
 

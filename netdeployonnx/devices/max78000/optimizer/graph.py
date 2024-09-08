@@ -256,9 +256,22 @@ class Graph:
         nx_graph = nx.DiGraph()
         onnxgraph = self.onnx()
 
-        def resolve_input_name(
+        def resolve_input_name(  # noqa: C901
             onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
         ) -> np.ndarray:
+            def fix_shape(weights_shape):
+                if len(weights_shape) == 1:
+                    # assume 1D weights
+                    return [1, weights_shape[0], 1, 1]
+                elif len(weights_shape) == 2:
+                    # assume 2D weights, now we should have [out_channels, in_channels]
+                    return list(weights_shape) + [1, 1]
+                elif len(weights_shape) == 3:
+                    return list(weights_shape) + [weights_shape[-1]]
+                elif len(weights_shape) == 4:
+                    return weights_shape
+                return [1, 1, 1, 1]
+
             if input_name is None:
                 return None
             # Resolve input name
@@ -268,7 +281,9 @@ class Graph:
             for node in onnxgraph.input:
                 if node.name == input_name:
                     return np.zeros(
-                        [d.dim_value for d in node.type.tensor_type.shape.dim]
+                        fix_shape(
+                            [d.dim_value for d in node.type.tensor_type.shape.dim]
+                        )
                     )
             for node in onnxgraph.node:
                 if input_name in node.output:
@@ -276,19 +291,8 @@ class Graph:
                         attributes = {attr.name: attr for attr in node.attribute}
                         if "value" in attributes:
                             t = attributes["value"].t
-                            return np.zeros(t.dims)
-            # if input_name in visited_nodes:
-            #     # prevent infinite loop
-            #     return None
-            # for node in onnxgraph.node:
-            #     # if the input is a node, we need to resolve it
-            #     if node.name == input_name:
-            #         return resolve_input_name(
-            #             onnxgraph=onnxgraph,
-            #             input_name="",
-            #             visited_nodes=visited_nodes + [input_name],)
-            # raise Exception(f"inputname '{input_name}' not found in graph")
-            return None
+                            return np.zeros(fix_shape(t.dims))
+            return np.zeros([1, 1, 1, 1])
 
         # Add nodes and edges
         for node in onnxgraph.node:
@@ -297,6 +301,11 @@ class Graph:
                 node_input = list(node.input)
                 kwargs["weights"] = resolve_input_name(
                     onnxgraph, node_input[1] if len(node_input) >= 2 else None
+                )
+                assert kwargs["weights"] is not None, "weights is none"
+                assert len(kwargs["weights"].shape) == 4, (
+                    f"Invalid weights shape {kwargs['weights'].shape} "
+                    f"for node {node.name}"
                 )
                 kwargs["bias"] = resolve_input_name(
                     onnxgraph, node_input[2] if len(node_input) >= 3 else None
