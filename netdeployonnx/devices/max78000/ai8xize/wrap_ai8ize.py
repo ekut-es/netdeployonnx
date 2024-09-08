@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import logging
 import warnings
 from dataclasses import dataclass
 from unittest import mock
@@ -356,8 +357,15 @@ def _process_channels(  # noqa: C901
     return w
 
 
-def raise_instead_of_exit(code):
-    raise SystemExit(code)
+def eprint_hooked(*args, error=True, notice=False, prefix=True, exit_code=1, **kwargs):
+    message = "{}".format(*args)
+    if notice:
+        logging.info(message)
+    elif error:
+        logging.error(message)
+        raise SystemExit(message)
+    else:
+        logging.warning(message)
 
 
 def layout_transform(
@@ -413,7 +421,7 @@ def layout_transform(
         # functional
         # mock.patch("izer.onnxcp.get_inouts", _get_inouts),
         mock.patch("izer.onnxcp.process_channels", _process_channels),
-        mock.patch("sys.exit", raise_instead_of_exit),
+        mock.patch("izer.eprint.eprint", eprint_hooked),
     ):
         izer_main()
 
