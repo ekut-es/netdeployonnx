@@ -8,6 +8,7 @@ import traceback
 from collections.abc import Awaitable
 from typing import Callable
 
+import aioserial
 import google.protobuf.message
 import pytest
 from crc import Calculator, Crc32  # pip install crc
@@ -17,6 +18,10 @@ from google.protobuf.internal.decoder import _DecodeVarint  # pip install protob
 from netdeployonnx.devices.max78000.device_transport.commands import Commands
 from netdeployonnx.devices.max78000.device_transport.protobuffers import (
     main_pb2,
+)
+from netdeployonnx.devices.max78000.device_transport.virtualdevices import (
+    FullDevice,
+    MeasureDevice,
 )
 
 BUFFER_READ_SIZE = 1024
@@ -199,7 +204,7 @@ class PacketOrderSender:
 
     def __init__(self, data_handler: "DataHandler"):
         self.data_handler = data_handler
-        self.current_sequence = 0  # 0xFFFF_FFF0
+        self.current_sequence = 1  # 0xFFFF_FFF0
         self.sent_sequence = self.current_sequence
         self.wait_queue = {}
         self.sequence_queue = {}
@@ -434,7 +439,7 @@ class DataHandler:
             raw_msg: bytes = data[: new_pos + length]
             data_msg: bytes = raw_msg[new_pos:]
             crc_val: bytes = data[new_pos + length : new_pos + length + 1]
-            assert len(crc_val) and crc(raw_msg) == crc_val[0]
+            assert len(crc_val) and crc(raw_msg) == crc_val[0], "crc is wrong"
             ret.ParseFromString(data_msg)
         except google.protobuf.message.DecodeError as ex:
             raise Exception() from ex
@@ -525,18 +530,24 @@ class FakeAioserialWriter:
 
     async def wait_closed(self):
         # we need to kill all worker threads of aioserial_instance
-        while True:
-            tasks = [task for task in asyncio.all_tasks() if not task.done()]
-            for task in tasks:
-                try:
-                    task.cancel("kill on wait_closed of aio serial writer")
-                    await asyncio.wait_for(task, 0.5)
-                except Exception:
-                    import traceback
+        executors = (
+            [
+                self.aioserial_instance._cancel_read_executor,
+                self.aioserial_instance._read_executor,
+                self.aioserial_instance._cancel_write_executor,
+                self.aioserial_instance._write_executor,
+            ]
+            if isinstance(self.aioserial_instance, aioserial.AioSerial)
+            else []
+        )
+        for executor in executors:
+            try:
+                executor.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                import traceback
 
-                    traceback.print_exc()
-            if len(tasks) == 0:
-                break
+                traceback.print_exc()
+        # serial should be closed
 
     async def drain(self):
         ret = await self.aioserial_instance.write_async(self.data)
@@ -559,13 +570,19 @@ class FakeAioserialReader:
 
 async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     """wrapper for aioserial with interface of serial_asyncio.open_serial_connection"""
-    import aioserial
 
-    aioserial_instance: aioserial.AioSerial = aioserial.AioSerial(
-        port=kwargs.get("url"),
-        baudrate=kwargs.get("baudrate"),
-    )
-    aioserial_instance.set_low_latency_mode(True)
+    url = kwargs.get("url")
+    baudrate = kwargs.get("baudrate")
+
+    # check if the URL is /dev/virtual..... and use the fake serial
+    if "virtual" in url:
+        aioserial_instance = FullDevice(crc) if "Device" in url else MeasureDevice()
+    else:
+        aioserial_instance: aioserial.AioSerial = aioserial.AioSerial(
+            port=url,
+            baudrate=baudrate,
+        )
+        aioserial_instance.set_low_latency_mode(True)
 
     return FakeAioserialReader(aioserial_instance), FakeAioserialWriter(
         aioserial_instance

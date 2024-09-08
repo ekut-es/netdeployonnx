@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections.abc import Iterable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
 
@@ -147,11 +148,7 @@ class MAX78000Metrics(Metrics):
     async def get_serial(
         self,
     ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        from serial_asyncio import (
-            open_serial_connection,
-        )
-
-        reader, writer = await open_serial_connection(
+        reader, writer = await serialhandler.open_serial_connection(
             url=self.tty_port, baudrate=1_500_000
         )
         yield reader, writer
@@ -467,12 +464,13 @@ class MAX78000(Device):
 
         return messages
 
-    async def execute(self, instructions: Any, metrics: Metrics) -> Any:
+    async def execute(self, instructions: Any, metrics: Metrics) -> Any:  # noqa: C901
         if type(instructions) is not list:
             # something failed in self.compile_instructions?
             raise ValueError("instructions must be a list")
         assert isinstance(instructions, list)
         assert len(instructions) > 0 and isinstance(instructions[0], dict)
+        result = []
 
         await metrics.set_mode("triggered")
 
@@ -493,7 +491,6 @@ class MAX78000(Device):
                     )
                 )
 
-        # TODO: add checkpoint or something to make sure we can continue
         try:
             tasks = {}
             with Progress(
@@ -513,29 +510,24 @@ class MAX78000(Device):
                         progress.reset(tasks[stagename], total=len(messages))
                         batchsize = 10
                         for batch in batched(enumerate(messages), batchsize):
-                            # print(
-                            #     [
-                            #         len(submessage.SerializeToString())
-                            #         for index_submessage, submessage in batch
-                            #     ]
-                            # )
                             await asyncio.wait_for(
                                 commands.send_batch(
                                     submessage for index_submessage, submessage in batch
                                 ),
-                                timeout=1 * batchsize,
+                                timeout=2 * batchsize,  # TODO: change to 1 per msg
                             )  # these can throw a CancelledError
+                            readback: list = []
+                            if isinstance(readback, Iterable):
+                                result.extend(readback)
                             progress.advance(tasks[stagename], len(batch))
         except asyncio.exceptions.CancelledError:
             raise Exception("message cancelled")
 
-        await metrics.collect()  # collect is needed so that .as_dict works
+        await metrics.collect()
+        # collect is needed so that .as_dict works
+        # metrics is done by run_onnx
 
-        return [
-            1,
-            2,
-            3,
-        ]
+        return result  # maybe we have a readback?
 
     async def free(self):
         "free the device; this means close the handle_serial task"
