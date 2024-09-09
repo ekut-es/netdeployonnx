@@ -52,7 +52,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         from pprint import pprint
 
         pprint(cfg)
-        print(onnx.printer.to_text(transformed_model.graph))
+        # print(onnx.printer.to_text(transformed_model.graph))
         layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
         if layer0_is_not_gemm:
             # if the first layer is a CONV layer, then the input shape should be
@@ -146,7 +146,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 assert (
                     input_channels <= 1024
                 ), f"too many input channels={input_channels}"
-                assert processor_count <= 64, f"too many processors={processor_count}"
+                assert (
+                    processor_count // 64 <= 2
+                ), f"too many processors={processor_count}"
                 assert (
                     weights_shape[0] <= 1024
                 ), f"too many output channels={weights_shape[0]}"

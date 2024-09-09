@@ -47,6 +47,7 @@ class FuseGemmConvGenericTarget(Optimizer):
         if list(outputs) == 0:
             raise ValueError(f"We should have found a {self.target_optype} node")
         # now we need to replace the output of the node
+        assert len(node.output) <= len(outputs), "we should not loose outputs?!"
         node.output = list(outputs)
         node.name = "/".join(node.name.split("/")[:] + ["_"] + [self.target_optype])
         assert len(node.output) == 1, f"outputs={node.output}"
@@ -63,7 +64,7 @@ class FuseGemmConvGenericSource(Optimizer):
         matches_this = any(
             node.op_type.startswith(node_optype) for node_optype in self.node_optypes
         )
-        matches_source = all(self.source(node).op_type.startswith(self.source_optype))
+        matches_source = any(self.source(node).op_type.startswith(self.source_optype))
         return matches_this and matches_source
 
     def run_transformation(self, node: Node) -> NodeTransformType:
@@ -74,28 +75,36 @@ class FuseGemmConvGenericSource(Optimizer):
         assert len(node.output) == 1, "Conv/Gemm should have only one output"
 
         # delete the following generic
-        input: str = None
+        inputs: list[str] = []
         for source_node in self.source(node)():
             if source_node.deleted:
+                inputs.append(None)
                 continue
             if not source_node.op_type.startswith(self.source_optype):
                 # we should not be able to fuse that then?
-                raise ValueError(
-                    f"We can only fuse if all the input node is {self.target_optype}"
-                )
+                inputs.append(None)
+                continue
             assert (
                 len(source_node.input) >= 1
             ), f"{self.source_optype} should have atleast 1 input"
-            input = source_node.input[0]
+
+            # we assume our optype only has one input
+            inputs.append(source_node.input[0])
+
             for attrname, attrval in source_node.attributes.items():
                 newattr = f"_{self.source_optype.lower()}_{attrname}"
                 if newattr in node.attributes:
                     raise ValueError(f"Attribute {newattr} already exists in node")
                 node.attributes[newattr] = attrval
             source_node.deleted = True
-            break
-        if input:
-            node.input = [input] + node.input[1:]
+            # we cant break, as for example GEMM have multiple inputs
+        if inputs:
+            node.input = [
+                inputs[orig_i]
+                if len(inputs) > orig_i and inputs[orig_i]
+                else orig_input
+                for orig_i, orig_input in enumerate(node.input)
+            ]
         else:
             raise ValueError(f"We should have found a {self.source_optype} node")
 
@@ -130,50 +139,13 @@ class FuseBatchNorm(FuseGemmConvGenericTarget):
         super().__init__("BatchNormalization", 3)
 
 
-class FuseConvMaxPool(Optimizer):
+class FuseConvMaxPool(FuseGemmConvGenericSource):
     """
     Fuse conv+maxpool nodes from the graph
     """
 
-    def match(self, node: Node) -> bool:
-        # only match conv + relu if all the outputs are relu
-        cond = self.source(node).op_type.startswith("MaxPool")
-        return node.op_type.startswith("Conv") and len(cond) > 0 and all(cond)
-
-    def run_transformation(self, node: Node) -> NodeTransformType:
-        """
-        Run on a conv layer, that is followed by a relu layer
-        """
-        assert len(node.input) == 3, (
-            "Conv should have 3 inputs: X, W, B" f" but has {node.input}"
-        )
-        assert len(node.output) == 1, "Conv should have only one output"
-
-        # delete the relu node
-        logger.debug(f"running on {node}")
-        inputs = set()
-        for source_node in self.source(node)():
-            logger.debug("found node")
-            # we should only have one as node.input == 1
-            if not source_node.op_type.startswith("MaxPool"):
-                # we should not be able to fuse that then?
-                raise ValueError("We can only fuse if the input are MaxPool")
-
-            assert len(source_node.input) == 1, "MaxPool should have only one input"
-            inputs |= set(source_node.input)
-            for attrname, attrval in source_node.attributes.items():
-                newattr = f"_maxpool_{attrname}"
-                if newattr in node.attributes:
-                    raise ValueError(f"Attribute {newattr} already exists in node")
-                node.attributes[newattr] = attrval
-            source_node.deleted = True
-        # now we need to replace the input of the node
-        assert len(inputs) == 1, f"inputs={inputs}"
-        node.input = list(inputs) + node.input[1:]
-        # node.op_type += "MaxPool" # we dont change the type
-        node.name = "/".join(node.name.split("/")[:] + ["_"] + ["MaxPool"])
-        assert len(node.output) == 1, f"outputs={node.output}"
-        return NodeTransformType.MODIFY
+    def __init__(self):
+        super().__init__("MaxPool")
 
 
 class FuseReshape(FuseGemmConvGenericSource):

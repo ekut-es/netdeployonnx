@@ -177,16 +177,13 @@ class Graph:
     def update_maingraph(self):
         # we need to find the main graph
         self.maingraph = set()
-        input_node = next(
+        # instead of finding any input, we just pick a random node
+        # and assume no conv or gemm would be removed
+        start_node = next(
             # TODO: document this
             node
-            for input, node in self.input_map.items()
-            if input in self.input
-            and input
-            in [
-                "input",
-                "input1",
-            ]
+            for node in self.nodes
+            if node.op_type.startswith("Conv") or node.op_type.startswith("Gemm")
         )
 
         # assert that there are no duplicate names
@@ -195,7 +192,7 @@ class Graph:
         ), "Duplicate names in graph"
 
         # now bfs to find all nodes
-        queue = [input_node]
+        queue = [start_node]
         while queue:
             current_node = queue.pop(0)
             self.maingraph |= set([current_node.name])
@@ -277,7 +274,11 @@ class Graph:
             # Resolve input name
             for initializer in onnxgraph.initializer:
                 if initializer.name == input_name:
-                    return onnx.numpy_helper.to_array(initializer)
+                    arr = onnx.numpy_helper.to_array(initializer)
+                    weights_shape = arr.shape
+                    new_shape = fix_shape(weights_shape)
+                    # should only add 1,1 and therefore not change the shape
+                    return np.reshape(arr, new_shape)
             for node in onnxgraph.input:
                 if node.name == input_name:
                     return np.zeros(

@@ -118,7 +118,7 @@ class MeasureDevice(VirtualAIODevice):
 
 
 class FullDevice(VirtualAIODevice):
-    def __init__(self, crc_func: callable, *args, **kwargs):
+    def __init__(self, crc_func: callable = lambda x: 0, *args, **kwargs):
         self.crc_func = crc_func
         self.data = []
         self.collected_data = b""

@@ -378,9 +378,11 @@ async def test_metrics_parsing(message, expected):
     mdev.read = my_read
 
     with mock.patch(
-        "serial_asyncio.open_serial_connection", return_virt
+        "netdeployonnx.devices.max78000.device_transport"
+        ".serialhandler.open_serial_connection",
+        return_virt,
     ) as mock_open_serial_connection:  # noqa: F841
-        metrics = MAX78000Metrics("/dev/null")
+        metrics = MAX78000Metrics("/dev/virtualMetrics")
         await metrics.set_mode("triggered")
         await metrics.collect()
         data = metrics.as_dict()
@@ -452,7 +454,9 @@ async def test_metrics_dict_with_virtual_serialport(measurement, expected):
         return reader, writer
 
     with mock.patch(
-        "serial_asyncio.open_serial_connection", return_virt
+        "netdeployonnx.devices.max78000.device_transport"
+        ".serialhandler.open_serial_connection",
+        return_virt,
     ) as mock_open_serial_connection:  # noqa: F841
         metrics = MAX78000Metrics("/dev/null")
         await metrics.set_mode("triggered")
@@ -502,7 +506,9 @@ async def test_metrics_collect_with_virtual_serialport(
     expected,
 ):
     with mock.patch(
-        "serial_asyncio.open_serial_connection", open_serial_connection_virtual_device
+        "netdeployonnx.devices.max78000.device_transport"
+        ".serialhandler.open_serial_connection",
+        open_serial_connection_virtual_device,
     ) as mock_open_serial_connection:  # noqa: F841
         metrics = MAX78000Metrics("/dev/null")
         await metrics.set_mode(mode)
