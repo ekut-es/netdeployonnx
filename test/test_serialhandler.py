@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from unittest import mock
 
+import numpy as np
 import onnx
 import pytest
 
@@ -490,3 +491,79 @@ async def test_backend_ai8xize_virtual_execute_exampledata(
 
         await cleanup()
         assert res
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_virtual_runonnx_exampledata_patched(
+    test_instructions,
+):
+    dev = MAX78000_ai8xize(
+        communication_port="/dev/virtualDevice", energy_port="/dev/virtualEnergy"
+    )
+
+    progress_obj_mock = mock.MagicMock()
+
+    @contextlib.contextmanager
+    def progress_mock(*args):
+        yield progress_obj_mock
+
+    progress_obj_mock.add_task = lambda *args, **kwargs: (args, kwargs)
+    progress_obj_mock.advance = print
+    with (
+        mock.patch("netdeployonnx.devices.max78000.device.Progress", progress_mock),
+        mock.patch(
+            "netdeployonnx.devices.max78000.ai8xize."
+            "MAX78000_ai8xize.layout_transform"
+        ) as mock_layout_transform,
+        mock.patch(
+            "netdeployonnx.devices.max78000.ai8xize."
+            "MAX78000_ai8xize.compile_instructions"
+        ) as mock_compile_instructions,
+    ):
+        mock_layout_transform.return_value = None
+        mock_compile_instructions.return_value = test_instructions
+        try:
+            res = await dev.run_onnx(
+                onnx.helper.make_model(
+                    onnx.helper.make_graph(nodes=[], name="test", inputs=[], outputs=[])
+                ),
+                None,
+            )
+        except TimeoutError:
+            raise TimeoutError("timeout")
+
+        dev.commands.exit_request()
+        await asyncio.sleep(0.1)  # wait for exit
+
+        async def cleanup():
+            if dev.handle_serial_task_closed:
+                await dev.handle_serial_task_closed
+
+        await cleanup()
+        assert "exception" not in res
+        assert res.pop("result") == []
+        exec_times = res.pop("deployment_execution_times")
+        assert exec_times
+        assert all(
+            np.isclose(exec_times[key], value, atol=0.1)
+            for key, value in {
+                "compile_instructions": 0.0,
+                "execute": 0.01,
+                "layout_transform": 0.01,
+                "total": 0.01,
+            }.items()
+        ), "execution times are not as expected"
+        assert res == {
+            "uJ_per_all": 1986.05,
+            "uJ_per_convolution": 505.79,
+            "uJ_per_input_loading": 18.64,
+            "uJ_per_weights_loading": 1461.62,
+            "uW_per_all": 398040.0,
+            "uW_per_convolution": 258300.0,
+            "uW_per_input_loading": 69470.0,
+            "uW_per_weights_loading": 70270.0,
+            "us_per_all": 22400.0,
+            "us_per_convolution": 1331.7,
+            "us_per_input_loading": 268.3,
+            "us_per_weights_loading": 20800.0,
+        }

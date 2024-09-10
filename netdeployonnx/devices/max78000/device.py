@@ -407,7 +407,7 @@ class MAX78000(Device):
         Start collecting metrics from the device
         """
         # TODO: this is a placeholder, get from config
-        return MAX78000Metrics("/dev/ttyACM0")
+        return MAX78000Metrics(self.energy_port)
 
     def transform_instructions(
         self,
