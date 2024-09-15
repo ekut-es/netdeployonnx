@@ -136,7 +136,7 @@ class FuseBatchNorm(FuseGemmConvGenericTarget):
     """
 
     def __init__(self):
-        super().__init__("BatchNormalization", 3)
+        super().__init__("BatchNormalization", 1)
 
 
 class FuseConvMaxPool(FuseGemmConvGenericSource):
