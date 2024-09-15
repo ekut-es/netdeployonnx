@@ -88,21 +88,24 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
         self.device_handles: dict[(str | uuid.UUID), Device] = {}
         self.run_queue: dict[str, concurrent.futures.Future] = {}
         self.config = config
+        self._executor = None
+        if uvloop:
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
-            if uvloop:
-                asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         return loop
 
     @property
     def executor(self) -> concurrent.futures.ThreadPoolExecutor:
-        return concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        if not self._executor:
+            self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        return self._executor
 
     def run_async_method(self, coro, complete=False):
         if complete:
@@ -156,13 +159,21 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                 async def task(device, payload, input_payload):
                     # import aiomonitor
                     # with aiomonitor.start_monitor(loop=asyncio.get_running_loop()):
-                    if 1:
+                    try:
                         return await device.run_async(
                             Payload_Datatype.Name(payload.datatype),
                             payload.data,
                             Payload_Datatype.Name(input_payload.datatype),
                             input_payload.data,
                         )
+                    except SystemExit as bex:
+                        # we cant rethrow a systemexit
+                        new_exception = Exception(f"SystemExit: {str(bex)}").with_traceback(bex.__traceback__)
+                        return {"exception": new_exception}
+                    except Exception as ex:
+                        # we cant throw at all
+                        return {"exception": ex}
+
 
                 self.run_queue[run_id] = self.run_async_method(
                     task(device, payload, input_payload)
