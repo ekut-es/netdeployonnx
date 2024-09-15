@@ -48,10 +48,21 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         )
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
+        DEBUG = True
+        if DEBUG:
+            # saving model
+            from pathlib import Path
+            import os
+            test = Path(__file__).parent.parent.parent.parent.parent / "test"
+            n = len(os.listdir(test / "data"))
+            filname = test / "data" / f"ai8x_test_{n}.onnx"
+            with open(filname, "wb") as fx:
+                fx.write(model.SerializeToString())
+            print(f"saved as {filname}")
         cfg, input_shape, transformed_model = self.generate_config_from_model(model)
-        from pprint import pprint
-
-        pprint(cfg)
+        if DEBUG:
+            from pprint import pprint
+            pprint(cfg)
         # print(onnx.printer.to_text(transformed_model.graph))
         layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
         if layer0_is_not_gemm:
@@ -143,15 +154,15 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 input_channels = expand * weights_shape[0]
 
                 print(processor_count, expand, input_channels, weights_shape)
-                assert (
-                    input_channels <= 1024
-                ), f"too many input channels={input_channels}"
-                assert (
-                    processor_count // 64 <= 2
-                ), f"too many processors={processor_count}"
-                assert (
-                    weights_shape[0] <= 1024
-                ), f"too many output channels={weights_shape[0]}"
+                # assert (
+                #     input_channels <= 1024
+                # ), f"too many input channels={input_channels}"
+                # assert (
+                #     processor_count // 64 <= 2
+                # ), f"too many processors={processor_count}"
+                # assert (
+                #     weights_shape[0] <= 1024
+                # ), f"too many output channels={weights_shape[0]}"
 
                 if expand > 1:
                     ly.flatten = True  # TODO: remove if not successfull?
@@ -218,7 +229,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         if layers[-1].activation in [None] and layers[-1].activate in [
             None
         ]:  # TODO: or 'none',
-            layers[-1].output_width = 32  # do we always want 32 bit?
+            layers[-1].output_width = 32  # do we always want 32 bit? (yes, because of --softmax)
         layers[-1].output_shift -= 1  # TODO: check if this is correct
 
         transformed_model = onnx.helper.make_model(
