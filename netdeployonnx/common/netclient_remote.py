@@ -99,6 +99,8 @@ class RemoteDevice:
             async with await anyio.open_file(onnx_file, "rb") as f:
                 modelbytes = await f.read()
 
+        assert len(modelbytes) < 4e6, "model too large" # TODO: transfer model in chunks
+
         response = self.client.RunPayloadAsynchronous(
             RunPayloadRequest(
                 deviceHandle=DeviceHandle(handle=self.handle),
@@ -129,10 +131,11 @@ class RemoteDevice:
         if result.payload.datatype == Payload_Datatype.exception:
             exc, traceback = pickle.loads(result.payload.data)
             for frame in traceback:
-                print(
-                    f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
-                )
-                print(f"    {frame.line}")
+                # print(
+                #     f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
+                # )
+                # print(f"    {frame.line}")
+                print(frame)
             raise exc
         else:
             if result.payload.datatype == Payload_Datatype.none:
