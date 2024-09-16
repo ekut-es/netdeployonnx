@@ -1,6 +1,7 @@
 import math
 from collections import defaultdict
 from typing import Any
+import logging
 
 import networkx as nx
 import numpy as np
@@ -49,7 +50,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
         DEBUG = True
-        if DEBUG:
+        if DEBUG and False:
             # saving model
             from pathlib import Path
             import os
@@ -63,6 +64,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         if DEBUG:
             from pprint import pprint
             pprint(cfg)
+            print("input_shape:", input_shape)
         # print(onnx.printer.to_text(transformed_model.graph))
         layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
         if layer0_is_not_gemm:
@@ -130,7 +132,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     f"weights shape has to be 4D," f"but is {weights_shape}"
                 )
 
-                if nxnode.get("input") is not None:
+                if nxnode.get("input") is not None and input_shape is None:
                     input_shape = list(nxnode.get("input").shape)
                     if len(input_shape) == 4:
                         input_shape = input_shape[1:]
@@ -145,15 +147,15 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     input_channels = input_shape[0]
                 ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
 
-                processor_count = input_channels
                 # reduce by input channels
-                expand = input_channels // weights_shape[1]
-                expand_float = input_channels / weights_shape[1]
-                assert expand_float != 0, "expand is 0"
+                passes_float = input_channels / 64
+                passes = math.ceil(passes_float)
+                assert passes_float != 0, "passes is 0"
                 # multipy by output channels
-                input_channels = expand * weights_shape[0]
+                processor_count = (input_channels // passes) # future input_channels are output_channels / passes
+                input_channels = weights_shape[0]
 
-                print(processor_count, expand, input_channels, weights_shape)
+                logging.warning(f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}")
                 # assert (
                 #     input_channels <= 1024
                 # ), f"too many input channels={input_channels}"
@@ -164,8 +166,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 #     weights_shape[0] <= 1024
                 # ), f"too many output channels={weights_shape[0]}"
 
-                if expand > 1:
-                    ly.flatten = True  # TODO: remove if not successfull?
+                if passes > 1:
+                    ly.flatten = True  # TODO: remove if not successful?
 
                 # if op_type.startswith("Gemm"):
                 # input_channels = weights_shape[1]
@@ -182,7 +184,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 if "Relu" in node.name:
                     ly.activate = "ReLU"
                 if "Reshape" in node.name:
-                    # TODO check if it is flatten
                     ly.flatten = True
                 if "Flatten" in node.name:
                     ly.flatten = True
@@ -210,10 +211,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # invalid to set for MLP/Gemm
                     ly.kernel_size = "3x3" if weights_shape[-2] == 3 else "1x1"
                 layer_input_shape = weights_shape
-                assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
-                    f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
-                    f"is too large for the core REF={INSTANCE_WIDTH * 16}"
-                )
+                # assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
+                #     f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
+                #     f"is too large for the core REF={INSTANCE_WIDTH * 16}"
+                # )
 
                 pads = nxnode.get("pads", [0, 0, 0, 0])
                 assert len(pads) == 4 and all(p == pads[0] for p in pads)

@@ -194,7 +194,7 @@ class MAX78000Metrics(Metrics):
 
     def as_dict(self) -> dict:
         d = super().as_dict()
-        d.update(self._get_network_stats())
+        d["metrics"] = self._get_network_stats()
         return d
 
 

@@ -6,6 +6,7 @@ import warnings
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Union
+import logging
 
 import anyio
 
@@ -32,6 +33,7 @@ try:
 except ImportError:
     grpc = None
 
+logger = logging.getLogger("netdeployonnx.remote")
 
 class NetClient:
     def __init__(self, client: DeviceService, channel: "grpc.Channel"):
@@ -91,6 +93,7 @@ class RemoteDevice:
         self,
         onnx_file: Union[Path, str] = "",
         modelbytes: bytes = None,
+        input_bytes: bytes = b"",
         timeout: float = 4,
         profiling: bool = True,
     ) -> Union[dict, bytes, None]:
@@ -130,12 +133,9 @@ class RemoteDevice:
             raise TimeoutError("waiting for CheckPayloadResponse")
         if result.payload.datatype == Payload_Datatype.exception:
             exc, traceback = pickle.loads(result.payload.data)
+            logger.error(exc)
             for frame in traceback:
-                # print(
-                #     f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
-                # )
-                # print(f"    {frame.line}")
-                print(frame)
+                logger.info(frame)
             raise exc
         else:
             if result.payload.datatype == Payload_Datatype.none:
@@ -164,7 +164,7 @@ def get_netclient_from_connect(
                 grpc.secure_channel, connect, credentials=credentials
             )
         else:  # insecure
-            warnings.warn("No auth for grpc provided")
+            # warnings.warn("No auth for grpc provided") # TODO: find a better wayto warn or disable warn
             create_channel_method = functools.partial(
                 grpc.insecure_channel,
                 connect,

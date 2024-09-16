@@ -116,7 +116,7 @@ class Graph:
             input.name: input.type for input in graph.input
         }  # TODO: check the ValueInfoProto
         self.output = {output.name: output.type for output in graph.output}
-        self.initializers = {
+        self.initializers: dict[str, tuple[int:"tensor_dtype", tuple, bytes]] = {
             initializer.name: (
                 initializer.data_type,
                 initializer.dims,
@@ -247,60 +247,60 @@ class Graph:
         )
         return graph
 
+    @staticmethod
+    def resolve_input_name(  # noqa: C901
+            onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
+    ) -> np.ndarray:
+        def fix_shape(weights_shape):
+            if len(weights_shape) == 1:
+                # assume 1D weights
+                return [1, weights_shape[0], 1, 1]
+            elif len(weights_shape) == 2:
+                # assume 2D weights, now we should have [out_channels, in_channels]
+                return list(weights_shape) + [1, 1]
+            elif len(weights_shape) == 3:
+                return list(weights_shape) + [weights_shape[-1]]
+            elif len(weights_shape) == 4:
+                return weights_shape
+            return [1, 1, 1, 1]
+
+        if input_name is None:
+            return None
+        # Resolve input name
+        for initializer in onnxgraph.initializer:
+            if initializer.name == input_name:
+                arr = onnx.numpy_helper.to_array(initializer)
+                weights_shape = arr.shape
+                new_shape = fix_shape(weights_shape)
+                # should only add 1,1 and therefore not change the shape
+                return np.reshape(arr, new_shape)
+        for node in onnxgraph.input:
+            if node.name == input_name:
+                return np.zeros(
+                    fix_shape(
+                        [d.dim_value for d in node.type.tensor_type.shape.dim]
+                    )
+                )
+        for node in onnxgraph.node:
+            if input_name in node.output:
+                if node.op_type == "Constant":
+                    attributes = {attr.name: attr for attr in node.attribute}
+                    if "value" in attributes:
+                        t = attributes["value"].t
+                        return np.zeros(fix_shape(t.dims))
+        return np.zeros([1, 1, 1, 1])
+
     def nxgraph_for_ai8x(self) -> nx.DiGraph:  # noqa: C901
         # TODO: merge later with networkx
         # Initialize a directed graph
         nx_graph = nx.DiGraph()
         onnxgraph = self.onnx()
-
-        def resolve_input_name(  # noqa: C901
-            onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
-        ) -> np.ndarray:
-            def fix_shape(weights_shape):
-                if len(weights_shape) == 1:
-                    # assume 1D weights
-                    return [1, weights_shape[0], 1, 1]
-                elif len(weights_shape) == 2:
-                    # assume 2D weights, now we should have [out_channels, in_channels]
-                    return list(weights_shape) + [1, 1]
-                elif len(weights_shape) == 3:
-                    return list(weights_shape) + [weights_shape[-1]]
-                elif len(weights_shape) == 4:
-                    return weights_shape
-                return [1, 1, 1, 1]
-
-            if input_name is None:
-                return None
-            # Resolve input name
-            for initializer in onnxgraph.initializer:
-                if initializer.name == input_name:
-                    arr = onnx.numpy_helper.to_array(initializer)
-                    weights_shape = arr.shape
-                    new_shape = fix_shape(weights_shape)
-                    # should only add 1,1 and therefore not change the shape
-                    return np.reshape(arr, new_shape)
-            for node in onnxgraph.input:
-                if node.name == input_name:
-                    return np.zeros(
-                        fix_shape(
-                            [d.dim_value for d in node.type.tensor_type.shape.dim]
-                        )
-                    )
-            for node in onnxgraph.node:
-                if input_name in node.output:
-                    if node.op_type == "Constant":
-                        attributes = {attr.name: attr for attr in node.attribute}
-                        if "value" in attributes:
-                            t = attributes["value"].t
-                            return np.zeros(fix_shape(t.dims))
-            return np.zeros([1, 1, 1, 1])
-
         # Add nodes and edges
         for node in onnxgraph.node:
             kwargs = {}
             if node.op_type.startswith("Conv") or node.op_type.startswith("Gemm"):
                 node_input = list(node.input)
-                kwargs["weights"] = resolve_input_name(
+                kwargs["weights"] = self.resolve_input_name(
                     onnxgraph, node_input[1] if len(node_input) >= 2 else None
                 )
                 assert kwargs["weights"] is not None, "weights is none"
@@ -308,10 +308,10 @@ class Graph:
                     f"Invalid weights shape {kwargs['weights'].shape} "
                     f"for node {node.name}"
                 )
-                kwargs["bias"] = resolve_input_name(
+                kwargs["bias"] = self.resolve_input_name(
                     onnxgraph, node_input[2] if len(node_input) >= 3 else None
                 )
-                kwargs["input"] = resolve_input_name(
+                kwargs["input"] = self.resolve_input_name(
                     onnxgraph, node_input[0] if len(node_input) >= 1 else None
                 )
                 for i, (attribute_name, attribute) in enumerate(
