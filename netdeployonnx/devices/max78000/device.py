@@ -3,6 +3,7 @@ import logging
 from collections.abc import Iterable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
+from tqdm import tqdm
 
 import onnx
 from rich.progress import (
@@ -492,34 +493,30 @@ class MAX78000(Device):
                 )
 
         try:
-            tasks = {}
-            with Progress(
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(bar_width=None),
-                TaskProgressColumn(),
-                MofNCompleteColumn(),
-                TimeRemainingColumn(),
-            ) as progress:
-                for stagename, stagemsg in messages_per_stage:
-                    tasks[stagename] = progress.add_task(stagename, total=1)
-                for stagename, stage_messages in messages_per_stage:
-                    for stagemsg in stage_messages:
-                        messages = commands.split_message(stagemsg)
-                        if stagename == "cnn_load_weights":
-                            messages = messages[40:]
-                        progress.reset(tasks[stagename], total=len(messages))
-                        batchsize = 10
-                        for batch in batched(enumerate(messages), batchsize):
-                            await asyncio.wait_for(
-                                commands.send_batch(
-                                    submessage for index_submessage, submessage in batch
-                                ),
-                                timeout=2 * batchsize,  # TODO: change to 1 per msg
-                            )  # these can throw a CancelledError
-                            readback: list = []
-                            if isinstance(readback, Iterable):
-                                result.extend(readback)
-                            progress.advance(tasks[stagename], len(batch))
+            batch_size = 10
+            stage_bar = tqdm(messages_per_stage, desc="Stages", position=0)
+            for stagename, stage_messages in stage_bar:
+                stage_bar.set_description(f"Stage: {stagename}")
+                
+                for stagemsg in stage_messages:
+                    messages = commands.split_message(stagemsg)
+                    if stagename == "cnn_load_weights":
+                        messages = messages[:40]
+
+                    current_batch = []
+                    with tqdm(range(0, len(messages)), desc="Progress", position=1, leave=False) as pbar:
+                        for i in range(0, len(messages), batch_size):
+                            # Process batch from i to i+batch_size
+                            timeout_batch = 2 * batch_size
+                            batch = messages[i:i + batch_size]
+                            try:
+                                readback = await asyncio.wait_for(commands.send_batch(batch), timeout=timeout_batch)
+                                if isinstance(readback, Iterable):
+                                    result.extend(readback)
+                            except asyncio.CancelledError:
+                                pass
+                            pbar.update(batch_size)
+                stage_bar.update(1)
         except asyncio.exceptions.CancelledError:
             raise Exception("message cancelled")
 

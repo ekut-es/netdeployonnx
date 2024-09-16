@@ -410,7 +410,7 @@ async def test_metrics_parsing(message, expected):
 
 
 @pytest.mark.parametrize(
-    "measurement, expected",
+    "measurement, expected_deploy, expected_metrics",
     [
         (
             {
@@ -422,6 +422,8 @@ async def test_metrics_parsing(message, expected):
             },
             {
                 "deployment_execution_times": {"total": 0.0},
+            },
+            {
                 # these are calculated from above
                 "uJ_per_all": 1742.73,
                 "uJ_per_convolution": 491.0,
@@ -441,7 +443,7 @@ async def test_metrics_parsing(message, expected):
     ],
 )
 @pytest.mark.asyncio
-async def test_metrics_dict_with_virtual_serialport(measurement, expected):
+async def test_metrics_dict_with_virtual_serialport(measurement, expected_deploy, expected_metrics):
     mdev = MeasureDevice(measurement)
 
     async def return_virt(*args, **kwargs):
@@ -462,18 +464,19 @@ async def test_metrics_dict_with_virtual_serialport(measurement, expected):
         await metrics.set_mode("triggered")
         await metrics.collect()
         data = metrics.as_dict()
+        metrics = data.get("metrics", {})
 
         assertion_errors = []
-        for key in expected:
+        for key in expected_metrics:
             try:
-                if isinstance(expected[key], float):
-                    r, a = estimate_isclose_tolerances(data[key], expected[key])
-                    assert np.isclose(data[key], expected[key], rtol=1e-3, atol=1e-3), (
-                        f"{key}: {data[key]} != {expected[key]},"
+                if isinstance(expected_metrics[key], float):
+                    r, a = estimate_isclose_tolerances(metrics[key], expected_metrics[key])
+                    assert np.isclose(metrics[key], expected_metrics[key], rtol=1e-3, atol=1e-3), (
+                        f"{key}: {metrics[key]} != {expected_metrics[key]},"
                         f" rtol={r:g}, atol={a:g}"
                     )
                 else:
-                    assert data[key] == expected[key]
+                    assert data[key] == expected_metrics[key]
             except AssertionError as e:
                 assertion_errors.append(str(e).split("\n")[0])
         if len(assertion_errors) > 0:

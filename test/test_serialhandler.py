@@ -53,7 +53,16 @@ def test_instructions():
                 "",
             ],
         },
-        {"stage": "cnn_load_weights", "instructions": [("ACTION", 40, 0)]},
+        {
+            "stage": "cnn_load_weights",
+            "instructions": [
+                ("ACTION", 40, 0),
+                (
+                    0,
+                    b"0" * 40000,
+                ),
+            ],
+        },
         {
             "stage": "cnn_load_bias",
             "instructions": [
@@ -400,7 +409,9 @@ async def test_backend_ai8xize_real_execute_exampledata_unpatched(
     test_instructions,
 ):
     dev = MAX78000_ai8xize(
-        communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+        # communication_port="/dev/ttyUSB0", energy_port="/dev/ttyACM0"
+        communication_port="/dev/virtualDevice",
+        energy_port="/dev/virtualEnergy",
     )
 
     instr = test_instructions
