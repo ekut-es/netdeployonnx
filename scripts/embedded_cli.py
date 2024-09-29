@@ -63,10 +63,10 @@ for handler in logging.getLogger().handlers:
 @click.option("--hex", default=None, help="Hexadecimal value (default: 0205AB)")
 @click.option("--test", default=None, help="produce testcase data")
 @click.option("--debug", default=None, help="enable debug flag")
-@click.option("--timeout", default=1, help="set timeout in seconds")
+@click.option("--timeout", default=5, help="set timeout in seconds")
 @click.option(
     "--tty",
-    default=("COM2" if platform.system().lower() == "windows" else "/dev/ttyACM0"),
+    default=("COM2" if platform.system().lower() == "windows" else "/dev/ttyUSB0"),
     help="set the tty",
 )
 def main(hex, test, debug, timeout, tty):

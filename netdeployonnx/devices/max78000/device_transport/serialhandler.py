@@ -343,7 +343,10 @@ class DataHandler:
 
     async def default_handle_msg(self, msg, writer) -> bool:
         pass
-        print(f"[? {msg.WhichOneof('message_type')} ]{str(msg)[:600]}")
+        print(
+            f"[? {msg.WhichOneof('message_type')} ]{str(msg)[:600]} "
+            f"'{msg.SerializeToString()}'"
+        )
 
     async def send_msgs(
         self, msgs: list["main_pb2.ProtocolMessage"], group_timeout: int = 4.0
@@ -442,8 +445,10 @@ class DataHandler:
             assert len(crc_val) and crc(raw_msg) == crc_val[0], "crc is wrong"
             ret.ParseFromString(data_msg)
         except google.protobuf.message.DecodeError as ex:
+            logging.info("decode error")
             raise Exception() from ex
         except AssertionError as ae:
+            logging.error("crc error")
             raise Exception() from ae
         return ret
 

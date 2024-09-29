@@ -60,6 +60,7 @@ max78000_helper = "scripts.helper_max78000_cnn:main"
 max78000_analyze = "scripts.analyze_cnn:main"
 max78000_synth = "test.test_max78000_synthesize_cifar10:main"
 max78000_cli = "scripts.embedded_cli:main"
+netdeployonnx_cli = "scripts.embedded_cli:main"
 
 
 

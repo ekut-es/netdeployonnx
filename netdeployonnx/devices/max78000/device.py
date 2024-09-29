@@ -3,26 +3,12 @@ import logging
 from collections.abc import Iterable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
-from tqdm import tqdm
 
 import onnx
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    TaskProgressColumn,
-    TextColumn,
-    TimeRemainingColumn,
-)
+from tqdm import tqdm
 
 import netdeployonnx.devices.max78000.cnn_constants as cnn_constants
 from netdeployonnx.devices import Device, Metrics
-from netdeployonnx.devices.max78000.cnn_constants import (
-    CNNx16_n_CTRL_CLK_EN,
-    CNNx16_n_CTRL_CNN_EN,
-    CNNx16_n_CTRL_EXT_SYNC_BIT2,
-    CNNx16_n_CTRL_MEXPRESS,
-)
 from netdeployonnx.devices.max78000.core import CNNx16Core
 from netdeployonnx.devices.max78000.device_transport import serialhandler
 from netdeployonnx.devices.max78000.device_transport.commands import Commands
@@ -49,123 +35,132 @@ class MAX78000Metrics(Metrics):
         super().__init__()
         self.tty_port = tty_port
         self.collected_answers = []
+        self.collected_answers_index = 0
+        self.reader = None
+        self.writer = None
 
-    def _get_network_stats(self) -> dict[str, float]:
-        stats: dict[str, float] = {}
+    def _get_network_stats(self) -> list[dict[str, float]]:
+        results = []
 
         one_row = self.collected_answers[-1] if len(self.collected_answers) > 0 else ""
+        for one_row in self.collected_answers[self.collected_answers_index :]:
+            stats: dict[str, float] = {}
+            res = one_row.rstrip().split(",")
 
-        res = one_row.rstrip().split(",")
+            if len(res) == 12:
+                IDX_ENERGY_USED = 0  # noqa: N806, F841
+                IDX_TIME = 1  # noqa: N806
+                IDX_IDLE_POWER = 2  # noqa: N806, F841
+                IDX_ACTIVE_POWER = 3  # noqa: N806, F841
+                IDX_USED_POWER = 4  # noqa: N806
 
-        if len(res) == 12:
-            IDX_ENERGY_USED = 0  # noqa: N806, F841
-            IDX_TIME = 1  # noqa: N806
-            IDX_IDLE_POWER = 2  # noqa: N806, F841
-            IDX_ACTIVE_POWER = 3  # noqa: N806, F841
-            IDX_USED_POWER = 4  # noqa: N806
+                def extract_stage(
+                    stage: list[str],
+                ) -> tuple[float, float, float, float, float]:
+                    used_energy = float(stage[0])
+                    used_time = float(stage[1])
+                    idle_power = float(stage[2])
+                    active_power = float(stage[3])
+                    diff_power = active_power - idle_power
 
-            def extract_stage(
-                stage: list[str],
-            ) -> tuple[float, float, float, float, float]:
-                used_energy = float(stage[0])
-                used_time = float(stage[1])
-                idle_power = float(stage[2])
-                active_power = float(stage[3])
-                diff_power = active_power - idle_power
+                    return used_energy, used_time, idle_power, active_power, diff_power
 
-                return used_energy, used_time, idle_power, active_power, diff_power
+                # TIMES_OPERATION = 100
 
-            # TIMES_OPERATION = 100
+                measure_kernels = extract_stage(res[0:4])
+                measure_input = extract_stage(res[4:8])
+                measure_input_convolution = extract_stage(res[8:12])
+                # only possible for non-FIFO mode
+                calculated_convolutions = [
+                    measure_input_convolution[idx] - measure_input[idx]
+                    for idx in range(len(measure_input_convolution))
+                ]
 
-            measure_kernels = extract_stage(res[0:4])
-            measure_input = extract_stage(res[4:8])
-            measure_input_convolution = extract_stage(res[8:12])
-            # only possible for non-FIFO mode
-            calculated_convolutions = [
-                measure_input_convolution[idx] - measure_input[idx]
-                for idx in range(len(measure_input_convolution))
-            ]
+                X_TO_MICRO_WATTS = 1e6  # noqa: N806
+                X_TO_MICRO_SECONDS = 1e6  # noqa: N806
+                X_TO_MICRO_JOULES = 1e6  # noqa: N806
 
-            X_TO_MICRO_WATTS = 1e6  # noqa: N806
-            X_TO_MICRO_SECONDS = 1e6  # noqa: N806
-            X_TO_MICRO_JOULES = 1e6  # noqa: N806
+                measurements = {
+                    "weights_loading": (
+                        measure_kernels[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_kernels[IDX_TIME] * X_TO_MICRO_SECONDS,
+                        measure_kernels[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
+                    ),
+                    "input_loading": (
+                        measure_input[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_input[IDX_TIME] * X_TO_MICRO_SECONDS,
+                        measure_input[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
+                    ),
+                    "convolution": (
+                        calculated_convolutions[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        calculated_convolutions[IDX_TIME] * X_TO_MICRO_SECONDS,
+                        calculated_convolutions[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
+                    ),
+                    "all": (
+                        sum(
+                            [
+                                measure_kernels[IDX_USED_POWER],
+                                measure_input_convolution[IDX_USED_POWER],
+                            ]
+                        )
+                        * X_TO_MICRO_WATTS,
+                        sum(
+                            [
+                                measure_kernels[IDX_TIME],
+                                measure_input_convolution[IDX_TIME],
+                            ]
+                        )
+                        * X_TO_MICRO_SECONDS,
+                        sum(
+                            [
+                                measure_kernels[IDX_ENERGY_USED],
+                                measure_input_convolution[IDX_ENERGY_USED],
+                            ]
+                        )
+                        * X_TO_MICRO_JOULES,
+                    ),
+                }
 
-            measurements = {
-                "weights_loading": (
-                    measure_kernels[IDX_USED_POWER] * X_TO_MICRO_WATTS,
-                    measure_kernels[IDX_TIME] * X_TO_MICRO_SECONDS,
-                    measure_kernels[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
-                ),
-                "input_loading": (
-                    measure_input[IDX_USED_POWER] * X_TO_MICRO_WATTS,
-                    measure_input[IDX_TIME] * X_TO_MICRO_SECONDS,
-                    measure_input[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
-                ),
-                "convolution": (
-                    calculated_convolutions[IDX_USED_POWER] * X_TO_MICRO_WATTS,
-                    calculated_convolutions[IDX_TIME] * X_TO_MICRO_SECONDS,
-                    calculated_convolutions[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
-                ),
-                "all": (
-                    sum(
-                        [
-                            measure_kernels[IDX_USED_POWER],
-                            measure_input_convolution[IDX_USED_POWER],
-                        ]
-                    )
-                    * X_TO_MICRO_WATTS,
-                    sum(
-                        [
-                            measure_kernels[IDX_TIME],
-                            measure_input_convolution[IDX_TIME],
-                        ]
-                    )
-                    * X_TO_MICRO_SECONDS,
-                    sum(
-                        [
-                            measure_kernels[IDX_ENERGY_USED],
-                            measure_input_convolution[IDX_ENERGY_USED],
-                        ]
-                    )
-                    * X_TO_MICRO_JOULES,
-                ),
-            }
+                for measurement_name, (
+                    micro_watt,
+                    micro_s,
+                    micro_joules,
+                ) in measurements.items():
+                    stats[f"uW_per_{measurement_name}"] = round(max(0, micro_watt), 2)
+                    stats[f"us_per_{measurement_name}"] = round(max(0, micro_s), 2)
+                    # stats[f"uJ_per_{measurement_name}"] = (
+                    #     round(micro_s * micro_watt, 2) * 1e-6
+                    # )
+                    stats[f"uJ_per_{measurement_name}"] = round(max(0, micro_joules), 2)
+                results.append(stats)
+            else:
+                print("we found size of res=", len(res))
 
-            for measurement_name, (
-                micro_watt,
-                micro_s,
-                micro_joules,
-            ) in measurements.items():
-                stats[f"uW_per_{measurement_name}"] = round(max(0, micro_watt), 2)
-                stats[f"us_per_{measurement_name}"] = round(max(0, micro_s), 2)
-                # stats[f"uJ_per_{measurement_name}"] = (
-                #     round(micro_s * micro_watt, 2) * 1e-6
-                # )
-                stats[f"uJ_per_{measurement_name}"] = round(max(0, micro_joules), 2)
-
-        return stats
+        return results
 
     @asynccontextmanager
     async def get_serial(
         self,
     ) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        reader, writer = await serialhandler.open_serial_connection(
-            url=self.tty_port, baudrate=1_500_000
-        )
-        yield reader, writer
-        writer.close()
-        try:  # noqa: SIM105
-            await asyncio.wait_for(writer.wait_closed(), timeout=0.5)
-        except TimeoutError:
-            # if it does not return, i dont fcare
-            pass
+        # reader, writer = await serialhandler.open_serial_connection(
+        #     url=self.tty_port, baudrate=1_500_000
+        # )
+        yield self.reader, self.writer
+        # self.writer.close()
+        # try:  # noqa: SIM105
+        #     await asyncio.wait_for(self.writer.wait_closed(), timeout=0.5)
+        # except TimeoutError:
+        #     # if it does not return, i dont fcare
+        #     pass
 
-    async def collect(self, timeout: float = 1) -> str:  # noqa: ASYNC109
+    async def collect(self, timeout: float = 2) -> str:  # noqa: ASYNC109
         async with self.get_serial() as (reader, writer):
             try:
-                data = await asyncio.wait_for(reader.read(100), timeout=timeout)
+                data = await asyncio.wait_for(reader.read(2000), timeout=timeout)
                 answer = data.decode()
-                self.collected_answers.append(answer)
+                for line in answer.split("\n"):
+                    if line.strip():
+                        self.collected_answers.append(line.strip())
                 return answer
             except asyncio.TimeoutError:
                 return ""
@@ -192,6 +187,22 @@ class MAX78000Metrics(Metrics):
         async with self.get_serial() as (reader, writer):
             writer.write(character.encode())
             await writer.drain()
+
+    async def start(self):
+        reader, writer = await serialhandler.open_serial_connection(
+            url=self.tty_port, baudrate=1_500_000
+        )
+        self.reader = reader
+        self.writer = writer
+
+    async def stop(self):
+        await super().stop()
+        self.writer.close()
+        try:  # noqa: SIM105
+            await asyncio.wait_for(self.writer.wait_closed(), timeout=0.5)
+        except TimeoutError:
+            # if it does not return, i dont fcare
+            pass
 
     def as_dict(self) -> dict:
         d = super().as_dict()
@@ -236,7 +247,7 @@ class MAX78000(Device):
                 serialhandler.handle_serial(
                     self.commands,
                     tty=self.port,
-                    timeout=4,
+                    timeout=15,
                     closed_future=self.handle_serial_task_closed,
                 )
             )
@@ -312,39 +323,10 @@ class MAX78000(Device):
         if layout is None:
             return []
         # TOOD: check if we need to start all quadrants
+        # as this works, we may want to transition to
+        # measurements instead of just starting a measurement
         return [
-            (
-                "CNNx16_0_CTRL",
-                CNNx16_n_CTRL_MEXPRESS
-                | CNNx16_n_CTRL_EXT_SYNC_BIT2
-                | CNNx16_n_CTRL_CLK_EN,
-            ),  # Enable, but hold back master
-            (
-                "CNNx16_1_CTRL",
-                CNNx16_n_CTRL_MEXPRESS
-                | CNNx16_n_CTRL_EXT_SYNC_BIT2
-                | CNNx16_n_CTRL_CLK_EN
-                | CNNx16_n_CTRL_CNN_EN,
-            ),  # Start SM
-            (
-                "CNNx16_2_CTRL",
-                CNNx16_n_CTRL_MEXPRESS
-                | CNNx16_n_CTRL_EXT_SYNC_BIT2  #  noqa: F405
-                | CNNx16_n_CTRL_CLK_EN
-                | CNNx16_n_CTRL_CNN_EN,
-            ),  # Start SM
-            (
-                "CNNx16_3_CTRL",
-                CNNx16_n_CTRL_MEXPRESS
-                | CNNx16_n_CTRL_EXT_SYNC_BIT2
-                | CNNx16_n_CTRL_CLK_EN
-                | CNNx16_n_CTRL_CNN_EN,
-            ),  # Start SM
-            (""),
-            (
-                "CNNx16_0_CTRL",
-                CNNx16_n_CTRL_MEXPRESS | CNNx16_n_CTRL_CLK_EN | CNNx16_n_CTRL_CNN_EN,
-            ),  # Start Master
+            ("ACTION", main_pb2.ActionEnum.MEASUREMENT_WITH_IPO, 0),
         ]
 
     def cnn_load_bias(self, layout: Any) -> Any:
@@ -379,6 +361,16 @@ class MAX78000(Device):
                     ret.append((kernel_addr + mram_addr, kernel_data))
         return ret
 
+    def cnn_load_input(self, layout: Any) -> Any:
+        ret = []
+        return ret
+
+    def cnn_fetch_results(self, layout: Any) -> Any:
+        # fetch results means get data via action
+        ret = []
+
+        return ret
+
     async def compile_instructions(
         self, layout: Any
     ) -> list[dict[str, list["RegisterAccess | MemoryAccess"]]]:  # noqa: F821
@@ -393,10 +385,9 @@ class MAX78000(Device):
             "cnn_load_weights": self.cnn_load_weights(layout),
             "cnn_load_bias": self.cnn_load_bias(layout),
             "cnn_configure": self.cnn_configure(layout),
-            "load_input": [],  # TODO: add input loading
+            "load_input": self.cnn_load_input(layout),
             "cnn_start": self.cnn_start(layout),
-            # TODO: fetch results
-            "done": [],
+            "done": self.cnn_fetch_results(layout),
         }.items():
             instructions.append(
                 {"stage": stage, "instructions": instructions_per_stage}
@@ -407,8 +398,9 @@ class MAX78000(Device):
         """
         Start collecting metrics from the device
         """
-        # TODO: this is a placeholder, get from config
-        return MAX78000Metrics(self.energy_port)
+        metrics = MAX78000Metrics(self.energy_port)
+        await metrics.start()
+        return metrics
 
     def transform_instructions(
         self,
@@ -497,20 +489,26 @@ class MAX78000(Device):
             stage_bar = tqdm(messages_per_stage, desc="Stages", position=0)
             for stagename, stage_messages in stage_bar:
                 stage_bar.set_description(f"Stage: {stagename}")
-                
+
                 for stagemsg in stage_messages:
                     messages = commands.split_message(stagemsg)
                     if stagename == "cnn_load_weights":
                         messages = messages[:40]
 
-                    current_batch = []
-                    with tqdm(range(0, len(messages)), desc="Progress", position=1, leave=False) as pbar:
+                    with tqdm(
+                        range(0, len(messages)),
+                        desc="Progress",
+                        position=1,
+                        leave=False,
+                    ) as pbar:
                         for i in range(0, len(messages), batch_size):
                             # Process batch from i to i+batch_size
                             timeout_batch = 2 * batch_size
-                            batch = messages[i:i + batch_size]
+                            batch = messages[i : i + batch_size]
                             try:
-                                readback = await asyncio.wait_for(commands.send_batch(batch), timeout=timeout_batch)
+                                readback = await asyncio.wait_for(
+                                    commands.send_batch(batch), timeout=timeout_batch
+                                )
                                 if isinstance(readback, Iterable):
                                     result.extend(readback)
                             except asyncio.CancelledError:
@@ -519,10 +517,11 @@ class MAX78000(Device):
                 stage_bar.update(1)
         except asyncio.exceptions.CancelledError:
             raise Exception("message cancelled")
-
-        await metrics.collect()
+        print("collecting metrics...")
+        collected_data = await metrics.collect()  # noqa: F841
         # collect is needed so that .as_dict works
         # metrics is done by run_onnx
+        # print("got", collected_data)
 
         return result  # maybe we have a readback?
 
