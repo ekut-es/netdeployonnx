@@ -198,11 +198,14 @@ class Device(abc.ABC):
                 "result": result,
             }
             metrics.update(collected_metrics.as_dict())
+            optionally_with_exception = " without exception"
         except Exception as e:
             metrics = {
                 "result": None,
                 "exception": e,
             }
+            optionally_with_exception = " but with exception"
+        print(f"returning call successfully {optionally_with_exception}")
         return metrics
 
     async def run_async(

@@ -18,7 +18,7 @@ def connect(config: AppConfig):
 
         # load the cifar10 net
         data_folder = Path(__file__).parent.parent.parent / "test" / "data"
-        with open(data_folder / "cifar10.onnx", "rb") as fx:
+        with open(data_folder / "cifar10_short.onnx", "rb") as fx:
             # with open(data_folder / "ai8x_net_0.onnx", "rb") as fx:
             data = fx.read()
 
@@ -42,7 +42,7 @@ def connect(config: AppConfig):
             )
             if response.payload != device_pb2.Payload():
                 break
-            print("checking soon...")
+            print("waiting for callback...")
             time.sleep(1)
         if response.payload.datatype == device_pb2.Payload_Datatype.exception:
             # unpickle
@@ -51,10 +51,11 @@ def connect(config: AppConfig):
             exception, traceback = pickle.loads(response.payload.data)
             print(f"Exception: {exception}")
             for frame in traceback:
-                print(
-                    f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
-                )
-                print(f"    {frame.line}")
+                print(frame)
+                # print(
+                #     f"  File '{frame.filename}', line {frame.lineno}, in {frame.name}"
+                # )
+                # print(f"    {frame.line}")
         else:
             print(f"Result: {response.payload}")
 

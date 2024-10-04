@@ -168,12 +168,13 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                         )
                     except SystemExit as bex:
                         # we cant rethrow a systemexit
-                        new_exception = Exception(f"SystemExit: {str(bex)}").with_traceback(bex.__traceback__)
+                        new_exception = Exception(
+                            f"SystemExit: {str(bex)}"
+                        ).with_traceback(bex.__traceback__)
                         return {"exception": new_exception}
                     except Exception as ex:
                         # we cant throw at all
                         return {"exception": ex}
-
 
                 self.run_queue[run_id] = self.run_async_method(
                     task(device, payload, input_payload)
@@ -216,7 +217,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                     tb = traceback.extract_tb(ex.__traceback__)
                     payload = Payload(
                         datatype=Payload_Datatype.exception,
-                        data=pickle.dumps((ex, tb)),
+                        data=pickle.dumps((ex, [str(tb_part) for tb_part in tb])),
                     )
                 finally:
                     del self.run_queue[run_id]  # we dont need that anymore
