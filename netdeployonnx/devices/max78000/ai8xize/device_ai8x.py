@@ -155,7 +155,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 processor_count = (input_channels // passes) # future input_channels are output_channels / passes
                 input_channels = weights_shape[0]
 
-                logging.warning(f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}")
+                # logging.warning(f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}")
                 # assert (
                 #     input_channels <= 1024
                 # ), f"too many input channels={input_channels}"
@@ -165,9 +165,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # assert (
                 #     weights_shape[0] <= 1024
                 # ), f"too many output channels={weights_shape[0]}"
-
-                if passes > 1:
-                    ly.flatten = True  # TODO: remove if not successful?
 
                 # if op_type.startswith("Gemm"):
                 # input_channels = weights_shape[1]
@@ -183,8 +180,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 ly.operation = "conv2d" if op_type.startswith("Conv") else "MLP"
                 if "Relu" in node.name:
                     ly.activate = "ReLU"
-                if "Reshape" in node.name:
-                    ly.flatten = True
+                # if "Reshape" in node.name:
+                #     ly.flatten = True
                 if "Flatten" in node.name:
                     ly.flatten = True
                 if "MaxPool" in node.name:

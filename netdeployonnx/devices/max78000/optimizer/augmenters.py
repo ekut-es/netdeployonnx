@@ -29,7 +29,7 @@ class Augment_Conv_WeightsBias(Optimizer):  # noqa: N801
             weight_shape = (1,1,1,1)
             weight = onnx.numpy_helper.from_array(
                 arr=numpy.zeros(shape=weight_shape),
-                name=bias_name
+                name=weight_name
             )
         bias = onnx.numpy_helper.from_array(
             arr=numpy.zeros(shape=(weight_shape[0])), # bias is applied to each output
