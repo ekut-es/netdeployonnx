@@ -62,8 +62,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             print(f"saved as {filname}")
         cfg, input_shape, transformed_model = self.generate_config_from_model(model)
         if DEBUG:
-            from pprint import pprint
-            pprint(cfg)
+            # from pprint import pprint
+            # pprint(cfg)
+            import yaml
+            print(yaml.dump(cfg))
             print("input_shape:", input_shape)
         # print(onnx.printer.to_text(transformed_model.graph))
         layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
@@ -153,9 +155,17 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 assert passes_float != 0, "passes is 0"
                 # multipy by output channels
                 processor_count = (input_channels // passes) # future input_channels are output_channels / passes
-                input_channels = weights_shape[0]
+                
 
-                # logging.warning(f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}")
+                if op_type.startswith("Gemm") and "Flatten" in node.name:
+                    # we need to modify the proc count
+                    # maxbit = math.log2(layers[-1].processors+1)
+                    # diff = (2**maxbit) - layers[-1].processors
+                    # shift = math.log2(diff)
+                    # processor_count = int(maxbit - shift)
+                    processor_count = weights_shape[1]
+                input_channels = weights_shape[0]
+                logging.warning(f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}")
                 # assert (
                 #     input_channels <= 1024
                 # ), f"too many input channels={input_channels}"
@@ -170,8 +180,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # input_channels = weights_shape[1]
                 # processor_count = weights_shape[1]
 
+
+
                 # i dont know when to shift the processors
-                processor_shift = 32 if len(layers) == 4 else 0  # TODO: generalize this
+                # processor_shift = 32 if len(layers) == 4 else 0  # TODO: generalize this
                 processor_shift = 0  # TODO: disabled for now
                 processor_count = min(64, processor_count)
                 processor_shift = min(64 - processor_count, processor_shift)
