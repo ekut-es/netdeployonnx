@@ -521,7 +521,7 @@ class MAX78000(Device):
         collected_data = await metrics.collect()  # noqa: F841
         # collect is needed so that .as_dict works
         # metrics is done by run_onnx
-        # print("got", collected_data)
+        print("got", collected_data)
 
         return result  # maybe we have a readback?
 

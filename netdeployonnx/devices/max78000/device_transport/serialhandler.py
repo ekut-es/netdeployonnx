@@ -448,7 +448,7 @@ class DataHandler:
             logging.info("decode error")
             raise Exception() from ex
         except AssertionError as ae:
-            logging.error("crc error")
+            # logging.error("crc error")
             raise Exception() from ae
         return ret
 

@@ -1,4 +1,6 @@
+import asyncio
 import os
+import sys
 
 import click
 
@@ -59,6 +61,13 @@ def client(connect, configfile):
         config.client.port = port
 
     netdeployonnx.client.connect(config)
+
+
+@main.command()
+def cli(tty="/dev/ttyUSB0", debug=False, timeout=5):
+    from scripts import embedded_cli
+
+    asyncio.run(embedded_cli.asyncmain(sys.argv, tty, debug=debug, timeout=timeout))
 
 
 if __name__ == "__main__":
