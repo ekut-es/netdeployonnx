@@ -443,7 +443,9 @@ async def test_metrics_parsing(message, expected):
     ],
 )
 @pytest.mark.asyncio
-async def test_metrics_dict_with_virtual_serialport(measurement, expected_deploy, expected_metrics):
+async def test_metrics_dict_with_virtual_serialport(
+    measurement, expected_deploy, expected_metrics
+):
     mdev = MeasureDevice(measurement)
 
     async def return_virt(*args, **kwargs):
@@ -470,8 +472,12 @@ async def test_metrics_dict_with_virtual_serialport(measurement, expected_deploy
         for key in expected_metrics:
             try:
                 if isinstance(expected_metrics[key], float):
-                    r, a = estimate_isclose_tolerances(metrics[key], expected_metrics[key])
-                    assert np.isclose(metrics[key], expected_metrics[key], rtol=1e-3, atol=1e-3), (
+                    r, a = estimate_isclose_tolerances(
+                        metrics[key], expected_metrics[key]
+                    )
+                    assert np.isclose(
+                        metrics[key], expected_metrics[key], rtol=1e-3, atol=1e-3
+                    ), (
                         f"{key}: {metrics[key]} != {expected_metrics[key]},"
                         f" rtol={r:g}, atol={a:g}"
                     )

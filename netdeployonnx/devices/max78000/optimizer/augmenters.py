@@ -1,7 +1,7 @@
-import onnx
 import numpy
+import onnx
 
-from .graph import Node, Graph
+from .graph import Graph, Node
 from .optimizer import NodeTransformType, Optimizer
 
 
@@ -23,17 +23,18 @@ class Augment_Conv_WeightsBias(Optimizer):  # noqa: N801
             if input_value is not None:
                 weight_shape = input_value.shape
             else:
-                raise NotImplementedError(f"conv-weight not found (node.name={node.name})")
+                raise NotImplementedError(
+                    f"conv-weight not found (node.name={node.name})"
+                )
         else:
             raise NotImplementedError("no weight on the conv?!")
-            weight_shape = (1,1,1,1)
+            weight_shape = (1, 1, 1, 1)
             weight = onnx.numpy_helper.from_array(
-                arr=numpy.zeros(shape=weight_shape),
-                name=weight_name
+                arr=numpy.zeros(shape=weight_shape), name=weight_name
             )
         bias = onnx.numpy_helper.from_array(
-            arr=numpy.zeros(shape=(weight_shape[0])), # bias is applied to each output
-            name=bias_name
+            arr=numpy.zeros(shape=(weight_shape[0])),  # bias is applied to each output
+            name=bias_name,
         )
         if len(node.input) == 2:
             # add bias
@@ -44,7 +45,7 @@ class Augment_Conv_WeightsBias(Optimizer):  # noqa: N801
             node.graph.initializers[bias_name] = (
                 bias.data_type,
                 bias.dims,
-                bias.raw_data
+                bias.raw_data,
             )
             return NodeTransformType.MODIFY
         elif len(node.input) == 1:
@@ -55,12 +56,12 @@ class Augment_Conv_WeightsBias(Optimizer):  # noqa: N801
             node.graph.initializers[bias_name] = (
                 bias.data_type,
                 bias.dims,
-                bias.raw_data
+                bias.raw_data,
             )
             node.graph.initializers[weight_name] = (
                 weight.data_type,
                 weight.dims,
-                weight.raw_data
+                weight.raw_data,
             )
             return NodeTransformType.MODIFY
         return NodeTransformType.NO_CHANGE

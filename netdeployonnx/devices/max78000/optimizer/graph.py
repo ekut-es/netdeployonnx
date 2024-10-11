@@ -116,7 +116,7 @@ class Graph:
             input.name: input.type for input in graph.input
         }  # TODO: check the ValueInfoProto
         self.output = {output.name: output.type for output in graph.output}
-        self.initializers: dict[str, tuple[int:"tensor_dtype", tuple, bytes]] = {
+        self.initializers: dict[str, tuple[int:tensor_dtype, tuple, bytes]] = {
             initializer.name: (
                 initializer.data_type,
                 initializer.dims,
@@ -249,7 +249,7 @@ class Graph:
 
     @staticmethod
     def resolve_input_name(  # noqa: C901
-            onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
+        onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
     ) -> np.ndarray:
         def fix_shape(weights_shape):
             if len(weights_shape) == 1:
@@ -277,9 +277,7 @@ class Graph:
         for node in onnxgraph.input:
             if node.name == input_name:
                 return np.zeros(
-                    fix_shape(
-                        [d.dim_value for d in node.type.tensor_type.shape.dim]
-                    )
+                    fix_shape([d.dim_value for d in node.type.tensor_type.shape.dim])
                 )
         for node in onnxgraph.node:
             if input_name in node.output:

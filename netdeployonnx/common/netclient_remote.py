@@ -1,12 +1,11 @@
 import asyncio
 import functools
 import json
+import logging
 import pickle
-import warnings
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Union
-import logging
 
 import anyio
 
@@ -34,6 +33,7 @@ except ImportError:
     grpc = None
 
 logger = logging.getLogger("netdeployonnx.remote")
+
 
 class NetClient:
     def __init__(self, client: DeviceService, channel: "grpc.Channel"):
@@ -102,7 +102,9 @@ class RemoteDevice:
             async with await anyio.open_file(onnx_file, "rb") as f:
                 modelbytes = await f.read()
 
-        assert len(modelbytes) < 4e6, "model too large" # TODO: transfer model in chunks
+        assert (
+            len(modelbytes) < 4e6
+        ), "model too large"  # TODO: transfer model in chunks
 
         response = self.client.RunPayloadAsynchronous(
             RunPayloadRequest(

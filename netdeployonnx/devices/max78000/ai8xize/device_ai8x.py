@@ -1,7 +1,7 @@
+import logging
 import math
 from collections import defaultdict
 from typing import Any
-import logging
 
 import networkx as nx
 import numpy as np
@@ -52,8 +52,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         DEBUG = True
         if DEBUG and False:
             # saving model
-            from pathlib import Path
             import os
+            from pathlib import Path
+
             test = Path(__file__).parent.parent.parent.parent.parent / "test"
             n = len(os.listdir(test / "data"))
             filname = test / "data" / f"ai8x_test_{n}.onnx"
@@ -63,8 +64,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         cfg, input_shape, transformed_model = self.generate_config_from_model(model)
         if DEBUG:
             # from pprint import pprint
+
             # pprint(cfg)
             import yaml
+
             print(yaml.dump(cfg))
             print("input_shape:", input_shape)
         # print(onnx.printer.to_text(transformed_model.graph))
@@ -154,8 +157,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 passes = math.ceil(passes_float)
                 assert passes_float != 0, "passes is 0"
                 # multipy by output channels
-                processor_count = (input_channels // passes) # future input_channels are output_channels / passes
-                
+                processor_count = (
+                    input_channels // passes
+                )  # future input_channels are output_channels / passes
 
                 if op_type.startswith("Gemm") and "Flatten" in node.name:
                     # we need to modify the proc count
@@ -165,7 +169,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # processor_count = int(maxbit - shift)
                     processor_count = weights_shape[1]
                 input_channels = weights_shape[0]
-                logging.warning(f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}")
+                logging.warning(
+                    f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}"
+                )
                 # assert (
                 #     input_channels <= 1024
                 # ), f"too many input channels={input_channels}"
@@ -179,8 +185,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # if op_type.startswith("Gemm"):
                 # input_channels = weights_shape[1]
                 # processor_count = weights_shape[1]
-
-
 
                 # i dont know when to shift the processors
                 # processor_shift = 32 if len(layers) == 4 else 0  # TODO: generalize this
@@ -239,7 +243,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         if layers[-1].activation in [None] and layers[-1].activate in [
             None
         ]:  # TODO: or 'none',
-            layers[-1].output_width = 32  # do we always want 32 bit? (yes, because of --softmax)
+            # do we always want 32 bit? (yes, because of --softmax)
+            layers[-1].output_width = 32
         layers[-1].output_shift -= 1  # TODO: check if this is correct
 
         transformed_model = onnx.helper.make_model(
