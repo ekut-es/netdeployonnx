@@ -51,7 +51,7 @@ from netdeployonnx.devices.max78000.cnn_constants import (
     CNNx16_n_Ly_WPTR_TOFF_WPTR_TOFF_VALUEMASK,
     CNNx16_n_MLAT_MLATDAT_VALUEMASK,
     CNNx16_n_SRAM_RA_VALUEMASK,
-    CNNx16_n_SRAM_WNEGVOL_VALUEMASK,
+    CNNx16_n_SRAM_WNEG_VOL_VALUEMASK,
     CNNx16_n_SRAM_WPULSE_VALUEMASK,
 )
 from netdeployonnx.devices.max78000.cnn_registers import CNNx16_BaseReg
@@ -661,10 +661,10 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
 
     # CTRL
     mexpress: bool = Field(
-        default=False, json_schema_extra={"register": "CTRL", "field": "MEXPRESS"}
+        default=True, json_schema_extra={"register": "CTRL", "field": "MEXPRESS"}
     )
     cnn_en: bool = Field(
-        default=False, json_schema_extra={"register": "CTRL", "field": "CNN_EN"}
+        default=True, json_schema_extra={"register": "CTRL", "field": "CNN_EN"}
     )
 
     # SRAM
@@ -696,14 +696,14 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
     write_neg_voltage_enable: bool = Field(
         default=False, json_schema_extra={"register": "SRAM", "field": "WNEG_EN"}
     )
-    write_neg_voltage: conint(ge=0, le=CNNx16_n_SRAM_WNEGVOL_VALUEMASK) = Field(
+    write_neg_voltage: conint(ge=0, le=CNNx16_n_SRAM_WNEG_VOL_VALUEMASK) = Field(
         # wnegen should be enabled
         # 0 = VDD -  80mV
         # 1 = VDD - 120mV
         # 2 = VDD - 180mV
         # 3 = VDD - 220mV
         default=0,
-        json_schema_extra={"register": "SRAM", "field": "WNEGVOL"},
+        json_schema_extra={"register": "SRAM", "field": "WNEG_VOL"},
     )
     read_assist_voltage: conint(ge=0, le=CNNx16_n_SRAM_RA_VALUEMASK) = Field(
         # 0 = VDD
