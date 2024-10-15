@@ -50,6 +50,9 @@ from netdeployonnx.devices.max78000.cnn_constants import (
     CNNx16_n_Ly_WPTR_MOFF_WPTR_MOFF_VALUEMASK,
     CNNx16_n_Ly_WPTR_TOFF_WPTR_TOFF_VALUEMASK,
     CNNx16_n_MLAT_MLATDAT_VALUEMASK,
+    CNNx16_n_SRAM_RA_VALUEMASK,
+    CNNx16_n_SRAM_WNEGVOL_VALUEMASK,
+    CNNx16_n_SRAM_WPULSE_VALUEMASK,
 )
 from netdeployonnx.devices.max78000.cnn_registers import CNNx16_BaseReg
 
@@ -657,8 +660,78 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
     bias: bytes = b""  # TODO: check if unused and deletable
 
     # CTRL
+    mexpress: bool = Field(
+        default=False, json_schema_extra={"register": "CTRL", "field": "MEXPRESS"}
+    )
+    cnn_en: bool = Field(
+        default=False, json_schema_extra={"register": "CTRL", "field": "CNN_EN"}
+    )
 
     # SRAM
+
+    lightsleep_bram: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "LSBRAM"}
+    )
+    lightsleep_tram: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "LSTRAM"}
+    )
+    lightsleep_mram: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "LSMRAM"}
+    )
+    lightsleep_dram: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "LSDRAM"}
+    )
+    power_down: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "PD"}
+    )
+    memory_deep_sleep: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "DS"}
+    )
+    write_pulse_width: conint(ge=0, le=CNNx16_n_SRAM_WPULSE_VALUEMASK) = Field(
+        # 0 : minimum bit line pulse width
+        # 7 : maximum bit line pulse width
+        default=0,
+        json_schema_extra={"register": "SRAM", "field": "WPULSE"},
+    )
+    write_neg_voltage_enable: bool = Field(
+        default=False, json_schema_extra={"register": "SRAM", "field": "WNEG_EN"}
+    )
+    write_neg_voltage: conint(ge=0, le=CNNx16_n_SRAM_WNEGVOL_VALUEMASK) = Field(
+        # wnegen should be enabled
+        # 0 = VDD -  80mV
+        # 1 = VDD - 120mV
+        # 2 = VDD - 180mV
+        # 3 = VDD - 220mV
+        default=0,
+        json_schema_extra={"register": "SRAM", "field": "WNEGVOL"},
+    )
+    read_assist_voltage: conint(ge=0, le=CNNx16_n_SRAM_RA_VALUEMASK) = Field(
+        # 0 = VDD
+        # 1 = -20mV
+        # 2 = -40mV
+        # 3 = -60mV
+        default=0,
+        json_schema_extra={"register": "SRAM", "field": "RA"},
+    )
+    read_margin: conint(ge=0, le=3) = Field(
+        # should be le = CNNx16_n_SRAM_RMARGIN_VALUEMASK, but values reserved???
+        # rm_en should be enabled
+        # 0 = slowest access
+        # 1 = ...
+        # 2 = ...
+        # 3 = fastest accesss
+        # >4 : reserved
+        default=3,
+        json_schema_extra={"register": "SRAM", "field": "RMARGIN"},
+    )
+    read_margin_enable: bool = Field(
+        default=True, json_schema_extra={"register": "SRAM", "field": "RMARGIN_EN"}
+    )
+    extended_access_time_enable: bool = Field(
+        # uses higher power for sram
+        default=False,
+        json_schema_extra={"register": "SRAM", "field": "EXTACC"},
+    )
 
     # LCNT_MAX
 
@@ -747,16 +820,27 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
             ret += self.write_register(
                 "CTRL",
                 {
-                    "MEXPRESS": True,
-                    "CLK_EN": True,
+                    "MEXPRESS": self.mexpress,
+                    "CLK_EN": self.cnn_en,
                 },
             )
         if 1:
             ret += self.write_register(
                 "SRAM",
                 {
-                    "RMARGIN": 3,
-                    "WNEG_EN": True,
+                    "LSBRAM": self.lightsleep_bram,
+                    "LSTRAM": self.lightsleep_tram,
+                    "LSMRAM": self.lightsleep_mram,
+                    "LSDRAM": self.lightsleep_dram,
+                    "PD": self.power_down,
+                    "DS": self.memory_deep_sleep,
+                    "WPULSE": self.write_pulse_width,
+                    "WNEG_EN": self.write_neg_voltage_enable,
+                    "WNEG_VOL": self.write_neg_voltage,
+                    "RA": self.read_assist_voltage,
+                    "RMARGIN": self.read_margin,
+                    "RMARGIN_EN": self.read_margin_enable,
+                    "EXTACC": self.extended_access_time_enable,
                 },
             )
         if 1:
