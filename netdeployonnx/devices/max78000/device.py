@@ -72,11 +72,11 @@ class MAX78000Metrics(Metrics):
 
                 measure_kernels = extract_stage(res[0:4])
                 measure_input = extract_stage(res[4:8])
-                measure_input_convolution = extract_stage(res[8:12])
+                measure_input_inference = extract_stage(res[8:12])
                 # only possible for non-FIFO mode
-                calculated_convolutions = [
-                    measure_input_convolution[idx] - measure_input[idx]
-                    for idx in range(len(measure_input_convolution))
+                calculated_inferences = [
+                    measure_input_inference[idx] - measure_input[idx]
+                    for idx in range(len(measure_input_inference))
                 ]
 
                 X_TO_MICRO_WATTS = 1e6  # noqa: N806
@@ -94,30 +94,30 @@ class MAX78000Metrics(Metrics):
                         measure_input[IDX_TIME] * X_TO_MICRO_SECONDS,
                         measure_input[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
-                    "convolution": (
-                        calculated_convolutions[IDX_USED_POWER] * X_TO_MICRO_WATTS,
-                        calculated_convolutions[IDX_TIME] * X_TO_MICRO_SECONDS,
-                        calculated_convolutions[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
+                    "inference": (
+                        calculated_inferences[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        calculated_inferences[IDX_TIME] * X_TO_MICRO_SECONDS,
+                        calculated_inferences[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "all": (
                         sum(
                             [
                                 measure_kernels[IDX_USED_POWER],
-                                measure_input_convolution[IDX_USED_POWER],
+                                measure_input_inference[IDX_USED_POWER],
                             ]
                         )
                         * X_TO_MICRO_WATTS,
                         sum(
                             [
                                 measure_kernels[IDX_TIME],
-                                measure_input_convolution[IDX_TIME],
+                                measure_input_inference[IDX_TIME],
                             ]
                         )
                         * X_TO_MICRO_SECONDS,
                         sum(
                             [
                                 measure_kernels[IDX_ENERGY_USED],
-                                measure_input_convolution[IDX_ENERGY_USED],
+                                measure_input_inference[IDX_ENERGY_USED],
                             ]
                         )
                         * X_TO_MICRO_JOULES,
