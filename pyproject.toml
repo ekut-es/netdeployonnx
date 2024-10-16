@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 grpcio = "^1.64.1"
 protobuf = "^5.27.2"
 pyyaml = "^6.0.1"
@@ -57,6 +57,7 @@ pandas = "^2.2.3"
 jupyter = "^1.1.1"
 notebook = "^7.2.2"
 matplotlib = "^3.9.2"
+scipy = "^1.14.1"
 
 [tool.poetry.scripts]
 netdeployonnx_server = "netdeployonnx.cli:server"
