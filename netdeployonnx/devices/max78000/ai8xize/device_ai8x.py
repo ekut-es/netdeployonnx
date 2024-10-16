@@ -46,8 +46,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         )
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:
-        DEBUG = True
-        if DEBUG and False:
+        DEBUG = True  # noqa: N806
+        if DEBUG and False:  # noqa: SIM223
             # saving model
             import os
             from pathlib import Path
@@ -55,7 +55,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             test = Path(__file__).parent.parent.parent.parent.parent / "test"
             n = len(os.listdir(test / "data"))
             filname = test / "data" / f"ai8x_test_{n}.onnx"
-            with open(filname, "wb") as fx:
+            with open(filname, "wb") as fx:  # noqa: ASYNC230
                 fx.write(model.SerializeToString())
             print(f"saved as {filname}")
         izer_config, locked_config, input_shape, transformed_model = (
@@ -142,7 +142,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         self, model: onnx.ModelProto
     ) -> tuple[dict, dict, list[int], onnx.ModelProto]:
         # the cfg is expected in the order of the nodes in the onnx model
-        INSTANCE_WIDTH = 0x800  # noqa: N806 tc.dev.INSTANCE_WIDTH
+        INSTANCE_WIDTH = 0x800  # noqa: N806 , F841    tc.dev.INSTANCE_WIDTH
         locked_config = {item.key: item.value for item in model.metadata_props}
         layers: list[AI8XizeConfigLayer] = []
         input_shape: list[int] = None
@@ -193,7 +193,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     processor_count = weights_shape[1]
                 input_channels = weights_shape[0]
                 logging.warning(
-                    f"proc: {processor_count}, pass:{passes}, inp_chan:{input_channels}, weights:{weights_shape}"
+                    f"proc: {processor_count}, pass:{passes}, "
+                    f"inp_chan:{input_channels}, weights:{weights_shape}"
                 )
                 # assert (
                 #     input_channels <= 1024
@@ -210,7 +211,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # processor_count = weights_shape[1]
 
                 # i dont know when to shift the processors
-                # processor_shift = 32 if len(layers) == 4 else 0  # TODO: generalize this
+                # TODO: generalize this
+                # processor_shift = 32 if len(layers) == 4 else 0
                 processor_shift = 0  # TODO: disabled for now
                 processor_count = min(64, processor_count)
                 processor_shift = min(64 - processor_count, processor_shift)
@@ -246,7 +248,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 if op_type.startswith("Conv"):
                     # invalid to set for MLP/Gemm
                     ly.kernel_size = "3x3" if weights_shape[-2] == 3 else "1x1"
-                layer_input_shape = weights_shape
+                layer_input_shape = weights_shape  # noqa: F841
                 # assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
                 #     f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
                 #     f"is too large for the core REF={INSTANCE_WIDTH * 16}"
@@ -304,6 +306,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 def set_lregs_to_core(lregs: list[any], core: CNNx16Core):
     for lreg in lregs:
         (quad, layeridx, reg, val, force_write, no_verify, comment) = lreg
+        # logging.debug(f"used layer {quad}.{layeridx}")
         globalreg, local_reg = reg
         layer = core[quad, layeridx]
         local_reg &= 0xFFFF

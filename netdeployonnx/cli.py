@@ -59,12 +59,18 @@ def server(listen, configfile, log_level):
 @click.option(
     "--connect", type=str, help="IP and port to connect to (e.g., 127.0.0.1:5000)"
 )
+@click.option(
+    "--experiments",
+    type=str,
+    help="run experiments instead of single deploy",
+    default=False,
+)
 @click.argument(
     "configfile",
     type=click.Path(exists=True, dir_okay=False, writable=True),
     required=False,
 )
-def client(connect, configfile):
+def client(connect, configfile, experiments):
     if configfile is None:
         configfile = DEFAULT_CONFIG_FILE
     else:
@@ -77,7 +83,7 @@ def client(connect, configfile):
         config.client.host = host
         config.client.port = port
 
-    netdeployonnx.client.connect(config)
+    netdeployonnx.client.connect(config, run_experiments=experiments)
 
 
 @main.command()

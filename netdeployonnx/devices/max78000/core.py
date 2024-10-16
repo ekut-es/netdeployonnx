@@ -407,7 +407,12 @@ class CNNx16_Layer(BaseModel):  # noqa: N801
 
     def __setattr__(self, name, value):
         # dont care init vars
-        if name not in ["unused", "idx", "quadrant"] and value not in [0, None]:
+        if name not in [
+            "unused",
+            "idx",
+            "quadrant",
+            "layer_field_dict",
+        ] and value not in [0, None]:
             if self.unused:
                 self._unused = False
         if name == "bias_addr":

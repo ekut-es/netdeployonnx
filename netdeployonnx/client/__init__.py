@@ -32,9 +32,16 @@ def sample_connect(config: AppConfig):
         stub = device_pb2_grpc.DeviceServiceStub(channel)
 
         # Get device handle
-        response = stub.GetDeviceHandle(device_pb2.GetDeviceHandleRequest())
+        response = stub.GetDeviceHandle(
+            device_pb2.GetDeviceHandleRequest(
+                filters=[device_pb2.DeviceInfo(**{"model": "EVKit_V1"})]
+            )
+        )
         device_handle = response.deviceHandle
         print(f"Device handle: {device_handle.handle}")
+        assert device_handle.handle.startswith(
+            "devhandle"
+        ), "device id does not start with devhandle"
 
         # load the cifar10 net
         data_folder = Path(__file__).parent.parent.parent / "test" / "data"
@@ -54,6 +61,7 @@ def sample_connect(config: AppConfig):
             payload
         )
         print("RUN-ID:", async_response.run_id)
+        assert async_response.run_id.startswith("run"), "run_id does not start with run"
         while True:
             response = stub.CheckPayloadAsynchronous(
                 device_pb2.CheckPayloadRequest(
