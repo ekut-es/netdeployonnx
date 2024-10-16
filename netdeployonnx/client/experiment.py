@@ -67,10 +67,16 @@ def experiment_sram_clockspeed(*args, **kwargs):
         onnx_model = onnx.load(fx)
 
     configs = []
-    for read_margin_enable in range(3, -1, -1):
+    for read_margin in range(3, -1, -1):
         # repeat x times
         configs.extend(
-            [{"read_margin_enable": read_margin_enable}]
+            [
+                {
+                    "read_margin": read_margin,
+                    "read_margin_enable": 1,
+                    "write_neg_voltage_enable": 1,
+                }
+            ]
             * kwargs.get("sample_points", 25)
         )
     for config in tqdm(configs):
