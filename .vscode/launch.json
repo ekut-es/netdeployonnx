@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Remote Attach",
+            "name": "REMOTE 4567",
             "type": "debugpy",
             "request": "attach",
             "connect": {
@@ -17,7 +17,23 @@
                     "localRoot": "${workspaceFolder}",
                     "remoteRoot": "."
                 }
-            ], 
+            ],
+            "justMyCode": false,
+        },
+        {
+            "name": "REMOTE 4568",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 4568,
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ],
             "justMyCode": false,
         }
     ]
