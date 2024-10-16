@@ -3,8 +3,12 @@ import logging
 import os
 import struct
 import traceback
+from collections.abc import Generator
 from contextlib import contextmanager
 
+import numpy as np
+import pytest
+from fastcrc.crc8 import smbus as crc
 from tqdm import tqdm
 
 from netdeployonnx.devices.max78000.cnn_constants import (
@@ -12,6 +16,12 @@ from netdeployonnx.devices.max78000.cnn_constants import (
     transform_regname_to_address,
 )
 from netdeployonnx.devices.max78000.device_transport.protobuffers import main_pb2
+
+
+def chunk_bytearray(data: bytes, chunk_size: int) -> Generator[bytes]:
+    """Split a bytearray into chunks of a specific size"""
+    for i in range(0, len(data), chunk_size):
+        yield data[i : i + chunk_size]
 
 
 class hooked_obj:  # noqa N801
@@ -87,12 +97,15 @@ class Commands:
             "stop": self.cnn_disable,
             "assertw": self.assert_weights,
             "awx": self.assert_weightsX,
+            "r": self.restart_keepalive,
+            "restart": self.restart_keepalive,
+            "flash": self.flash,
         }
 
     def exit_request(self):
         self.set_exit_request = True
 
-    def new_message(self, version=2):
+    def new_message(self, version=3):
         msg = main_pb2.ProtocolMessage()
         msg.version = version
         return msg
@@ -128,6 +141,16 @@ class Commands:
 
     async def exit_this(self, *args, **kwargs):
         raise KeyboardInterrupt()
+
+    async def restart_keepalive(self, *args, **kwargs):
+        tty = args[0] if len(args) > 0 else "/dev/ttyUSB0"
+        debug = bool(args[1]) if len(args) > 1 else False
+        timeout = int(args[2]) if len(args) > 2 else 5
+        from netdeployonnx.devices.max78000.device_transport import serialhandler
+
+        if self.dataHandler.keepalive_timer is None:
+            self.dataHandler.packet_order_sender = serialhandler.PacketOrderSender(self)
+            asyncio.create_task(serialhandler.handle_serial(self, tty, debug, timeout))
 
     def convert_instr_to_messages(
         self, *args, **kwargs
@@ -243,6 +266,32 @@ class Commands:
                     submsg = self.new_message()
                     submsg.payload.memory.append(setmemory)
                     submessages.append(submsg)
+            # go over each flash
+            for setflash in msg.payload.flash:
+                # print(f"0x{setflash.address:08X} {len(setflash.data)}")
+                chunksize = datasize
+                if len(setflash.data) > chunksize:
+                    for flash_subchunk in range(
+                        int(len(setflash.data) / chunksize) + 1
+                    ):
+                        newsetflash = main_pb2.SetFlashContent(
+                            address=setflash.address + flash_subchunk * chunksize,
+                            data=setflash.data[
+                                flash_subchunk * chunksize : (flash_subchunk + 1)
+                                * chunksize
+                            ],
+                            setAddr=(
+                                setflash.setAddr if flash_subchunk == 0 else False
+                            ),
+                        )
+                        submsg = self.new_message()
+                        submsg.payload.flash.append(newsetflash)
+                        submessages.append(submsg)
+                else:
+                    submsg = self.new_message()
+                    submsg.payload.flash.append(setflash)
+                    submessages.append(submsg)
+
             for submessage in submessages:
                 if len(submessage.SerializeToString()) > 1000:
                     raise Exception("msg too big")
@@ -275,7 +324,7 @@ class Commands:
                     set_mask=pinaddr,
                 )
             )
-        await self.send(msg)
+        print(await self.send(msg))
         return msg
 
     async def clr_led(self, *args, **kwargs):
@@ -315,7 +364,7 @@ class Commands:
             msg.payload.memory.append(
                 main_pb2.SetMemoryContent(address=memaddr, data=memdata)
             )
-            await self.send(msg)
+            print(await self.send(msg))
             return msg
 
     async def read_mem(self, *args, **kwargs):
@@ -365,12 +414,6 @@ class Commands:
             return
         if len(args) > 0:
             filename = args[0]
-            # print("yes")
-            if not os.path.exists(filename):
-                print("did not find file, but trying in syshelpers")
-                filename = os.path.join(
-                    "/home/vscode/_Masterarbeit_SS24/hannah-env/syshelpers", filename
-                )
             if not os.path.exists(filename):
                 await self.load_file(f"payload_stage{args[0]}.pbenc")
                 return
@@ -854,3 +897,132 @@ class Commands:
                 f"{time.monotonic() - start:2.2f}",
             )
         print("yeah", time.monotonic() - total_time_for_150)
+
+    async def flash(self, *args, **kwargs):
+        if len(args) == 0:
+            return await self.flash("cifar10.npy")
+        if len(args) > 0:
+            filename = args[0]
+            if not os.path.exists(filename):
+                print("did not find file")
+                return
+            try:
+
+                def biases_to_bytes(bias_array: list[int]) -> bytes:
+                    ret = b"".join(struct.pack(">B", int(bias)) for bias in bias_array)
+                    reverse_ret = ret[::-1]
+                    for removeidx in range(len(bias_array)):
+                        if reverse_ret[removeidx] != 0:
+                            break
+                    return ret[: 256 - removeidx]
+
+                def weight_to_bytes(weight_array: list[int]) -> bytes:
+                    ret = b" "
+                    return ret
+
+                # we do numpy pickling
+                numpy_dict = np.load(filename, allow_pickle=True).item()
+                weights = numpy_dict.get("weights", [])
+                biases = numpy_dict.get("biases", [[]])
+                assert (
+                    len(weights) > 50 and len(biases) == 4
+                ), f"not enough data (weights={len(weights)}, biases={len(biases)})"
+
+                variables = {
+                    # specialty of max78000 is that we use bias0 as baseaddr for all
+                    # and thats why we have offsets other than 0
+                    main_pb2.Variable.BIAS_0: (0, biases_to_bytes(biases[0])),
+                    main_pb2.Variable.BIAS_1: (256, biases_to_bytes(biases[1])),
+                    main_pb2.Variable.BIAS_2: (512, biases_to_bytes(biases[2])),
+                    main_pb2.Variable.BIAS_3: (768, biases_to_bytes(biases[3])),
+                }
+
+                def is_page_end(var):
+                    if var in [  # noqa: SIM103
+                        main_pb2.Variable.BIAS_0,
+                        main_pb2.Variable.BIAS_1,
+                        main_pb2.Variable.BIAS_2,
+                    ]:
+                        return False
+                    return True
+
+                bias_page = b""
+                msg = self.new_message()
+                for variable, (offset, data) in variables.items():
+                    # convert value to data
+                    PAGE_SIZE = 8192  # noqa: N806
+                    assert len(data) <= 256, f"bias data too long {len(data)}"
+                    msg.payload.flash.append(
+                        main_pb2.SetFlash(
+                            var=variable,
+                            address_offset=offset,
+                            start_flash=False,
+                            data=data,
+                        )
+                    )
+                    bias_page += (data + b"\0" * 256)[:256]  # pad with 0
+
+                # flash bias page
+                msg.payload.flash.append(
+                    main_pb2.SetFlash(
+                        var=variable,
+                        address_offset=0,
+                        crc=crc(
+                            (bias_page + b"\0" * PAGE_SIZE)[:PAGE_SIZE]
+                        ),  # pad with 0
+                        start_flash=True,
+                    )
+                )
+                # convert value to data
+                PAGE_SIZE = 8192  # noqa: N806
+                for page_num, page in enumerate(
+                    chunk_bytearray(weight_to_bytes(weights), PAGE_SIZE)
+                ):
+                    # set weights page
+                    msg.payload.flash.append(
+                        main_pb2.SetFlash(
+                            var=variable,
+                            address_offset=page_num * PAGE_SIZE,
+                            start_flash=False,
+                            data=page,
+                        )
+                    )
+                    # flash weights page
+                    msg.payload.flash.append(
+                        main_pb2.SetFlash(
+                            var=variable,
+                            address_offset=0,
+                            crc=crc(
+                                (page + b"\0" * PAGE_SIZE)[:PAGE_SIZE]
+                            ),  # pad with 0
+                            start_flash=True,
+                        )
+                    )
+                    break
+
+                print("loaded successfully")
+                messages = self.split_message(msg)
+                for submsg in messages:
+                    res = await self.send(submsg)
+                    print(res)
+                return msg
+            except Exception:
+                traceback.print_exc()
+
+
+@pytest.mark.asyncio
+async def test_flash_generate_msg():
+    c = Commands()
+    msg = await c.flash()
+    assert msg.payload.flash[0].var == main_pb2.Variable.BIAS_0
+    assert msg.payload.flash[0].start_flash is False
+    assert msg.payload.flash[1].var == main_pb2.Variable.BIAS_1
+    assert msg.payload.flash[1].start_flash is False
+    assert msg.payload.flash[2].var == main_pb2.Variable.BIAS_2
+    assert msg.payload.flash[2].start_flash is False
+    assert msg.payload.flash[3].var == main_pb2.Variable.BIAS_3
+    assert msg.payload.flash[3].start_flash is False
+    assert msg.payload.flash[4].var == main_pb2.Variable.BIAS_3
+    assert msg.payload.flash[4].start_flash is True
+    assert msg.payload.flash[5].var == main_pb2.Variable.WEIGHTS
+    assert msg.payload.flash[5].start_flash is False

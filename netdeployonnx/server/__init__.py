@@ -104,7 +104,10 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
     @property
     def executor(self) -> concurrent.futures.ThreadPoolExecutor:
         if not self._executor:
-            self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            self._executor = concurrent.futures.ThreadPoolExecutor(
+                max_workers=1,
+                thread_name_prefix="netdeployonnx.DeviceService.AsyncioThreadPoolExecutor",
+            )
         return self._executor
 
     def run_async_method(self, coro, complete=False):
@@ -318,7 +321,9 @@ def listen(config: AppConfig):
         print(f"- {device.name}")
         for dev_property_name, field in device.model_fields.items():
             print(f"\t{dev_property_name}: {getattr(device, dev_property_name)}")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=10, thread_name_prefix="netdeployonnx.grpc_server"
+    ) as executor:
         server = grpc.server(executor)
         device_pb2_grpc.add_DeviceServiceServicer_to_server(
             DeviceService(config), server

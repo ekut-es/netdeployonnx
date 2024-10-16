@@ -35,6 +35,28 @@ except ImportError:
 logger = logging.getLogger("netdeployonnx.remote")
 
 
+def check_transform_filter(filter_obj: dict | DeviceInfo) -> DeviceInfo:
+    """Checks and transforms a parameter if necessary"""
+    if isinstance(filter_obj, DeviceInfo):
+        dev_info = filter_obj
+    elif isinstance(filter_obj, dict):
+        parameters = dict(filter_obj)
+        dev_info = DeviceInfo(
+            port=parameters.pop("port", ""),
+            model=parameters.pop("model", ""),
+            manufacturer=parameters.pop("manufacturer", ""),
+            firmware_version=parameters.pop("firmware_version", ""),
+        )
+        if len(parameters) > 0:
+            raise AttributeError(f"got unknown parameters: {list(parameters.keys())}")
+    else:
+        raise AttributeError(
+            "unknown type for parameters (expect dict "
+            f"or DeviceInfo, got {type(parameters)})"
+        )
+    return dev_info
+
+
 class NetClient:
     def __init__(self, client: DeviceService, channel: "grpc.Channel"):
         self.client = client
@@ -44,12 +66,16 @@ class NetClient:
     async def connect(self, model: str = None, **kwargs):
         if model:
             kwargs.update({"model": model})
-        filters = kwargs.pop("filters", None)
-        if not filters:
-            filters = [DeviceInfo(**kwargs)]
+        filter_arg = kwargs.get("filters", None)
+        if not filter_arg:
+            filters_ = [
+                DeviceInfo(**{k: v for k, v in kwargs.items() if k not in ["filters"]})
+            ]
+        else:
+            filters_ = [check_transform_filter(f) for f in [x for x in filter_arg]]
 
         handle = self.client.GetDeviceHandle(
-            GetDeviceHandleRequest(filters=filters)
+            GetDeviceHandleRequest(filters=filters_)
         ).deviceHandle.handle
 
         if not handle.startswith("devhandle"):

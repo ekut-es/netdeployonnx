@@ -23,9 +23,6 @@ from netdeployonnx.devices.max78000.core import (
     CNNx16_Processor,
     CNNx16Core,
 )
-from netdeployonnx.devices.max78000.device_transport.protobuffers.main_pb2 import (
-    ActionEnum,
-)
 from netdeployonnx.devices.max78000.graph_transformer import (
     Graph,
     run_optimizer,
@@ -61,24 +58,28 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             with open(filname, "wb") as fx:
                 fx.write(model.SerializeToString())
             print(f"saved as {filname}")
-        cfg, input_shape, transformed_model = self.generate_config_from_model(model)
+        izer_config, locked_config, input_shape, transformed_model = (
+            self.generate_config_from_model(model)
+        )
         if DEBUG:
             # from pprint import pprint
 
-            # pprint(cfg)
+            # pprint(izer_config)
             import yaml
 
-            print(yaml.dump(cfg))
+            print(yaml.dump(izer_config))
             print("input_shape:", input_shape)
         # print(onnx.printer.to_text(transformed_model.graph))
-        layer0_is_not_gemm = cfg.get("layers", [{}])[0].get("operation") != "MLP"
+        layer0_is_not_gemm = (
+            izer_config.get("layers", [{}])[0].get("operation") != "MLP"
+        )
         if layer0_is_not_gemm:
             # if the first layer is a CONV layer, then the input shape should be
             # in_chan x H x W
             assert len(input_shape) == 3, f"unexpected input shape: {input_shape}"
         sample_input = np.zeros(input_shape, dtype=np.int64)
         list_of_results: list[any] = wrap_ai8ize_layout_transform(
-            cfg, transformed_model, sample_input
+            izer_config, transformed_model, sample_input
         )
 
         core = CNNx16Core()
@@ -87,6 +88,27 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             set_lregs_to_core(apb._lregs, core)
             set_bias_to_core(apb._bias, core)
             set_weights_to_core(apb.kernel_mem, core)
+
+        def set_when_available(
+            core: CNNx16Core, locked_config: dict, setting_name: str
+        ):
+            if setting_name in locked_config:
+                setattr(core, setting_name, int(locked_config.get(setting_name, 0)))
+
+        # to modify sram fetch
+        for quad in range(4):
+            set_when_available(core, locked_config, "lightsleep_bram")
+            set_when_available(core, locked_config, "lightsleep_tram")
+            set_when_available(core, locked_config, "lightsleep_mram")
+            set_when_available(core, locked_config, "lightsleep_dram")
+            set_when_available(core, locked_config, "memory_deep_sleep")
+            set_when_available(core, locked_config, "write_pulse_width")
+            set_when_available(core, locked_config, "write_neg_voltage_enable")
+            set_when_available(core, locked_config, "write_neg_voltage")
+            set_when_available(core, locked_config, "read_assist_voltage")
+            set_when_available(core, locked_config, "read_margin")
+            set_when_available(core, locked_config, "read_margin_enable")
+            set_when_available(core, locked_config, "extended_access_time_enable")
 
         return core
 
@@ -118,9 +140,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     def generate_config_from_model(  # noqa: C901
         self, model: onnx.ModelProto
-    ) -> tuple[dict, list[int], onnx.ModelProto]:
+    ) -> tuple[dict, dict, list[int], onnx.ModelProto]:
         # the cfg is expected in the order of the nodes in the onnx model
         INSTANCE_WIDTH = 0x800  # noqa: N806 tc.dev.INSTANCE_WIDTH
+        locked_config = {item.key: item.value for item in model.metadata_props}
         layers: list[AI8XizeConfigLayer] = []
         input_shape: list[int] = None
         trf_graph = self.transform_graph(model.graph)
@@ -255,7 +278,12 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         )
 
         cfg = AI8XizeConfig(arch="ai85nascifarnet", dataset="CIFAR10", layers=layers)
-        return dict(cfg.model_dump(exclude_unset=True)), input_shape, transformed_model
+        return (
+            dict(cfg.model_dump(exclude_unset=True)),
+            locked_config,
+            input_shape,
+            transformed_model,
+        )
 
     def cnn_load_weights(self, layout: Any) -> Any:
         """
@@ -269,7 +297,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         for quad in range(4):
             for proc in range(16):
                 ...
-        ret.append(("ACTION", ActionEnum.INIT_WEIGHTS_PATTERN1, 0))
+        # ret.append(("ACTION", ActionEnum.INIT_WEIGHTS_PATTERN1, 0))
         return ret
 
 

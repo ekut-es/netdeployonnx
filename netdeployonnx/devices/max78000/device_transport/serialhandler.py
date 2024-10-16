@@ -217,7 +217,8 @@ class PacketOrderSender:
         self.sent_sequence += 1
         return msg.sequence
 
-    def accept_acknowledge(self, sequence: int) -> bool:
+    def accept_acknowledge(self, sequence: int, success: bool) -> bool:
+        "returns true if the sequence is ok, else returns false and requests a resend"
         if self.current_sequence == sequence:
             # accept it by removing it from the sendqueue
             if len(self.sendqueue) > 0:
@@ -225,7 +226,7 @@ class PacketOrderSender:
             else:
                 raise Exception("when does this happen?")
             if sequence in self.wait_queue:
-                self.wait_queue[sequence].set_result(True)
+                self.wait_queue[sequence].set_result(success)
             self.current_sequence += 1
             return True
         else:
@@ -264,7 +265,7 @@ class PacketOrderSender:
         self.wait_queue[sequence] = asyncio.Future()
         logging.debug(f">>>start waiting for sequence {sequence}")
         await self.wait_queue[sequence]
-        logging.debug("<<<done  waiting for sequence")
+        logging.debug(f"<<<done  waiting for sequence {sequence}")
         return self.wait_queue[sequence].result()
 
 
@@ -298,7 +299,8 @@ class DataHandler:
             try:
                 # print("ACK", msg.sequence)
                 seq = msg.sequence
-                assert self.packet_order_sender.accept_acknowledge(seq), (
+                success = msg.ack.success
+                assert self.packet_order_sender.accept_acknowledge(seq, success), (
                     f"cannot accept seq {seq} (with: "
                     f"{self.packet_order_sender.current_sequence}, "
                     f"{self.packet_order_sender.sent_sequence})"
@@ -513,6 +515,7 @@ async def await_closing_handle_serial(
         try:
             if data_handler.keepalive_timer:
                 await data_handler.keepalive_timer.close_tasks()
+            data_handler.keepalive_timer = None
         except Exception:
             traceback.print_exc()
     # and close the writer
@@ -522,7 +525,7 @@ async def await_closing_handle_serial(
     await asyncio.sleep(0.5)
 
 
-class FakeAioserialWriter:
+class CompatibilityAioserialWriter:
     def __init__(self, aioserial_instance):
         self.aioserial_instance = aioserial_instance
         self.data = b""
@@ -556,20 +559,31 @@ class FakeAioserialWriter:
 
     async def drain(self):
         ret = await self.aioserial_instance.write_async(self.data)
+        logging.debug(f"###      wrote {len(self.data)}")
         self.data = b""
         return ret
 
 
-class FakeAioserialReader:
+class CompatibilityAioserialReader:
     def __init__(self, aioserial_instance):
         self.aioserial_instance = aioserial_instance
+        self.emit_every_threshold = 10
+        self.consequtive_lens = []
 
     async def read(self, size):
         # logging.debug(f"### bfore read {self.aioserial_instance.in_waiting}")
         ret = await self.aioserial_instance.read_async(
             self.aioserial_instance.in_waiting
         )
-        logging.debug(f"### after read {len(ret)}")
+        # log every x lengths, if everything is 0, do emit
+        self.consequtive_lens.append(len(ret))
+        if (
+            sum(self.consequtive_lens) == 0
+            and (len(self.consequtive_lens)) == self.emit_every_threshold
+        ):  # we have only 0
+            logging.debug(f"### after read {len(ret)}")
+            self.consequtive_lens = []
+
         return ret
 
 
@@ -579,7 +593,7 @@ async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     url = kwargs.get("url")
     baudrate = kwargs.get("baudrate")
 
-    # check if the URL is /dev/virtual..... and use the fake serial
+    # check if the URL is /dev/virtual..... else use the compatibility serial
     if "virtual" in url:
         aioserial_instance = FullDevice(crc) if "Device" in url else MeasureDevice()
     else:
@@ -589,9 +603,9 @@ async def open_serial_connection(*, loop=None, limit=None, **kwargs):
         )
         aioserial_instance.set_low_latency_mode(True)
 
-    return FakeAioserialReader(aioserial_instance), FakeAioserialWriter(
+    return CompatibilityAioserialReader(
         aioserial_instance
-    )
+    ), CompatibilityAioserialWriter(aioserial_instance)
 
 
 async def handle_write(data_handler, writer):

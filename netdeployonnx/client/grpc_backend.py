@@ -1,16 +1,32 @@
-import abc
-import asyncio
+#
+# Copyright (c) 2024 Hannah contributors.
+#
+# This file is part of hannah.
+# See https://github.com/ekut-es/hannah for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import collections
 import copy
 import io
 import logging
 import os
+from collections import namedtuple
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Union
 
 import torch
-
-from netdeployonnx.common.wrapper import NetClient, get_netclient_from_connect
 
 try:
     from hannah.backends.base import (
@@ -18,20 +34,44 @@ try:
         InferenceBackendBase,
         ProfilingResult,
     )
+    from hannah.nas.export.onnx import to_onnx
 except ImportError:
+    # thats not a good thing to do, but works for now
+    class LightningModel:
+        def __init__(self, onnx_model):
+            self.onnx_model = onnx_model
 
-    class ClassifierModule: ...
+        def cpu(self):
+            return self
 
-    class ProfilingResult: ...
+        def train(self, *args):
+            return self
 
-    class AbstractBackend(abc.ABC): ...
+    class ClassifierModule:
+        def __init__(self, model):
+            self.model = model
 
-    class InferenceBackendBase(AbstractBackend): ...
+        @property
+        def example_input_array(self):
+            return self.model
+
+    class InferenceBackendBase: ...
+
+    ProfilingResult = namedtuple(
+        "ProfilingResult", field_names=["outputs", "metrics", "profile"]
+    )
+
+    def to_onnx(lightning_model) -> "onnx.ModelProto":
+        return lightning_model.onnx_model
 
 
 try:
-    from netdeployonnx.common.wrapper import NetClient, get_netclient_from_connect
-except ImportError:
+    from netdeployonnx.common.netclient_remote import (
+        NetClient,
+        get_netclient_from_connect,
+    )
+except ImportError as ie:
+    logging.warning(f"Could not import netdeployonnx: {ie}")
     NetClient = None
     get_netclient_from_connect = None
 try:
@@ -44,13 +84,16 @@ except ImportError:
     onnx = None
 
 
-# InferenceBackendBase: https://es-git.cs.uni-tuebingen.de/es/ai/hannah/hannah/-/blob/main/hannah/backends/base.py?ref_type=heads
 class GRPCBackend(InferenceBackendBase):
     def __init__(self, *args, client_connect: str = "localhost:28329", **kwargs):
         self.client_connect = client_connect
         self.auth: Path | str | bytes | None = kwargs.pop("auth", None)
-        self.device_filter: list[dict] = kwargs.pop("device_filter", [])
+        self.device_filter: list[dict] = kwargs.pop(
+            "device_filter", [{"model": "EVKit_V1"}]
+        )
         self.keepalive_timeout: float = kwargs.pop("keepalive_timeout", 4)
+        self.function_timeout: float = kwargs.pop("function_timeout", 4)
+
         self._client = None
         self.modelbytes = None
         super().__init__(*args, **kwargs)
@@ -99,13 +142,32 @@ class GRPCBackend(InferenceBackendBase):
         dummy_input = module.example_input_array.cpu()
         bytesio = io.BytesIO()
 
-        torch.onnx.export(
-            quantized_model,
-            dummy_input,
-            bytesio,
-            verbose=False,
-            opset_version=11,
-        )
+        def torch_aten_copy(g, input, *args):
+            # print("TYPE=", type(input), "INPUT=", input)
+            # if input is a torch.Value and is a float
+            # then we can just return 2**input
+            # exp_constant = None
+            # exp_constant = 0
+            # if exp_constant is not None:
+            #     return g.op("Const", torch.tensor(2.0**exp_constant, dtype=float))
+            return g.op("Identity", torch.tensor(2.0**1, dtype=float))
+
+        torch.onnx.register_custom_op_symbolic("aten::copy", torch_aten_copy, 1)
+
+        # torch.onnx.export(
+        #     quantized_model,
+        #     dummy_input,
+        #     bytesio,
+        #     verbose=False,
+        #     opset_version=11,
+        # )
+        try:
+            modelProto: onnx.ModelProto = to_onnx(quantized_model)
+            bytesio.write(modelProto.SerializeToString())
+        except Exception as ex:
+            # exporting failed
+            raise ex
+
         self.modelbytes = bytesio.getvalue()
 
     def run(self, *inputs) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
@@ -133,19 +195,29 @@ class GRPCBackend(InferenceBackendBase):
     async def _run_async(
         self, *inputs: torch.Tensor, profiling: bool = False
     ) -> Union[torch.Tensor, Sequence[torch.Tensor], ProfilingResult]:
+        if get_netclient_from_connect is None:
+            raise ImportError("netdeployonnx not installed")
         with get_netclient_from_connect(
             self.client_connect,
             self.auth,
             keepalive_timeout=self.keepalive_timeout,
         ) as client:
             async with client.connect(filters=self.device_filter) as device:
+                input_bytes: bytes = b""
                 result_dict = await device.deploy(
-                    modelbytes=self.modelbytes, profiling=profiling
+                    modelbytes=self.modelbytes,
+                    input_bytes=input_bytes,
+                    profiling=profiling,
+                    timeout=self.function_timeout,
                 )
                 if profiling:
+                    # FIXME: select the first? maybe average?
+                    metrics = result_dict["metrics"]
+                    if isinstance(result_dict, collections.abc.Iterable):
+                        metrics = metrics[0] if len(metrics) > 0 else {}
                     return ProfilingResult(
-                        output=result_dict["result"],
-                        metrics=result_dict["metrics"],
+                        outputs=result_dict["result"],
+                        metrics=metrics,
                         profile=result_dict["deployment_execution_times"],
                     )
                 else:
@@ -188,50 +260,12 @@ class GRPCBackend(InferenceBackendBase):
         """
         try:
             # TODO: check server availability?
-            return grpc is not None and onnx is not None and NetClient is not None
+            return (
+                grpc is not None
+                and onnx is not None
+                and NetClient is not None
+                and get_netclient_from_connect is not None
+            )
         except Exception:
             pass
         return False
-
-
-class GRPCBackend_(InferenceBackendBase):  # noqa: N801
-    """Inference Backend for grpc-based systems"""
-
-    def __init__(
-        self,
-        repeat=10,
-        warmup=2,
-        url="localhost:8001",
-    ):
-        self.repeat = repeat
-        self.warmup = warmup
-        self.client = grpc.insecure_channel(url)
-        self.model = None  # TODO:remove
-
-    def prepare(self, model):
-        memory_stream = io.BytesIO()
-        dummy_input = model.example_input_array
-        self.model = model  # TODO:remove
-        torch.onnx.export(model, dummy_input, memory_stream, verbose=False)
-        memory_stream.seek(0)
-        self.modelbytes = memory_stream
-
-    def run(self, *inputs):
-        return self._run(*inputs)
-
-    def profile(self, *inputs):
-        result = self._run(*inputs, profile=True)
-        return result
-
-    def _run(self, *inputs, profile=False):
-        logging.info("running grpc backend on batch")
-        # run on grpc
-        output = self.model(*inputs)
-
-        result = [output]
-        duration = 0
-        if profile:
-            return ProfilingResult(
-                outputs=result, metrics={"duration": duration}, profile=None
-            )
-        return result

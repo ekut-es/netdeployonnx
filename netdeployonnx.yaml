@@ -4,12 +4,12 @@ client:
 devices:
 - class_name: MAX78000_ai8xize
   communication_port: /dev/ttyUSB0
-  energy_port: /dev/ttyACM1
+  energy_port: /dev/ttyACM0
   name: EVKit_V1
-# - class_name: MAX78000_ai8xize
-#   communication_port: /dev/virtualDevice
-#   energy_port: /dev/virtualEnergy
-#   name: VirtualDevice
+- class_name: MAX78000_ai8xize
+  communication_port: /dev/virtualDevice
+  energy_port: /dev/virtualEnergy
+  name: VirtualDevice
 logging:
   file: log.log
   level: INFO

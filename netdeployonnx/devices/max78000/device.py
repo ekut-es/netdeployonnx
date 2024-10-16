@@ -18,9 +18,12 @@ from netdeployonnx.devices.max78000.graph_transformer import transform_graph
 
 try:
     from itertools import batched
+    # batched was introduced in python 3.11
 except ImportError:
     from itertools import islice
 
+    # backport
+    # TODO: use a library
     def batched(iterable, n):
         # batched('ABCDEFG', 3) → ABC DEF G
         if n < 1:
@@ -251,6 +254,7 @@ class MAX78000(Device):
                     closed_future=self.handle_serial_task_closed,
                 )
             )
+            await asyncio.sleep(0.01)
         return self.handle_serial_task
 
     @classmethod

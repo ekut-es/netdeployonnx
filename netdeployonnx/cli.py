@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import sys
 
@@ -13,6 +14,15 @@ def main():
     pass
 
 
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+
+
 @main.command()
 @click.option(
     "--listen", type=str, help="IP and port to listen on (e.g., 0.0.0.0:5000)"
@@ -22,7 +32,14 @@ def main():
     type=click.Path(exists=True, dir_okay=False, writable=True),
     required=False,
 )
-def server(listen, configfile):
+@click.option(
+    "--log_level",
+    type=click.Choice(LOG_LEVELS.keys(), case_sensitive=False),
+    default="INFO",
+    required=False,
+)
+def server(listen, configfile, log_level):
+    logging.basicConfig(level=LOG_LEVELS[log_level.upper()])
     if configfile is None:
         configfile = DEFAULT_CONFIG_FILE
     else:

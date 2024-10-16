@@ -424,6 +424,8 @@ def layout_transform(
         mock.patch("izer.eprint.eprint", eprint_hooked),
         mock.patch("izer.izer.eprint", eprint_hooked),
         mock.patch("izer.backend.max7800x.eprint", eprint_hooked),
+        # patch rich away as it may interfere with our threadrunners
+        # mock.patch("izer.console.Progress", mock.MagicMock()),
     ):
         izer_main()
 

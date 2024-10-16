@@ -43,7 +43,7 @@ def test_backend():
         backend.prepare(mock.MagicMock())
         assert backend.run(torch.tensor([1, 2, 3]))
         with mock.patch(
-            "netdeployonnx.common.hannah_backend.ProfilingResult"
+            "netdeployonnx.client.grpc_backend.ProfilingResult"
         ) as profiling_result:
             assert backend.profile(torch.tensor([1, 2, 3]))
             profiling_result.assert_called_once()

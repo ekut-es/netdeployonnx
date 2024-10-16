@@ -130,6 +130,7 @@ exclude = [
     "cnn_constants.py",
     "cnn_registers.py",
     "max78000_cnn.py",
+    "test_create_flash_npy.py",
 ]
 # Same as Django: https://github.com/cookiecutter/cookiecutter-django/issues/4792.
 line-length = 88
