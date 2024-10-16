@@ -1,0 +1,1053 @@
+date: '2024-10-15 17:47:21'
+experiments:
+- name: sram_clockspeed
+  results:
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: &id001
+      - model: EVKit_V1
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.17
+      uJ_per_convolution: 2.89
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45548.9
+      uW_per_convolution: 48313.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.36
+      us_per_weights_loading: 0.13
+    outputs: []
+    profile:
+      _check_model: 0.06
+      compile_instructions: 0.0
+      execute: 1.76
+      layout_transform: 2.02
+      total: 3.85
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.07
+      uJ_per_convolution: 2.78
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 43356.7
+      uW_per_convolution: 46053.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.9
+      total: 3.67
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.23
+      uJ_per_convolution: 2.96
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 46665.5
+      uW_per_convolution: 49499.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.95
+      total: 3.74
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.34
+      uJ_per_convolution: 3.09
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 49249.2
+      uW_per_convolution: 51957.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 102.9
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.29
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.75
+      layout_transform: 1.96
+      total: 3.72
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.2
+      uJ_per_convolution: 2.93
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45951.6
+      uW_per_convolution: 48904.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.29
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.94
+      total: 3.72
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.23
+      uJ_per_convolution: 2.96
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 47037.6
+      uW_per_convolution: 49624.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 116.5
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.31
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.94
+      total: 3.73
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.35
+      uJ_per_convolution: 3.06
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 49296.9
+      uW_per_convolution: 51967.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 6.8
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.31
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.92
+      total: 3.72
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.35
+      uJ_per_convolution: 3.06
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 49478.6
+      uW_per_convolution: 52037.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 97.9
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.31
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.01
+      execute: 1.78
+      layout_transform: 1.96
+      total: 3.74
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.02
+      uJ_per_convolution: 2.75
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 42452.8
+      uW_per_convolution: 45217.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.75
+      layout_transform: 1.95
+      total: 3.71
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.19
+      uJ_per_convolution: 2.89
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45877.5
+      uW_per_convolution: 48624.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.79
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.97
+      total: 3.76
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.19
+      uJ_per_convolution: 2.91
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45798.1
+      uW_per_convolution: 48629.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.99
+      total: 3.78
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.34
+      uJ_per_convolution: 3.07
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 49047.2
+      uW_per_convolution: 51897.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.29
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.75
+      layout_transform: 1.91
+      total: 3.68
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 0
+      uJ_per_convolution: 3.02
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 0
+      uW_per_convolution: 50924.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.42
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.76
+      layout_transform: 1.93
+      total: 3.7
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 0
+      uJ_per_convolution: 3.09
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 0
+      uW_per_convolution: 52077.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.94
+      total: 3.72
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 0
+      uJ_per_convolution: 3.0
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 0
+      uW_per_convolution: 50858.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.99
+      total: 3.79
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.32
+      uJ_per_convolution: 3.06
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 48752.5
+      uW_per_convolution: 51555.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.99
+      total: 3.78
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.18
+      uJ_per_convolution: 2.87
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45657.2
+      uW_per_convolution: 48337.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.75
+      layout_transform: 1.94
+      total: 3.71
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.3
+      uJ_per_convolution: 3.04
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 48352.6
+      uW_per_convolution: 51127.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.98
+      total: 3.77
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.36
+      uJ_per_convolution: 3.09
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 49468.1
+      uW_per_convolution: 52258.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.94
+      total: 3.72
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.19
+      uJ_per_convolution: 2.91
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45904.1
+      uW_per_convolution: 48705.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.02
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.95
+      total: 3.75
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.05
+      uJ_per_convolution: 2.79
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 43054.4
+      uW_per_convolution: 45887.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.97
+      total: 3.76
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.08
+      uJ_per_convolution: 2.81
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 43798.3
+      uW_per_convolution: 46467.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 48.6
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.93
+      total: 3.71
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.34
+      uJ_per_convolution: 3.06
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 49117.7
+      uW_per_convolution: 51822.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0.3
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.29
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.96
+      total: 3.74
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.89
+      uJ_per_convolution: 2.59
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 39618.0
+      uW_per_convolution: 42269.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.29
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.94
+      total: 3.73
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.29
+      uJ_per_convolution: 3.0
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 48001.9
+      uW_per_convolution: 50748.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.98
+      total: 3.76
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.37
+      uJ_per_convolution: 3.11
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 49667.6
+      uW_per_convolution: 52467.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.79
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.92
+      total: 3.71
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.33
+      uJ_per_convolution: 3.07
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 48953.0
+      uW_per_convolution: 51696.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 14.8
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.95
+      total: 3.75
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.91
+      uJ_per_convolution: 2.61
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 39886.8
+      uW_per_convolution: 42723.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.75
+      layout_transform: 1.91
+      total: 3.66
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.9
+      uJ_per_convolution: 2.61
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 39931.3
+      uW_per_convolution: 42606.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.96
+      total: 3.74
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.19
+      uJ_per_convolution: 2.89
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45561.3
+      uW_per_convolution: 48519.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.79
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.9
+      total: 3.69
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.34
+      uJ_per_convolution: 3.08
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 49071.2
+      uW_per_convolution: 51928.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.79
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.91
+      total: 3.7
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.93
+      uJ_per_convolution: 2.66
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 40537.6
+      uW_per_convolution: 43340.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.76
+      layout_transform: 1.95
+      total: 3.71
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.95
+      uJ_per_convolution: 2.68
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0.0
+      uW_per_all: 41102.7
+      uW_per_convolution: 43752.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 80.9
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.95
+      total: 3.74
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.93
+      uJ_per_convolution: 2.65
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 40472.5
+      uW_per_convolution: 43261.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.39
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.92
+      total: 3.69
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 1.87
+      uJ_per_convolution: 2.58
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 39308.5
+      uW_per_convolution: 41967.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.74
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.93
+      total: 3.71
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.17
+      uJ_per_convolution: 2.88
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45446.5
+      uW_per_convolution: 48201.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.42
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 1.77
+      layout_transform: 1.93
+      total: 3.7
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.34
+      uJ_per_convolution: 3.05
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 49077.1
+      uW_per_convolution: 51791.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.79
+      layout_transform: 1.99
+      total: 3.79
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.18
+      uJ_per_convolution: 2.89
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 45580.1
+      uW_per_convolution: 48396.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.78
+      layout_transform: 1.95
+      total: 3.74
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.33
+      uJ_per_convolution: 3.04
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 48907.9
+      uW_per_convolution: 51594.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.76
+      us_per_convolution: 0
+      us_per_input_loading: 267.37
+      us_per_weights_loading: 0.14
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.74
+      layout_transform: 1.91
+      total: 3.67
+  - args: !!python/tuple []
+    kwargs:
+      client_connect: localhost:28329
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+    metrics:
+      uJ_per_all: 2.34
+      uJ_per_convolution: 3.07
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 49062.7
+      uW_per_convolution: 51826.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 47.79
+      us_per_convolution: 0
+      us_per_input_loading: 267.34
+      us_per_weights_loading: 0.16
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 1.76
+      layout_transform: 1.96
+      total: 3.73
+- name: network_size
+  results: null
+- name: baseclock_clockspeed
+  results: null
+- name: avgpool_vs_maxpool
+  results: null
+- name: input_loading
+  results: null
