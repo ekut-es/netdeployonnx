@@ -77,6 +77,7 @@ def experiment_sram_clockspeed(*args, **kwargs):
                     "write_neg_voltage_enable": 1,
                 }
             ]
+            # scale by sample_points
             * kwargs.get("sample_points", 25)
         )
     for config in tqdm(configs):
