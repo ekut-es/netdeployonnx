@@ -694,7 +694,7 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
         json_schema_extra={"register": "SRAM", "field": "WPULSE"},
     )
     write_neg_voltage_enable: bool = Field(
-        default=False, json_schema_extra={"register": "SRAM", "field": "WNEG_EN"}
+        default=True, json_schema_extra={"register": "SRAM", "field": "WNEG_EN"}
     )
     write_neg_voltage: conint(ge=0, le=CNNx16_n_SRAM_WNEG_VOL_VALUEMASK) = Field(
         # wnegen should be enabled
