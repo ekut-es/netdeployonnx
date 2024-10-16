@@ -4,6 +4,7 @@ from pathlib import Path
 
 import onnx
 import yaml
+from tqdm import tqdm
 
 from netdeployonnx.client.grpc_backend import (
     ClassifierModule,
@@ -65,20 +66,25 @@ def experiment_sram_clockspeed(*args, **kwargs):
     with open(data_folder / "cifar10_short.onnx", "rb") as fx:
         onnx_model = onnx.load(fx)
 
+    configs = []
     for read_margin_enable in range(3, -1, -1):
         # repeat x times
-        configs = [{"read_margin_enable": read_margin_enable}] * 10
-        for config in configs:
-            # execute each config, for that prepare metadata
-            del onnx_model.metadata_props[:]
-            for key, value in config.items():
-                onnx_model.metadata_props.append(
-                    onnx.StringStringEntryProto(key=key, value=str(value))
-                )
-            # overwrite model
-            kwargs["onnx_model"] = onnx_model
-            # copy on call
-            results.append(run_experiment(*list(args), **dict(kwargs)))
+        configs.extend(
+            [{"read_margin_enable": read_margin_enable}]
+            * kwargs.get("sample_points", 25)
+        )
+    for config in tqdm(configs):
+        # execute each config, for that prepare metadata
+        del onnx_model.metadata_props[:]
+        for key, value in config.items():
+            onnx_model.metadata_props.append(
+                onnx.StringStringEntryProto(key=key, value=str(value))
+            )
+        # overwrite model
+        kwargs["onnx_model"] = onnx_model
+        kwargs["config"] = config
+        # copy on call
+        results.append(run_experiment(*list(args), **dict(kwargs)))
 
     return results
 
@@ -104,8 +110,11 @@ def do_experiments(*args, **kwargs):
         "experiments": [],
     }
 
+    kwargs["samplepoints"] = 25
+
     for experiment_name, experiment in experiments.items():
         results = experiment(*args, **kwargs)
+        results = results if results else []
         data_collector["experiments"].append(
             {
                 "name": experiment_name,
