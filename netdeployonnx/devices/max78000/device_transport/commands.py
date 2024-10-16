@@ -518,7 +518,8 @@ class Commands:
     async def measurement_ipo(self, *args, **kwargs):
         if 1:
             msg = self.new_message()
-            msg.action.execute_measurement = main_pb2.ActionEnum.MEASUREMENT_WITH_IPO
+            msg.action.execute_measurement = main_pb2.ActionEnum.MEASUREMENT
+            msg.action.action_argument = 4 << 1 + 0  # this is PCLK + CLKDIV 1
             await self.send(msg)
             return msg
 

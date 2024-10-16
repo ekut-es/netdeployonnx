@@ -287,10 +287,22 @@ class MAX78000(Device):
         """ """
         if layout is None:
             return []
-        # TODO: do something based on the layout
-        return [
-            ("ACTION", main_pb2.ActionEnum.RUN_CNN_ENABLE, 0),
+
+        cnnclksel = 0
+        cnnclkdiv = 4
+        if hasattr(layout, "specialconfig"):
+            cnnclksel = int(layout.specialconfig.get("GCR_pclkdiv.cnnclksel", "0"), 0)
+            cnnclkdiv = int(layout.specialconfig.get("GCR_pclkdiv.cnnclkdiv", "4"), 0)
+            assert cnnclksel in [0, 1], "cnnclksel has to be in [0...1]"
+            assert cnnclkdiv in range(7 + 1), "cnnclksel has to be in [0...7]"  # 0..7
+        default_enable = [
+            (
+                "ACTION",
+                main_pb2.ActionEnum.RUN_CNN_ENABLE,
+                (cnnclkdiv << 1) + cnnclksel,  # this is PCLK + CLKDIV 1
+            ),
         ]
+        return default_enable
 
     def cnn_init(self, layout: "CNNx16Core") -> Any:
         """
@@ -326,12 +338,17 @@ class MAX78000(Device):
         """
         if layout is None:
             return []
-        # TOOD: check if we need to start all quadrants
+        # TODO: check if we need to start all quadrants
         # as this works, we may want to transition to
         # measurements instead of just starting a measurement
-        return [
-            ("ACTION", main_pb2.ActionEnum.MEASUREMENT_WITH_IPO, 0),
+        default_start = [
+            (
+                "ACTION",
+                main_pb2.ActionEnum.MEASUREMENT,
+                0,
+            ),
         ]
+        return default_start
 
     def cnn_load_bias(self, layout: Any) -> Any:
         """
@@ -355,6 +372,8 @@ class MAX78000(Device):
 
         if layout is None:
             return []
+
+        # TODO: we should flash the entries
 
         for quad in range(4):
             for proc in range(16):
@@ -451,9 +470,10 @@ class MAX78000(Device):
                         # create a new message and add
                         msg = commands.new_message()
                         messages.append(msg)
-                    action, action_value, action_mask = instruction
+                    action, action_value, action_arg = instruction
                     msg.action.execute_measurement = action_value
-                    logging.debug(f"action: {action} {action_value} {action_mask}")
+                    msg.action.action_argument = action_arg
+                    logging.debug(f"action: {action} {action_value} {action_arg}")
                 else:
                     raise ValueError(f"invalid instruction: {instruction}")
             else:
@@ -521,11 +541,12 @@ class MAX78000(Device):
                 stage_bar.update(1)
         except asyncio.exceptions.CancelledError:
             raise Exception("message cancelled")
-        print("collecting metrics...")
+        logging.debug("collecting metrics...")
         collected_data = await metrics.collect()  # noqa: F841
         # collect is needed so that .as_dict works
         # metrics is done by run_onnx
-        print("got", collected_data)
+        logging.debug(f"got {collected_data}")
+        logging.debug(f"which is translated to {metrics.as_dict()}")
 
         return result  # maybe we have a readback?
 

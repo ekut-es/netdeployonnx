@@ -226,7 +226,12 @@ class PacketOrderSender:
             else:
                 raise Exception("when does this happen?")
             if sequence in self.wait_queue:
-                self.wait_queue[sequence].set_result(success)
+                try:
+                    self.wait_queue[sequence].set_result(success)
+                except asyncio.exceptions.InvalidStateError as ise:
+                    print(ise)
+                    raise ise
+
             self.current_sequence += 1
             return True
         else:
@@ -572,9 +577,17 @@ class CompatibilityAioserialReader:
 
     async def read(self, size):
         # logging.debug(f"### bfore read {self.aioserial_instance.in_waiting}")
-        ret = await self.aioserial_instance.read_async(
-            self.aioserial_instance.in_waiting
-        )
+        try:
+            ret = await self.aioserial_instance.read_async(
+                self.aioserial_instance.in_waiting
+            )
+        except serial.serialutil.SerialException as serex:
+            # maybe this is a multiple_access / disconnect?
+            if "readiness" in str(serex):
+                # phew, we can ignore (but its a device reset *blush*)
+                ...
+            else:
+                raise serex  # else we dont know
         # log every x lengths, if everything is 0, do emit
         self.consequtive_lens.append(len(ret))
         if (
@@ -753,7 +766,8 @@ def test_search_protobuf_messages(datastream, result):
         main_pb2.ProtocolMessage(
             version=2,
             action=main_pb2.Action(
-                execute_measurement=main_pb2.ActionEnum.MEASUREMENT_WITH_IPO
+                execute_measurement=main_pb2.ActionEnum.MEASUREMENT,
+                action_argument=4 << 1 + 0,  # this is PCLK + CLKDIV 1
             ),
         ),
         main_pb2.ProtocolMessage(

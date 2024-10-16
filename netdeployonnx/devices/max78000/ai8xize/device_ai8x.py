@@ -1,5 +1,6 @@
 import logging
 import math
+import re
 from collections import defaultdict
 from typing import Any
 
@@ -21,6 +22,7 @@ from netdeployonnx.devices.max78000.cnn_registers import (
 )
 from netdeployonnx.devices.max78000.core import (
     CNNx16_Processor,
+    CNNx16_Quadrant,
     CNNx16Core,
 )
 from netdeployonnx.devices.max78000.graph_transformer import (
@@ -90,25 +92,37 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             set_weights_to_core(apb.kernel_mem, core)
 
         def set_when_available(
-            core: CNNx16Core, locked_config: dict, setting_name: str
+            quadrant: CNNx16_Quadrant, locked_config: dict, setting_name: str
         ):
             if setting_name in locked_config:
-                setattr(core, setting_name, int(locked_config.get(setting_name, 0)))
+                setattr(quadrant, setting_name, int(locked_config.get(setting_name, 0)))
 
+        regaccess = re.compile(r"([\w]+)\.([\w]+)")
+        for key in locked_config:
+            if regaccess.match(key):
+                core.specialconfig[key] = locked_config.get(key)
+            if not hasattr(core[0], key):
+                logging.warning(
+                    f"Core / Quadrant does not have the option {key}"
+                    " and is not in the format 'REGISTER.FIELD'"
+                )
         # to modify sram fetch
         for quad in range(4):
-            set_when_available(core, locked_config, "lightsleep_bram")
-            set_when_available(core, locked_config, "lightsleep_tram")
-            set_when_available(core, locked_config, "lightsleep_mram")
-            set_when_available(core, locked_config, "lightsleep_dram")
-            set_when_available(core, locked_config, "memory_deep_sleep")
-            set_when_available(core, locked_config, "write_pulse_width")
-            set_when_available(core, locked_config, "write_neg_voltage_enable")
-            set_when_available(core, locked_config, "write_neg_voltage")
-            set_when_available(core, locked_config, "read_assist_voltage")
-            set_when_available(core, locked_config, "read_margin")
-            set_when_available(core, locked_config, "read_margin_enable")
-            set_when_available(core, locked_config, "extended_access_time_enable")
+            set_when_available(core[quad], locked_config, "lightsleep_bram")
+            set_when_available(core[quad], locked_config, "lightsleep_tram")
+            set_when_available(core[quad], locked_config, "lightsleep_mram")
+            set_when_available(core[quad], locked_config, "lightsleep_dram")
+            set_when_available(core[quad], locked_config, "memory_deep_sleep")
+            set_when_available(core[quad], locked_config, "write_pulse_width")
+            set_when_available(core[quad], locked_config, "write_neg_voltage_enable")
+            set_when_available(core[quad], locked_config, "write_neg_voltage")
+            set_when_available(core[quad], locked_config, "read_assist_voltage")
+            set_when_available(core[quad], locked_config, "read_margin")
+            set_when_available(core[quad], locked_config, "read_margin_enable")
+            set_when_available(core[quad], locked_config, "extended_access_time_enable")
+
+            set_when_available(core[quad], locked_config, "pool_en")
+            set_when_available(core[quad], locked_config, "maxpool_en")
 
         return core
 
@@ -299,6 +313,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         for quad in range(4):
             for proc in range(16):
                 ...
+        # TODO: we should flash the entries
+
         # ret.append(("ACTION", ActionEnum.INIT_WEIGHTS_PATTERN1, 0))
         return ret
 

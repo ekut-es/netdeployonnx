@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, conint
 
 import netdeployonnx.devices.max78000.cnn_constants as cnn_constants
 from netdeployonnx.devices.max78000.cnn_constants import (
+    CNNx16_n_CTRL_RDY_SEL_VALUEMASK,
     CNNx16_n_IFRM_IFRM_REG_VALUEMASK,
     CNNx16_n_Ly_CCNT_CCNT_MAX_VALUEMASK,
     CNNx16_n_Ly_CCNT_CCNT_PAD_VALUEMASK,
@@ -665,9 +666,27 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
     bias: bytes = b""  # TODO: check if unused and deletable
 
     # CTRL
+    # bit 20
     mexpress: bool = Field(
         default=True, json_schema_extra={"register": "CTRL", "field": "MEXPRESS"}
     )
+    # bit 5
+    pool_en: bool = Field(
+        default=False, json_schema_extra={"register": "CTRL", "field": "POOL_EN"}
+    )
+    # bit 4
+    maxpool_en: bool = Field(
+        default=False, json_schema_extra={"register": "CTRL", "field": "CALCMAX"}
+    )
+    # bit 3
+    clk_en: bool = Field(
+        default=False, json_schema_extra={"register": "CTRL", "field": "CLK_EN"}
+    )
+    # bit 2,1
+    cnn_en: conint(ge=0, le=CNNx16_n_CTRL_RDY_SEL_VALUEMASK) = Field(
+        default=3, json_schema_extra={"register": "CTRL", "field": "RDY_SEL"}
+    )
+    # bit 0
     cnn_en: bool = Field(
         default=True, json_schema_extra={"register": "CTRL", "field": "CNN_EN"}
     )
@@ -882,12 +901,14 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
 
 
 class CNNx16Core:
-    # do not forget the AON and FIFO control
+    # TODO: do not forget the AON and FIFO control
 
     def __init__(self, quadrant_count: int = 4):
         self.quadrants = {
             quadrant: CNNx16_Quadrant(quadrant) for quadrant in range(quadrant_count)
         }
+        # this config is set by model parameters that want to influence parts of the deployment process
+        self.specialconfig: dict = {}
 
     def __getitem__(self, key: Union[tuple[int, int], int]) -> CNNx16_Layer:
         if isinstance(key, int):
