@@ -581,7 +581,7 @@ class CompatibilityAioserialReader:
             ret = await self.aioserial_instance.read_async(
                 self.aioserial_instance.in_waiting
             )
-        except serial.serialutil.SerialException as serex:
+        except aioserial.serialutil.SerialException as serex:
             # maybe this is a multiple_access / disconnect?
             if "readiness" in str(serex):
                 # phew, we can ignore (but its a device reset *blush*)

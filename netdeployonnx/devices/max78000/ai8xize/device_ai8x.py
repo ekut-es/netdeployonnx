@@ -2,7 +2,6 @@ import logging
 import math
 import re
 from collections import defaultdict
-from typing import Any
 
 import networkx as nx
 import numpy as np
@@ -300,23 +299,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             input_shape,
             transformed_model,
         )
-
-    def cnn_load_weights(self, layout: Any) -> Any:
-        """
-        Dont load the weights, because we init with random patterns
-        """
-        ret = []
-
-        if layout is None:
-            return []
-
-        for quad in range(4):
-            for proc in range(16):
-                ...
-        # TODO: we should flash the entries
-
-        # ret.append(("ACTION", ActionEnum.INIT_WEIGHTS_PATTERN1, 0))
-        return ret
 
 
 def set_lregs_to_core(lregs: list[any], core: CNNx16Core):

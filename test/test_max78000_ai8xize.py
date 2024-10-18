@@ -1,6 +1,7 @@
 import asyncio
 import io
 import logging
+import struct
 from pathlib import Path
 from unittest import mock
 
@@ -24,6 +25,7 @@ from netdeployonnx.devices.max78000.core import (
     CNNx16_Processor,
     CNNx16Core,
 )
+from netdeployonnx.devices.max78000.device_transport.serialhandler import recalc_crc
 
 from .data.cifar10_layout import cifar10_layout as cifar10_layout_func
 from .test_serialhandler import (
@@ -543,6 +545,60 @@ async def test_backend_ai8xize_execute_called_cifar10():
         await dev.run_onnx(model, None)
         mock_execute.assert_awaited_once()
         instructions, metrics = mock_execute.await_args.args
+
+
+def bytes_to_array(fulldata: bytes):
+    data = []
+    blocksize = 8
+    for i in range(0, len(fulldata), blocksize):
+        data.append(fulldata[i : i + blocksize])
+
+    serialized = ",\n".join(", ".join([f"0x{b:02X}" for b in block]) for block in data)
+
+    print(f"""
+    uint8_t msg[{len(fulldata)}] = {{
+    {serialized}
+    }};
+    """)
+
+
+def msg_to_bytes(msg):
+    msg.checksum = recalc_crc(msg)
+    serdata = msg.SerializeToString()
+
+    fulldata: bytes = struct.pack("<H", (len(serdata)) * 8)
+    fulldata += serdata
+    return fulldata
+
+
+@pytest.mark.asyncio
+async def test_backend_ai8xize_run_onnx_cifar10_short():
+    dev = MAX78000_ai8xize.create_device_from_name_and_ports(
+        model_name="test_device",
+        communication_port="/dev/virtualDevice",
+        energy_port="/dev/virtualMetrics",
+    )
+    msgs = []
+
+    def handle_msg(self, msg):
+        msgs.append(msg)
+
+    data_folder = Path(__file__).parent / "data"
+    model = onnx.load(data_folder / "cifar10_short.onnx")
+    # dev.commands.dataHandler.FullDevice.handle_msg
+    with mock.patch(
+        "netdeployonnx.devices.max78000.device_transport."
+        "virtualdevices.FullDevice.handle_msg",
+        handle_msg,
+    ) as p:
+        res = await dev.run_onnx(model, None)
+        # now what?
+        # we need the write results
+
+    data = b""
+    for msg in msgs:
+        data += msg_to_bytes(msg)
+    bytes_to_array(data)
 
 
 @pytest.mark.asyncio

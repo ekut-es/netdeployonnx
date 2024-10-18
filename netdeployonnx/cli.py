@@ -61,7 +61,7 @@ def server(listen, configfile, log_level):
 )
 @click.option(
     "--experiments",
-    type=str,
+    type=bool,
     help="run experiments instead of single deploy",
     default=False,
 )

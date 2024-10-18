@@ -227,7 +227,7 @@ class Commands:
         if msg_len > 900:
             submessages = []
 
-            datasize = 800
+            datasize = 820
 
             # chunk registers into parts of 200
             chunksize = datasize // 12
@@ -274,15 +274,19 @@ class Commands:
                     for flash_subchunk in range(
                         int(len(setflash.data) / chunksize) + 1
                     ):
-                        newsetflash = main_pb2.SetFlashContent(
-                            address=setflash.address + flash_subchunk * chunksize,
+                        assert (
+                            setflash.start_flash is False
+                        ), "when splitting, we need setflash to be False"
+                        newsetflash = main_pb2.SetFlash(
+                            var=setflash.var,
+                            address_offset=setflash.address_offset
+                            + flash_subchunk * chunksize,
+                            crc=setflash.crc,
+                            start_flash=setflash.start_flash,  # we want that to be false?
                             data=setflash.data[
                                 flash_subchunk * chunksize : (flash_subchunk + 1)
                                 * chunksize
                             ],
-                            setAddr=(
-                                setflash.setAddr if flash_subchunk == 0 else False
-                            ),
                         )
                         submsg = self.new_message()
                         submsg.payload.flash.append(newsetflash)

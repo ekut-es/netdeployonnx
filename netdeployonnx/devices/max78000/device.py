@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import struct
 from collections.abc import Iterable
 from contextlib import asynccontextmanager, suppress
 from typing import Any
@@ -11,7 +12,7 @@ import netdeployonnx.devices.max78000.cnn_constants as cnn_constants
 from netdeployonnx.devices import Device, Metrics
 from netdeployonnx.devices.max78000.core import CNNx16Core
 from netdeployonnx.devices.max78000.device_transport import serialhandler
-from netdeployonnx.devices.max78000.device_transport.commands import Commands
+from netdeployonnx.devices.max78000.device_transport.commands import Commands, crc
 from netdeployonnx.devices.max78000.device_transport.protobuffers import main_pb2
 from netdeployonnx.devices.max78000.graph_synthesizer import synth_to_core_ir
 from netdeployonnx.devices.max78000.graph_transformer import transform_graph
@@ -233,6 +234,8 @@ class MAX78000(Device):
         # get communication task
         self.handle_serial_task = None
         self.handle_serial_task_closed = None
+        self.FLASH_PAGE_SIZE = 8192
+        self.BIAS_SIZE = 256
 
     def __del__(self):
         # make sure the task is cancelled
@@ -357,11 +360,35 @@ class MAX78000(Device):
         ret = []
         if layout is None:
             return []
+        need_to_flash = False  # TODO: enable me
+        need_to_direct_write = False
+        if need_to_flash:
+            # we layout our bias page
+            bias_page = b""
+            BIAS_SIZE = self.BIAS_SIZE  # noqa: N806
 
-        for quad in range(4):
-            bias_addr_name = f"CNNx16_{quad}_BIAS"
-            bias_addr = cnn_constants.memory[bias_addr_name]
-            ret.append((bias_addr, layout[quad].bias))
+            def pad_BIAS(data: bytes) -> bytes:  # noqa: N802
+                return (data + b"\0" * BIAS_SIZE)[:BIAS_SIZE]
+
+            for quad in range(4):
+                bias_addr_name = f"CNNx16_{quad}_BIAS"
+                bias_addr = cnn_constants.memory[bias_addr_name]
+                bias_page += pad_BIAS(layout[quad].bias)
+            if len(bias_page) < self.FLASH_PAGE_SIZE:
+                # pad last page
+                bias_page = bias_page + b"\0" * self.FLASH_PAGE_SIZE
+                bias_page = bias_page[: self.FLASH_PAGE_SIZE]
+            # now write the bias as flash instr
+            ret.append((main_pb2.Variable.BIAS_0, [bias_page]))
+        elif need_to_direct_write:
+            for quad in range(4):
+                bias_addr_name = f"CNNx16_{quad}_BIAS"
+                bias_addr = cnn_constants.memory[bias_addr_name]
+                ret.append((bias_addr, layout[quad].bias))
+        else:
+            # dont need to flash?
+            # leave it.
+            pass
         return ret
 
     def cnn_load_weights(self, layout: Any) -> Any:
@@ -374,14 +401,58 @@ class MAX78000(Device):
             return []
 
         # TODO: we should flash the entries
-
-        for quad in range(4):
-            for proc in range(16):
-                mram_addr = cnn_constants.memory[f"CNNx16_{quad}_P{proc}_MRAM"]
-                for kernel_addr, kernel_data in (
-                    layout[quad].processors[proc].kernels.items()
-                ):
-                    ret.append((kernel_addr + mram_addr, kernel_data))
+        # but before, check if we need to flash
+        need_to_flash = False  # TODO: enable me
+        need_to_direct_write = False
+        init_pattern = False
+        if need_to_flash:
+            weight_pages = []
+            # we layout our weight page
+            data_block = b""
+            for quad in range(4):
+                for proc in range(16):
+                    mram_addr = cnn_constants.memory[f"CNNx16_{quad}_P{proc}_MRAM"]
+                    for kernel_addr, kernel_data in (
+                        layout[quad].processors[proc].kernels.items()
+                    ):
+                        data_block += struct.pack(">I", mram_addr + kernel_addr)
+                        data_block += struct.pack(">I", len(kernel_data) // 4)
+                        assert isinstance(
+                            kernel_data, bytes
+                        ), "expected bytes for kernel_data"
+                        assert (
+                            len(kernel_data) % 4
+                        ) == 0, "assumed kernel_data is multiple of 4"
+                        data_block += kernel_data  # assuming kernel_data is bytes
+            while len(data_block) > 0:
+                weight_page = data_block[: self.FLASH_PAGE_SIZE]
+                if len(weight_page) < self.FLASH_PAGE_SIZE:
+                    # pad last page
+                    weight_page = weight_page + b"\0" * self.FLASH_PAGE_SIZE
+                    weight_page = weight_page[: self.FLASH_PAGE_SIZE]
+                data_block = data_block[self.FLASH_PAGE_SIZE :]
+                weight_pages.append(weight_page)
+            # now write the bias as flash instr
+            ret.append((main_pb2.Variable.WEIGHTS, weight_pages))
+        elif need_to_direct_write:
+            for quad in range(4):
+                for proc in range(16):
+                    mram_addr = cnn_constants.memory[f"CNNx16_{quad}_P{proc}_MRAM"]
+                    for kernel_addr, kernel_data in (
+                        layout[quad].processors[proc].kernels.items()
+                    ):
+                        ret.append((kernel_addr + mram_addr, kernel_data))
+        elif init_pattern:
+            ret.append(
+                (
+                    "ACTION",
+                    main_pb2.ActionEnum.INIT_WEIGHTS_PATTERN1,
+                    0,
+                )
+            )
+        else:
+            # we dont need to flash, so everything okay
+            pass
         return ret
 
     def cnn_load_input(self, layout: Any) -> Any:
@@ -425,7 +496,7 @@ class MAX78000(Device):
         await metrics.start()
         return metrics
 
-    def transform_instructions(
+    def transform_instructions(  # noqa: C901
         self,
         commands: Commands,
         instructions: list[tuple[any]],
@@ -441,6 +512,7 @@ class MAX78000(Device):
                 if False:
                     ...
                 elif len(instruction) == 2:
+                    # this should be a memaccessor or a register, but what about a flash?
                     instruction_dest, instruction_value = instruction
                     if isinstance(instruction_value, int):  # reg access
                         reg_addr: int = cnn_constants.registers.get(instruction_dest, 0)
@@ -453,14 +525,44 @@ class MAX78000(Device):
                                 readable=False,  # we dont care
                             )
                         )
-                    elif isinstance(instruction_value, (list, bytes)):  # mem access
-                        msg.payload.memory.append(
-                            main_pb2.SetMemoryContent(
-                                address=instruction_dest,
-                                data=instruction_value,
-                                setAddr=True,  # TODO: do we set it?
-                            )
+                    # mem access is either list or bytes
+                    elif isinstance(instruction_value, (list, bytes)):
+                        # instead of directly writing, we do flashing
+                        direct_memaccess = (
+                            instruction_dest not in main_pb2.Variable.values()
                         )
+                        if direct_memaccess:
+                            msg.payload.memory.append(
+                                main_pb2.SetMemoryContent(
+                                    address=instruction_dest,
+                                    data=instruction_value,
+                                    setAddr=True,  # TODO: do we set it?
+                                )
+                            )
+                        else:
+                            variable = instruction_dest
+                            # we do flashing, but one page at a time
+                            for page_offset, page_data in enumerate(instruction_value):
+                                assert len(page_data) == 8192  # flash page size
+                                msg.payload.flash.append(
+                                    main_pb2.SetFlash(
+                                        var=variable,
+                                        address_offset=page_offset
+                                        * self.FLASH_PAGE_SIZE,
+                                        start_flash=False,
+                                        data=page_data,
+                                    )
+                                )
+                                # flash page
+                                msg.payload.flash.append(
+                                    main_pb2.SetFlash(
+                                        var=variable,
+                                        address_offset=page_offset
+                                        * self.FLASH_PAGE_SIZE,
+                                        crc=crc(page_data),
+                                        start_flash=True,
+                                    )
+                                )
                 elif len(instruction) == 3:
                     # we may have an action instead of an instruction
                     if action_not_set:

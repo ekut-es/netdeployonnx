@@ -8,7 +8,7 @@ from netdeployonnx.common import device_pb2, device_pb2_grpc
 from netdeployonnx.config import AppConfig
 
 
-def connect(config: AppConfig, run_experiments=True):
+def connect(config: AppConfig, run_experiments=False):
     """
     Either does the experiments or deploys once a cifar10_short.onnx as a sample
     """
@@ -23,6 +23,7 @@ def connect(config: AppConfig, run_experiments=True):
             function_timeout=30,
         )
     else:
+        print("or here")
         # sample deployment
         sample_connect(config)
 

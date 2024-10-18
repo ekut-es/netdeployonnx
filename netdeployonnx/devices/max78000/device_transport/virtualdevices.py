@@ -146,6 +146,8 @@ class FullDevice(VirtualAIODevice):
     async def drain(self):
         self.work_on_data()
 
+    def handle_msg(self, msg: main_pb2.ProtocolMessage): ...
+
     def work_on_data(self):
         "basically send ACKs"
         additional_bytes = 0
@@ -157,6 +159,7 @@ class FullDevice(VirtualAIODevice):
             packet = self.collected_data[additional_bytes : additional_bytes + readlen]
         if len(packet) > 0:
             msg = main_pb2.ProtocolMessage.FromString(packet)
+            self.handle_msg(msg)
             ans_msg = main_pb2.ProtocolMessage(
                 version=2,
                 ack=main_pb2.ACK(),
