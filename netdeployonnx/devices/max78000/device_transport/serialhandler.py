@@ -573,7 +573,7 @@ class CompatibilityAioserialReader:
     def __init__(self, aioserial_instance):
         self.aioserial_instance = aioserial_instance
         self.emit_every_threshold = 10
-        self.consequtive_lens = []
+        self.consequtive_lengths = []
 
     async def read(self, size):
         # logging.debug(f"### bfore read {self.aioserial_instance.in_waiting}")
@@ -583,19 +583,20 @@ class CompatibilityAioserialReader:
             )
         except aioserial.serialutil.SerialException as serex:
             # maybe this is a multiple_access / disconnect?
+            ret = b""
             if "readiness" in str(serex):
                 # phew, we can ignore (but its a device reset *blush*)
                 ...
             else:
                 raise serex  # else we dont know
         # log every x lengths, if everything is 0, do emit
-        self.consequtive_lens.append(len(ret))
+        self.consequtive_lengths.append(len(ret))
         if (
-            sum(self.consequtive_lens) == 0
-            and (len(self.consequtive_lens)) == self.emit_every_threshold
+            sum(self.consequtive_lengths) == 0
+            and (len(self.consequtive_lengths)) == self.emit_every_threshold
         ):  # we have only 0
             logging.debug(f"### after read {len(ret)}")
-            self.consequtive_lens = []
+            self.consequtive_lengths = []
 
         return ret
 

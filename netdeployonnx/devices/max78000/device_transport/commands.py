@@ -244,7 +244,8 @@ class Commands:
             for setmemory in msg.payload.memory:
                 # print(f"0x{setmemory.address:08X} {len(setmemory.data)}")
                 chunksize = datasize
-                if len(setmemory.data) > chunksize:  # split
+                # if len(setmemory.data) > chunksize:  # split
+                if True:  # split every time
                     for memory_subchunk in range(
                         int(len(setmemory.data) / chunksize) + 1
                     ):
@@ -270,13 +271,23 @@ class Commands:
             for setflash in msg.payload.flash:
                 # print(f"0x{setflash.address:08X} {len(setflash.data)}")
                 chunksize = datasize
-                if len(setflash.data) > chunksize:
+
+                # if len(setflash.data) > chunksize:
+                if (
+                    True
+                ):  # do this every time, we dont want to have 2 submessages in one
                     for flash_subchunk in range(
                         int(len(setflash.data) / chunksize) + 1
                     ):
-                        assert (
-                            setflash.start_flash is False
-                        ), "when splitting, we need setflash to be False"
+                        if setflash.start_flash:
+                            # we need to make sure crc is set and data is empty
+                            assert (
+                                len(setflash.data) == 0
+                            ), "setflash has to be False when transmitting data"
+                        else:
+                            assert (
+                                len(setflash.data) > 0
+                            ), "this is not useful to have an empty flash transmit"
                         newsetflash = main_pb2.SetFlash(
                             var=setflash.var,
                             address_offset=setflash.address_offset
@@ -286,8 +297,13 @@ class Commands:
                             data=setflash.data[
                                 flash_subchunk * chunksize : (flash_subchunk + 1)
                                 * chunksize
-                            ],
+                            ].rstrip(b"\x00"),  # remove trailing zeros
                         )
+                        assert len(newsetflash.data) <= chunksize, "chunk too big"
+                        # if the submessage data length is 0 and start_flash is False, nothing really is going to happen
+                        # so maybe just skip it?
+                        if len(newsetflash.data) == 0 and newsetflash.start_flash == 0:
+                            continue
                         submsg = self.new_message()
                         submsg.payload.flash.append(newsetflash)
                         submessages.append(submsg)
@@ -303,6 +319,9 @@ class Commands:
                 filter(lambda x: x.WhichOneof("message_type") is not None, submessages)
             )
         else:
+            assert (
+                len(msg.payload.registers) < 99
+            ), "we need to have max 100 -> QUEUE_DECLARE(SetRegister, 100);"
             return list(
                 filter(lambda x: x.WhichOneof("message_type") is not None, [msg])
             )

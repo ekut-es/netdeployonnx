@@ -34,6 +34,19 @@ except ImportError:
             yield batch
 
 
+def str_to_bool(s: str) -> bool | None:
+    return {
+        "true": True,
+        "false": False,
+        "1": True,
+        "0": False,
+        "t": True,
+        "f": False,
+        "yes": True,
+        "no": False,
+    }.get(s.lower(), None)
+
+
 class MAX78000Metrics(Metrics):
     def __init__(self, tty_port: str):
         super().__init__()
@@ -360,7 +373,13 @@ class MAX78000(Device):
         ret = []
         if layout is None:
             return []
-        need_to_flash = False  # TODO: enable me
+        need_to_flash = True
+        if hasattr(layout, "specialconfig"):
+            # if not available, retain value
+            need_to_flash = str_to_bool(
+                layout.specialconfig.get("__reflash", str(need_to_flash))
+            )
+
         need_to_direct_write = False
         if need_to_flash:
             # we layout our bias page
@@ -401,8 +420,14 @@ class MAX78000(Device):
             return []
 
         # TODO: we should flash the entries
-        # but before, check if we need to flash
-        need_to_flash = False  # TODO: enable me
+        # but before, check if we need to flash (or check atleast the force option)
+
+        need_to_flash = True
+        if hasattr(layout, "specialconfig"):
+            # if not available, retain value
+            need_to_flash = str_to_bool(
+                layout.specialconfig.get("__reflash", str(need_to_flash))
+            )
         need_to_direct_write = False
         init_pattern = False
         if need_to_flash:
@@ -415,8 +440,8 @@ class MAX78000(Device):
                     for kernel_addr, kernel_data in (
                         layout[quad].processors[proc].kernels.items()
                     ):
-                        data_block += struct.pack(">I", mram_addr + kernel_addr)
-                        data_block += struct.pack(">I", len(kernel_data) // 4)
+                        data_block += struct.pack("<I", mram_addr + kernel_addr)
+                        data_block += struct.pack("<I", len(kernel_data) // 4)
                         assert isinstance(
                             kernel_data, bytes
                         ), "expected bytes for kernel_data"
@@ -617,9 +642,11 @@ class MAX78000(Device):
                 stage_bar.set_description(f"Stage: {stagename}")
 
                 for stagemsg in stage_messages:
-                    messages = commands.split_message(stagemsg)
-                    if stagename == "cnn_load_weights":
-                        messages = messages[:40]
+                    try:
+                        messages = commands.split_message(stagemsg)
+                    except Exception:
+                        logging.exception("could not split message correctly")
+                        messages = []
 
                     with tqdm(
                         range(0, len(messages)),

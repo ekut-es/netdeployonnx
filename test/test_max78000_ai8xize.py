@@ -597,6 +597,7 @@ async def test_backend_ai8xize_run_onnx_cifar10_short():
 
     data = b""
     for msg in msgs:
+        print(msg)
         data += msg_to_bytes(msg)
     bytes_to_array(data)
 

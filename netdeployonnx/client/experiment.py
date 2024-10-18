@@ -75,6 +75,8 @@ def experiment_sram_clockspeed(*args, **kwargs):
                     "read_margin": read_margin,
                     "read_margin_enable": 1,
                     "write_neg_voltage_enable": 1,
+                    "network_name": "cifar10_short.onnx",
+                    "__reflash": False,
                 }
             ]
             # scale by sample_points
@@ -108,6 +110,7 @@ def experiment_network_size(*args, **kwargs):
             [
                 {
                     "network_name": network,
+                    "__reflash": False,
                 }
             ]
             # scale by sample_points
@@ -153,6 +156,8 @@ def experiment_cnn_clockdividers(*args, **kwargs):
                     {
                         "GCR_pclkdiv.cnnclksel": cnnclksel,
                         "GCR.pclkdiv.cnnclkdiv": cnnclkdiv,
+                        "network_name": "cifar10_short.onnx",
+                        "__reflash": False,
                     }
                 ]
                 # scale by sample_points
@@ -191,6 +196,8 @@ def experiment_pooling(*args, **kwargs):
                     {
                         "pool_en": pooling_enable,
                         "maxpool_en": maxpooling_enable,  # calcmax
+                        "network_name": "cifar10_short.onnx",
+                        "__reflash": False,
                     }
                 ]
                 # scale by sample_points
@@ -213,12 +220,45 @@ def experiment_pooling(*args, **kwargs):
     return results
 
 
+def force_flash_cifar10_short(*args, **kwargs):
+    results = []
+    data_folder = Path(__file__).parent.parent.parent / "test" / "data"
+    networks = ["cifar10_short.onnx"]
+    # TODO: kws20.v3, cifar100, bayer2rgb, faceid
+    configs = []
+    for network in networks:
+        # repeat x times
+        configs.extend(
+            [
+                {
+                    "network_name": network,
+                }
+            ]
+        )
+    for config in tqdm(configs, desc="force flash cifar10short"):
+        network = config.get("network_name")
+        with open(data_folder / network, "rb") as fx:
+            onnx_model = onnx.load(fx)
+        del onnx_model.metadata_props[:]
+
+        # overwrite model
+        kwargs["onnx_model"] = onnx_model
+        kwargs["config"] = config
+        kwargs["__reflash"] = True
+        # copy on call
+        results.append(run_experiment(*list(args), **dict(kwargs)))
+
+    return results
+
+
 def do_experiments(*args, **kwargs):
     experiments = {
+        "force_flash_cifar10_short": force_flash_cifar10_short,
         "sram_clockspeed": experiment_sram_clockspeed,
-        "network_size": experiment_network_size,
         "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
         "experiment_pooling": experiment_pooling,
+        # "experiment_measure_per_layer":...,   # per layer (just reduce max layer?!)
+        "network_size": experiment_network_size,
     }
     data_collector = {
         "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

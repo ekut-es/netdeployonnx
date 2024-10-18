@@ -97,8 +97,11 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 setattr(quadrant, setting_name, int(locked_config.get(setting_name, 0)))
 
         regaccess = re.compile(r"([\w]+)\.([\w]+)")
+        cheeky_variables = re.compile(r"^__")
         for key in locked_config:
             if regaccess.match(key):
+                core.specialconfig[key] = locked_config.get(key)
+            if cheeky_variables.match(key):
                 core.specialconfig[key] = locked_config.get(key)
             if not hasattr(core[0], key):
                 logging.warning(
