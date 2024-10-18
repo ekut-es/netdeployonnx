@@ -100,6 +100,7 @@ def experiment_network_size(*args, **kwargs):
     results = []
     data_folder = Path(__file__).parent.parent.parent / "test" / "data"
     networks = ["cifar10_short.onnx", "cifar10.onnx"]
+    # TODO: kws20.v3, cifar100, bayer2rgb, faceid
     configs = []
     for network in networks:
         # repeat x times
