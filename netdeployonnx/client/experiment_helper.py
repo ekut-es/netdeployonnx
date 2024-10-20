@@ -27,6 +27,7 @@ def load_results(file="../../results.yaml"):
             if "metrics" not in result:
                 continue
             metrics = result["metrics"]
+            profile = result["profile"]
             kwargs = result["kwargs"]
             options = {
                 "samplepoints": kwargs.get("samplepoints", 0),
@@ -38,6 +39,7 @@ def load_results(file="../../results.yaml"):
                 "experiment": experiment["name"],
                 "date": data["date"],
                 **metrics,
+                **profile,
                 **options,
             }
             rows.append(row)
@@ -48,8 +50,7 @@ def load_results(file="../../results.yaml"):
     return df
 
 
-def get_data_overview(df, exclude_columns: list[str], quantil=0.95):
-    df_filtered = df.drop(columns=exclude_columns)
+def get_data_overview(df_filtered, quantil=0.95):
     metrics = list(df_filtered.keys())
 
     # Set up the subplots
@@ -58,8 +59,9 @@ def get_data_overview(df, exclude_columns: list[str], quantil=0.95):
 
     # Plot each metric
     for i, metric in enumerate(metrics):
+        column_data = df_filtered[metric].dropna()
         sns.histplot(
-            data=df_filtered[metric].dropna(),
+            data=column_data,
             # x=metric,
             # hue=option,
             # multiple='dodge', # ['layer', 'stack', 'fill', 'dodge']
@@ -67,13 +69,13 @@ def get_data_overview(df, exclude_columns: list[str], quantil=0.95):
             # palette='Set2'
         )
         axes[i].set_title(f"Histogram of {metric}")
-        quantile_minus = df[metric].quantile(1 - quantil)
-        quantile_plus = df[metric].quantile(quantil)
+        quantile_minus = column_data.quantile(1 - quantil)
+        quantile_plus = column_data.quantile(quantil)
 
         if i not in []:  # [0, 4, 7]:
             # Overlay the PDF
-            mean = df_filtered[metric].mean()
-            std = df_filtered[metric].std()
+            mean = column_data.mean()
+            std = column_data.std()
             xmin, xmax = axes[i].get_xlim()
             x = np.linspace(xmin, xmax, 100)
             pdf = stats.norm.pdf(x, mean, std)
@@ -94,7 +96,7 @@ def get_data_overview(df, exclude_columns: list[str], quantil=0.95):
             axes[i].set_xlim([quantile_minus, quantile_plus])
         axes[i].legend([])
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
 
     # Create a global legend
     # unique_experiments = df_filtered[option].unique()

@@ -247,6 +247,10 @@ class GRPCBackend(InferenceBackendBase):
             raise
         except ConnectionError:
             raise
+        except grpc._channel._InactiveRpcError as irpce:
+            raise Exception(
+                "Inactive RPC Server (either server down or not reachable)"
+            ) from irpce  # noqa: E501
         except Exception as ex:
             raise ex  # reraise
 

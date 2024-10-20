@@ -164,7 +164,10 @@ class RemoteDevice:
             logger.error(exc)
             for frame in traceback:
                 logger.info(frame)
-            raise exc
+            if isinstance(exc, BaseException):
+                raise exc
+            else:
+                raise Exception(f"unknown base class {exc}")
         else:
             if result.payload.datatype == Payload_Datatype.none:
                 return None
@@ -192,7 +195,7 @@ def get_netclient_from_connect(
                 grpc.secure_channel, connect, credentials=credentials
             )
         else:  # insecure
-            # warnings.warn("No auth for grpc provided") # TODO: find a better wayto warn or disable warn
+            # warnings.warn("No auth for grpc provided") # TODO: find a better wayto warn or disable warn  # noqa: E501
             create_channel_method = functools.partial(
                 grpc.insecure_channel,
                 connect,

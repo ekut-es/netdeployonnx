@@ -1,5 +1,6 @@
 import datetime
 import io
+import traceback
 from pathlib import Path
 
 import onnx
@@ -54,7 +55,10 @@ def run_experiment(*args, **kwargs):
     except Exception as ex:
         ret.update(
             {
-                "exception": str(ex),
+                "exception": {
+                    "msg": str(ex),
+                    "traceback": traceback.format_exc(),
+                }
             }
         )
     return ret
@@ -128,6 +132,10 @@ def experiment_network_size(*args, **kwargs):
         with open(data_folder / network, "rb") as fx:
             onnx_model = onnx.load(fx)
         del onnx_model.metadata_props[:]
+        for key, value in config.items():
+            onnx_model.metadata_props.append(
+                onnx.StringStringEntryProto(key=key, value=str(value))
+            )
 
         # overwrite model
         kwargs["onnx_model"] = onnx_model
@@ -239,6 +247,7 @@ def force_flash_cifar10_short(*args, **kwargs):
             [
                 {
                     "network_name": network,
+                    "__reflash": True,
                 }
             ]
         )
@@ -251,7 +260,6 @@ def force_flash_cifar10_short(*args, **kwargs):
         # overwrite model
         kwargs["onnx_model"] = onnx_model
         kwargs["config"] = config
-        kwargs["__reflash"] = True
         # copy on call
         results.append(run_experiment(*list(args), **dict(kwargs)))
 
