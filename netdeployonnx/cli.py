@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sys
+from pathlib import Path
 
 import click
 
@@ -27,8 +28,8 @@ LOG_LEVELS = {
 @click.option(
     "--listen", type=str, help="IP and port to listen on (e.g., 0.0.0.0:5000)"
 )
-@click.argument(
-    "configfile",
+@click.option(
+    "--configfile",
     type=click.Path(exists=True, dir_okay=False, writable=True),
     required=False,
 )
@@ -61,16 +62,30 @@ def server(listen, configfile, log_level):
 )
 @click.option(
     "--experiments",
-    type=bool,
+    is_flag=True,
     help="run experiments instead of single deploy",
-    default=False,
 )
-@click.argument(
-    "configfile",
+@click.option(
+    "--configfile",
     type=click.Path(exists=True, dir_okay=False, writable=True),
+    help="config file, like netdeployonnx.yaml",
     required=False,
 )
-def client(connect, configfile, experiments):
+@click.option(
+    "--no-flash",
+    is_flag=True,
+    help="allows to annotate the onnx file with metadataprop __reflash",
+)
+@click.argument(
+    "networkfile",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=Path(__file__).parent.parent / "test" / "data" / "cifar10_short.onnx",
+    required=False,
+    # help="just a .onnx file",
+)
+def client(
+    connect: str, configfile: str, experiments: bool, networkfile: Path, no_flash: bool
+):
     if configfile is None:
         configfile = DEFAULT_CONFIG_FILE
     else:
@@ -83,7 +98,9 @@ def client(connect, configfile, experiments):
         config.client.host = host
         config.client.port = port
 
-    netdeployonnx.client.connect(config, run_experiments=experiments)
+    netdeployonnx.client.connect(
+        config, networkfile, run_experiments=experiments, no_flash=no_flash
+    )
 
 
 @main.command()
