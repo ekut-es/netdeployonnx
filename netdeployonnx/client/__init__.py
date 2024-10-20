@@ -8,7 +8,9 @@ from netdeployonnx.common import device_pb2, device_pb2_grpc
 from netdeployonnx.config import AppConfig
 
 
-def connect(config: AppConfig, run_experiments=False):
+def connect(
+    config: AppConfig, networkfile: Path, run_experiments=False, no_flash: bool = False
+):
     """
     Either does the experiments or deploys once a cifar10_short.onnx as a sample
     """
@@ -23,14 +25,44 @@ def connect(config: AppConfig, run_experiments=False):
             function_timeout=30,
         )
     else:
-        print("or here")
         # sample deployment
-        sample_connect(config)
+        sample_connect(config, networkfile, no_flash=no_flash)
 
 
-def sample_connect(config: AppConfig):
+def sample_connect(config: AppConfig, networkfile: Path, no_flash: bool = False):
     with grpc.insecure_channel(f"{config.client.host}:{config.client.port}") as channel:
         stub = device_pb2_grpc.DeviceServiceStub(channel)
+
+        # load the given net
+        if networkfile.exists():
+            with open(networkfile, "rb") as fx:
+                # with open(data_folder / "ai8x_net_0.onnx", "rb") as fx:
+                data = fx.read()
+                fx.seek(0)
+                # test against onnx?
+                try:
+                    import io
+
+                    import onnx
+
+                    model = onnx.load(fx)
+                    model.metadata_props.append(
+                        onnx.StringStringEntryProto(
+                            key="__reflash",
+                            value=str(
+                                not no_flash
+                            ),  # if no_flash is true, reflash is false
+                        )
+                    )
+                    buffer = io.BytesIO()
+                    onnx.save(model, buffer)
+                    data = buffer.getvalue()  # overwrite
+                except ImportError:
+                    if no_flash:
+                        raise Exception("cannot set __reflash without onnx")
+                    pass
+        else:
+            raise Exception(f"networkfile '{networkfile}' not found")
 
         # Get device handle
         response = stub.GetDeviceHandle(
@@ -43,12 +75,6 @@ def sample_connect(config: AppConfig):
         assert device_handle.handle.startswith(
             "devhandle"
         ), "device id does not start with devhandle"
-
-        # load the cifar10 net
-        data_folder = Path(__file__).parent.parent.parent / "test" / "data"
-        with open(data_folder / "cifar10_short.onnx", "rb") as fx:
-            # with open(data_folder / "ai8x_net_0.onnx", "rb") as fx:
-            data = fx.read()
 
         # Run payload
         payload = device_pb2.RunPayloadRequest(
@@ -72,7 +98,7 @@ def sample_connect(config: AppConfig):
             if response.payload != device_pb2.Payload():
                 break
             print("waiting for callback...")
-            time.sleep(1)
+            time.sleep(0.5)  # has to be about 0.5
         if response.payload.datatype == device_pb2.Payload_Datatype.exception:
             # unpickle
             import pickle

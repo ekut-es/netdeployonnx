@@ -220,7 +220,7 @@ class DeviceService(device_pb2_grpc.DeviceServiceServicer):
                     tb = traceback.extract_tb(ex.__traceback__)
                     payload = Payload(
                         datatype=Payload_Datatype.exception,
-                        data=pickle.dumps((str(ex), [str(tb_part) for tb_part in tb])),
+                        data=pickle.dumps((ex, [str(tb_part) for tb_part in tb])),
                     )
                 finally:
                     del self.run_queue[run_id]  # we dont need that anymore
