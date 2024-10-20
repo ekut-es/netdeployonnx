@@ -139,7 +139,7 @@ class GRPCBackend(InferenceBackendBase):
         quantized_model.cpu()
         quantized_model.train(False)
 
-        dummy_input = module.example_input_array.cpu()
+        dummy_input = module.example_input_array.cpu()  # noqa: F841
         bytesio = io.BytesIO()
 
         def torch_aten_copy(g, input, *args):
@@ -162,7 +162,7 @@ class GRPCBackend(InferenceBackendBase):
         #     opset_version=11,
         # )
         try:
-            modelProto: onnx.ModelProto = to_onnx(quantized_model)
+            modelProto: onnx.ModelProto = to_onnx(quantized_model)  # noqa: N806
             bytesio.write(modelProto.SerializeToString())
         except Exception as ex:
             # exporting failed

@@ -98,7 +98,7 @@ def get_data_overview(df, exclude_columns: list[str], quantil=0.95):
 
     # Create a global legend
     # unique_experiments = df_filtered[option].unique()
-    # handles = [plt.Line2D([0], [0], color=sns.color_palette('Set2')[i], lw=4) for i in range(len(unique_experiments))]
+    # handles = [plt.Line2D([0], [0], color=sns.color_palette('Set2')[i], lw=4) for i in range(len(unique_experiments))]  # noqa: E501
     # fig.legend(
     #     handles,
     #     unique_experiments,

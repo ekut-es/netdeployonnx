@@ -101,21 +101,28 @@ def experiment_sram_clockspeed(*args, **kwargs):
 def experiment_network_size(*args, **kwargs):
     results = []
     data_folder = Path(__file__).parent.parent.parent / "test" / "data"
-    networks = ["cifar10_short.onnx", "cifar10.onnx"]
-    # TODO: kws20.v3, cifar100, bayer2rgb, faceid
+    networks = [
+        "cifar10_short.onnx",
+        "cifar10.onnx",
+        "ai85-bayer2rgb-qat8-q.pth.onnx",
+        "ai85-cifar10-qat8-q.pth.onnx",
+        "ai85-cifar100-qat8-q.pth.onnx",
+        "ai85-faceid_112-qat-q.pth.onnx",
+        "ai85-kws20_v3-qat8-q.pth.onnx",
+    ]
     configs = []
     for network in networks:
         # repeat x times
-        configs.extend(
-            [
-                {
-                    "network_name": network,
-                    "__reflash": False,
-                }
-            ]
-            # scale by sample_points
-            * kwargs.get("sample_points", 25)
-        )
+        # for i in range(kwargs.get("sample_points", 10)):
+        for i in range(10):  # 10 times is enough
+            configs.extend(
+                [
+                    {
+                        "network_name": network,
+                        "__reflash": i == 0,  # first time = reflash
+                    }
+                ]
+            )
     for config in tqdm(configs, desc="network size"):
         network = config.get("network_name")
         with open(data_folder / network, "rb") as fx:
@@ -251,13 +258,20 @@ def force_flash_cifar10_short(*args, **kwargs):
     return results
 
 
+def experiment_measure_per_layer(*args, **kwargs):
+    results = []
+    # per layer (just reduce max layer?!)
+
+    return results
+
+
 def do_experiments(*args, **kwargs):
     experiments = {
-        "force_flash_cifar10_short": force_flash_cifar10_short,
-        "sram_clockspeed": experiment_sram_clockspeed,
-        "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
-        "experiment_pooling": experiment_pooling,
-        # "experiment_measure_per_layer":...,   # per layer (just reduce max layer?!)
+        # "force_flash_cifar10_short": force_flash_cifar10_short,
+        # "sram_clockspeed": experiment_sram_clockspeed,
+        # "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
+        # "experiment_pooling": experiment_pooling,
+        # "experiment_measure_per_layer":experiment_measure_per_layer,
         "network_size": experiment_network_size,
     }
     data_collector = {
