@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 DEFAULT_CONFIG_FILE = "netdeployonnx.yaml"
 
@@ -23,7 +23,11 @@ class ClientConfig(BaseModel):
 
 
 class DeviceConfig(BaseModel):
-    name: str = Field(default="MAX78000", description="Device name")
+    name: str = Field(
+        default="MAX78000",
+        description="Device name / model",
+        validation_alias=AliasChoices("name", "model"),
+    )
     class_name: str = Field(default="DummyDevice")
     communication_port: str | None = Field(
         default="/dev/ttyACM0", description="Communication port"
