@@ -10,7 +10,6 @@ from typing import Callable
 
 import aioserial
 import google.protobuf.message
-import pytest
 from crc import Calculator, Crc32  # pip install crc
 from fastcrc import crc8  # pip install fastcrc
 from google.protobuf.internal.decoder import _DecodeVarint  # pip install protobuf
@@ -496,11 +495,12 @@ class DataHandler:
             crc_val: bytes = data[new_pos + length : new_pos + length + 1]
             assert len(crc_val) and crc(raw_msg) == crc_val[0], "crc is wrong"
             ret.ParseFromString(data_msg)
+            assert ret.version in range(10), "version is not viable"
         except google.protobuf.message.DecodeError as ex:
             logging.info("decode error")
             raise Exception() from ex
         except AssertionError as ae:
-            # logging.error("crc error")
+            # logging.error("crc error") or logging.error("version error")
             raise Exception() from ae
         return ret
 
@@ -726,165 +726,3 @@ async def handle_serial(
             await await_closing_handle_serial(data_handler, reason_to_exit, writer)
     if closed_future:
         closed_future.set_result(reason_to_exit)
-
-
-async def main(): ...
-
-
-def to_bytes(string: str) -> bytes:
-    """converts 0A 03    to b'\x0a\x03'"""
-    return bytes.fromhex(string.replace(" ", ""))
-
-
-@pytest.mark.parametrize(
-    "datastream, result",
-    [
-        (to_bytes("00 64"), []),
-        (
-            to_bytes(
-                """04 C0 55 FF FF 12 08 02 22 0E 12 0C 08 80 80 83 82 05 12 04 16 B0 FF FF 08 02 22 0C 12 0A 08 80 80 12 02 73 6B 08 02 12 07 08 C0 56 10 64 28 34 08 02 12 05 08 C1 56 10 64 08 02 12 05 08 C2 56 10 64 08 02 12 05 08 C3 56 10 64 08 02 12 05 08 C4 56 10 64 08 02 12 05 08 C5 56 10 64 08 02 12 05 08 C6 56 10 64"""  # noqa E501
-            ),
-            [
-                main_pb2.ProtocolMessage(
-                    version=2,
-                    payload=main_pb2.Payload(memory=[main_pb2.SetMemoryContent()]),
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2,
-                    keepalive=main_pb2.Keepalive(
-                        ticks=11078, next_tick=100, outqueue_size=52
-                    ),
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, keepalive=main_pb2.Keepalive(ticks=11078, next_tick=100)
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, keepalive=main_pb2.Keepalive(ticks=11078, next_tick=100)
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, keepalive=main_pb2.Keepalive(ticks=11078, next_tick=100)
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, keepalive=main_pb2.Keepalive(ticks=11078, next_tick=100)
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, keepalive=main_pb2.Keepalive(ticks=11078, next_tick=100)
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, keepalive=main_pb2.Keepalive(ticks=11078, next_tick=100)
-                ),
-            ],
-        ),
-        (
-            to_bytes(
-                """08 02 22 0E 12 0C 08 80 80 81 82 05 12 04 C0 55 FF FF 08 02 22 0E 12 0C 08 80 80 83 82 05 12 04 16 B0 FF FF 08 02 22 0C 12 0A 08 80 80 85 82 05 12 02 73 6B 08 02 12 07 08 B4 6F 10 64 28 34"""  # noqa E501
-            ),
-            [
-                main_pb2.ProtocolMessage(
-                    version=2, configuration=main_pb2.Configuration()
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, configuration=main_pb2.Configuration()
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2, configuration=main_pb2.Configuration()
-                ),
-                main_pb2.ProtocolMessage(
-                    version=2,
-                    keepalive=main_pb2.Keepalive(
-                        ticks=14260, next_tick=100, outqueue_size=52
-                    ),
-                ),
-            ],
-        ),
-    ],
-)
-def test_search_protobuf_messages(datastream, result):
-    d = DataHandler(None, None)
-    msgs, datastream = d.search_protobuf_messages(datastream)
-    assert len(msgs) == len(result), str(msgs)
-    assert msgs == result, "nope"
-
-
-@pytest.mark.parametrize(
-    "msg",
-    [
-        main_pb2.ProtocolMessage(
-            version=2,
-            action=main_pb2.Action(
-                execute_measurement=main_pb2.ActionEnum.MEASUREMENT,
-                action_argument=4 << 1 + 0,  # this is PCLK + CLKDIV 1
-            ),
-        ),
-        main_pb2.ProtocolMessage(
-            version=2,
-            action=main_pb2.Action(execute_measurement=main_pb2.ActionEnum.NONE),
-        ),
-        main_pb2.ProtocolMessage(
-            version=2,
-            keepalive=main_pb2.Keepalive(ticks=12345),
-        ),
-        main_pb2.ProtocolMessage(
-            version=2,
-            payload=main_pb2.Payload(
-                memory=[
-                    main_pb2.SetMemoryContent(
-                        address=12345,
-                        data=b"asdf" * 4,
-                        setAddr=True,
-                    )
-                ],
-            ),
-        ),
-        main_pb2.ProtocolMessage(
-            version=2,
-            payload=main_pb2.Payload(
-                memory=[
-                    main_pb2.SetMemoryContent(
-                        address=12345,
-                        data=b"asdf" * 200,  # 800 bytes
-                        setAddr=True,
-                    )
-                ],
-            ),
-        ),
-    ],
-)
-def test_crc(msg):
-    # import debugpy; debugpy.listen(4567);debugpy.wait_for_client();debugpy.breakpoint() # noqa E501
-
-    msg.checksum = recalc_crc(msg)
-
-    serdata = msg.SerializeToString()
-    print(">", ",".join([f"0x{b:02X}" for b in serdata]), len(serdata))
-    new_crc = crc(serdata)
-    print(f"CRC={new_crc:08X}")
-    # assert new_crc == 0x0000_0000 # 0xFFFF_FFFF
-
-
-@pytest.mark.parametrize(
-    "data",
-    [
-        b"\t\x08\x02\x12\x05\x08\x83\r\x10\x05\xee",
-    ],
-)
-def test_find_with_rle_and_crc8(data):
-    dh = DataHandler(None, None)
-    msgs, datastream = dh.search_protobuf_messages(data)
-    assert datastream == b""
-    assert len(msgs) == 1
-    assert msgs[0].version == 2
-    assert msgs[0].keepalive.ticks >= 0
-
-    print(msgs[0])
-
-
-@pytest.mark.skip("only generate once")
-def test_generate_table():
-    print(generate_table(lambda i: crc(bytes([i]))))
-
-
-if __name__ == "__main__":
-    import sys
-
-    pytest.main(sys.argv)
