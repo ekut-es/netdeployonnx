@@ -305,13 +305,18 @@ class MAX78000(Device):
             return []
 
         cnnclksel = 0
-        cnnclkdiv = 4
+        cnnclkdiv = 4  #  4 is 1
         if hasattr(layout, "specialconfig"):
             cnnclksel = int(layout.specialconfig.get("GCR_pclkdiv.cnnclksel", "0"), 0)
             cnnclkdiv = int(layout.specialconfig.get("GCR_pclkdiv.cnnclkdiv", "4"), 0)
             assert cnnclksel in [0, 1], "cnnclksel has to be in [0...1]"
             assert cnnclkdiv in range(7 + 1), "cnnclksel has to be in [0...7]"  # 0..7
         default_enable = [
+            # (
+            #     "CONFIG",
+            #     "execute_reset",
+            #     True,
+            # ),
             (
                 "ACTION",
                 main_pb2.ActionEnum.RUN_CNN_ENABLE,
@@ -357,6 +362,20 @@ class MAX78000(Device):
         # TODO: check if we need to start all quadrants
         # as this works, we may want to transition to
         # measurements instead of just starting a measurement
+        need_to_flash = True
+        if hasattr(layout, "specialconfig"):
+            # if not available, retain value
+            need_to_flash = str_to_bool(
+                layout.specialconfig.get("__reflash", str(need_to_flash))
+            )
+        reboot_start = [  # noqa: F841
+            (
+                "CONFIG",
+                "execute_reset",
+                True,
+            ),
+        ]
+
         default_start = [
             (
                 "ACTION",
@@ -364,7 +383,12 @@ class MAX78000(Device):
                 0,
             ),
         ]
-        return default_start
+        full_start = []
+        # check if we reflashed?
+        # if need_to_flash:
+        #     full_start.extend(reboot_start)
+        full_start.extend(default_start)
+        return full_start
 
     def cnn_load_bias(self, layout: Any) -> Any:
         """
@@ -410,7 +434,7 @@ class MAX78000(Device):
             pass
         return ret
 
-    def cnn_load_weights(self, layout: Any) -> Any:
+    def cnn_load_weights(self, layout: Any) -> Any:  # noqa: C901
         """
         Load the weights
         """
@@ -537,7 +561,7 @@ class MAX78000(Device):
                 if False:
                     ...
                 elif len(instruction) == 2:
-                    # this should be a memaccessor or a register, but what about a flash?
+                    # this should be a memaccessor or a register, but what about a flash?  # noqa: E501
                     instruction_dest, instruction_value = instruction
                     if isinstance(instruction_value, int):  # reg access
                         reg_addr: int = cnn_constants.registers.get(instruction_dest, 0)
@@ -590,17 +614,28 @@ class MAX78000(Device):
                                 )
                 elif len(instruction) == 3:
                     # we may have an action instead of an instruction
-                    if action_not_set:
-                        # use available msg
-                        action_not_set = False
-                    else:
-                        # create a new message and add
+                    MSG_TYPE, action_value, action_arg = instruction  # noqa: N806
+                    if MSG_TYPE == "ACTION":
+                        action = MSG_TYPE
+                        if action_not_set:
+                            # use available msg
+                            action_not_set = False
+                        else:
+                            # create a new message and add
+                            msg = commands.new_message()
+                            messages.append(msg)
+                        action, action_value, action_arg = instruction
+                        msg.action.execute_measurement = action_value
+                        msg.action.action_argument = action_arg
+                        logging.debug(f"action: {action} {action_value} {action_arg}")
+                    elif MSG_TYPE == "CONFIG":
+                        messages.append(msg)  # add previous message
                         msg = commands.new_message()
-                        messages.append(msg)
-                    action, action_value, action_arg = instruction
-                    msg.action.execute_measurement = action_value
-                    msg.action.action_argument = action_arg
-                    logging.debug(f"action: {action} {action_value} {action_arg}")
+                        setattr(msg.configuration, action_value, action_arg)
+                        messages.append(msg)  # add our msg
+                        msg = commands.new_message()  # create new
+                    else:
+                        raise NotImplementedError(f"unknown MSG_TYPE {MSG_TYPE}")
                 else:
                     raise ValueError(f"invalid instruction: {instruction}")
             else:

@@ -194,6 +194,14 @@ warning_flags = {
     "TX_RETRIGGER": 0x1000,
     "RX_RETRIGGER": 0x2000,
     "SET_MEMORY_WARNING_DIVIDE_BY_4": 0x4000,
+    "INTERRUPT_NMI": 0x010000,
+    "INTERRUPT_HARDFAULT": 0x020000,
+    "INTERRUPT_MEMMANAGE": 0x040000,
+    "INTERRUPT_BUSFAULT": 0x080000,
+    "INTERRUPT_USAGEFAULT": 0x100000,
+    "INTERRUPT_WUT": 0x200000,
+    "INTERRUPT_DEFAULTHANDLR": 0x400000,
+    "INTERRUPT_CNN": 0x800000,
 }
 
 inverted_warning_flags = {value: key for key, value in warning_flags.items()}
@@ -202,10 +210,11 @@ inverted_warning_flags = {value: key for key, value in warning_flags.items()}
 class PacketOrderSender:
     MAX_QUEUE_SIZE = 1
 
-    def __init__(self, data_handler: "DataHandler"):
+    def __init__(self, data_handler: "DataHandler", one_message_timeout: float = 5.0):
         self.data_handler = data_handler
         self.current_sequence = 1  # 0xFFFF_FFF0
         self.sent_sequence = self.current_sequence
+        self.one_message_timeout = one_message_timeout
         self.wait_queue = {}
         self.sequence_queue = {}
         self.sendqueue = []
@@ -266,12 +275,46 @@ class PacketOrderSender:
             ...
         # await asyncio.sleep(0.5)
 
+    def do_not_wait_for_sequence(self, sequence: int) -> bool:
+        if sequence in self.sequence_queue:
+            return self.do_not_wait_for_msg(self.sequence_queue[sequence])
+        return False
+
+    def do_not_wait_for_msg(self, msg) -> bool:
+        if msg.WhichOneof("message_type") == "configuration":
+            if msg.configuration.execute_reset:
+                self.sendqueue.insert(0, None)  # it will pop(0)
+                self.accept_acknowledge(msg.sequence, True)
+                return True  # do not wait for resets
+        return False
+
     async def wait_for_sequence(self, sequence) -> None:
+        do_resend = False
+
+        def completed_future(result):
+            fut = asyncio.Future()
+            fut.set_result(result)
+            return fut
+
         self.wait_queue[sequence] = asyncio.Future()
         logging.debug(f">>>start waiting for sequence {sequence}")
-        await self.wait_queue[sequence]
+        if self.do_not_wait_for_sequence(sequence):
+            await asyncio.sleep(0.5)  # wait half a second for a reboot
+        elif do_resend:
+            # TODO: does not work
+            while False:
+                try:
+                    result = await asyncio.wait_for(  # noqa: F841
+                        self.wait_queue[sequence], self.one_message_timeout
+                    )
+                    break
+                except TimeoutError:
+                    logging.warning(f"resending sequence {sequence}")
+                    # self.resend = True
+        else:
+            await self.wait_queue[sequence]
         logging.debug(f"<<<done  waiting for sequence {sequence}")
-        return self.wait_queue[sequence].result()
+        return self.wait_queue.get(sequence, completed_future(True)).result()
 
 
 class DataHandler:
@@ -364,7 +407,7 @@ class DataHandler:
         try:
             return await self.packet_order_sender.wait_for_sequence(last_sequence)
         except TimeoutError:
-            raise
+            raise Exception("Timeout on wait for ack packet")
 
     async def handle_sendqueue(self, writer) -> None:
         # sending
@@ -417,8 +460,10 @@ class DataHandler:
         msgs, self.datastream = self.search_protobuf_messages(self.datastream)
         self.msgs += msgs
         if len(self.msgs) > 0:
-            msg0 = str(self.msgs[0]).replace("\n", " ")
-            logging.debug(f"received {len(self.msgs)} messages: [{msg0}")
+            msgs_str = " | ".join(
+                str(msg).replace("\n", " ").replace("\r", "") for msg in self.msgs
+            )
+            logging.debug(f"received {len(self.msgs)} messages: [{msgs_str}")
             return self.msgs.pop(0)
 
     async def receive(self, message_filter=lambda msg: False, timeout=1):
