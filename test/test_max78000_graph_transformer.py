@@ -551,6 +551,10 @@ def test_fuse_batchnorm():
     assert fuse_node.output[0] == outro_node.input[0]
 
 
+def test_fuse_mul_pow_factor():
+    raise NotImplementedError()
+
+
 def test_transform_graph():
     # Test the transformer
     data_folder = Path(__file__).parent / "data"

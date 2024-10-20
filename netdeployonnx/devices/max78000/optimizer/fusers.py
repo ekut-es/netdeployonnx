@@ -2,11 +2,26 @@ from .graph import Node
 from .optimizer import NodeTransformType, Optimizer, logger
 
 
-class FuseGemmConvGenericTarget(Optimizer):
-    def __init__(self, target_optype: str, target_optype_outputcount: int = 1):
-        self.node_optypes = ["Gemm", "Conv"]
+class FuseAnyGenericTarget(Optimizer):
+    def __init__(
+        self,
+        node_optypes: list[str],
+        node_optyes_inputsizes: list[int],
+        target_optype: str,
+        target_optype_outputcount: int = 1,
+    ):
+        self.node_optypes = node_optypes
+        self.node_optyes_inputsizes = node_optyes_inputsizes
         self.target_optype = target_optype
         self.target_optype_outputcount = target_optype_outputcount
+
+    @property
+    def optyps(self) -> str:
+        return "/".join(self.node_optypes)
+
+    @property
+    def node_optyes_inputsizes_str(self) -> str:
+        return " or ".join(str(x) for x in self.node_optyes_inputsizes)
 
     def match(self, node: Node) -> bool:
         # only match if all the outputs are target_optype
@@ -18,10 +33,13 @@ class FuseGemmConvGenericTarget(Optimizer):
 
     def run_transformation(self, node: Node) -> NodeTransformType:
         """
-        Run on a Gemm layer, that is followed by a relu layer
+        Run on a a generic layer, that is followed by a other layer
         """
-        assert len(node.input) in [2, 3], "Conv/Gemm should have 2 or 3 inputs: X, W, B"
-        assert len(node.output) == 1, "Conv/Gemm should have only one output"
+        assert len(node.input) in self.node_optyes_inputsizes, (
+            f"{self.optyps} should have {self.node_optyes_inputsizes_str} inputs"
+            f", but has {len(node.input)}"
+        )
+        assert len(node.output) == 1, f"{self.optyps} should have only one output"
 
         # delete the following generic
         outputs = set()
@@ -36,6 +54,7 @@ class FuseGemmConvGenericTarget(Optimizer):
             assert len(target_node.output) == self.target_optype_outputcount, (
                 f"{self.target_optype} should have "
                 f"{self.target_optype_outputcount} output(s)"
+                f", but has {len(target_node.output)} [{target_node.output}]"
             )
             outputs |= set([target_node.output[0]])
             for attrname, attrval in target_node.attributes.items():
@@ -54,10 +73,24 @@ class FuseGemmConvGenericTarget(Optimizer):
         return NodeTransformType.MODIFY
 
 
-class FuseGemmConvGenericSource(Optimizer):
-    def __init__(self, source_optype: str):
-        self.node_optypes = ["Gemm", "Conv"]
+class FuseAnyGenericSource(Optimizer):
+    def __init__(
+        self,
+        node_optypes: list[str],
+        node_optyes_inputsizes: list[int],
+        source_optype: str,
+    ):
+        self.node_optypes = node_optypes
+        self.node_optyes_inputsizes = node_optyes_inputsizes
         self.source_optype = source_optype
+
+    @property
+    def optyps(self) -> str:
+        return "/".join(self.node_optypes)
+
+    @property
+    def node_optyes_inputsizes_str(self) -> str:
+        return " or ".join(str(x) for x in self.node_optyes_inputsizes)
 
     def match(self, node: Node) -> bool:
         # only match if all the outputs are source_optype
@@ -71,7 +104,9 @@ class FuseGemmConvGenericSource(Optimizer):
         """
         Run on a Gemm layer, that is followed by a relu layer
         """
-        assert len(node.input) in [2, 3], "Conv/Gemm should have 2 or 3 inputs: X, W, B"
+        assert (
+            len(node.input) in self.node_optyes_inputsizes
+        ), f"{self.optyps} should have {self.node_optyes_inputsizes_str} inputs:"
         assert len(node.output) == 1, "Conv/Gemm should have only one output"
 
         # delete the following generic
@@ -94,7 +129,9 @@ class FuseGemmConvGenericSource(Optimizer):
             for attrname, attrval in source_node.attributes.items():
                 newattr = f"_{self.source_optype.lower()}_{attrname}"
                 if newattr in node.attributes:
-                    raise ValueError(f"Attribute {newattr} already exists in node")
+                    raise ValueError(
+                        f"Attribute {newattr} already exists in node" f" {node.name}"
+                    )
                 node.attributes[newattr] = attrval
             source_node.deleted = True
             # we cant break, as for example GEMM have multiple inputs
@@ -111,6 +148,29 @@ class FuseGemmConvGenericSource(Optimizer):
         node.name = "/".join(node.name.split("/")[:] + ["_"] + [self.source_optype])
         assert len(node.output) == 1, f"input={node.input}"
         return NodeTransformType.MODIFY
+
+
+class FuseGemmConvGenericTarget(FuseAnyGenericTarget):
+    def __init__(
+        self,
+        target_optype: str,
+        target_optype_outputcount: int = 1,
+    ):
+        super().__init__(
+            node_optypes=["Gemm", "Conv"],
+            node_optyes_inputsizes=[2, 3],  # X, W, B
+            target_optype=target_optype,
+            target_optype_outputcount=target_optype_outputcount,
+        )
+
+
+class FuseGemmConvGenericSource(FuseAnyGenericSource):
+    def __init__(self, source_optype: str):
+        super().__init__(
+            node_optypes=["Gemm", "Conv"],
+            node_optyes_inputsizes=[2, 3],  # X, W, B
+            source_optype=source_optype,
+        )
 
 
 class FuseGemmConvRelu(FuseGemmConvGenericTarget):
@@ -148,6 +208,15 @@ class FuseConvMaxPool(FuseGemmConvGenericSource):
         super().__init__("MaxPool")
 
 
+class FuseConvAvgPool(FuseGemmConvGenericSource):
+    """
+    Fuse conv+avgpool nodes from the graph
+    """
+
+    def __init__(self):
+        super().__init__("AveragePool")
+
+
 class FuseReshape(FuseGemmConvGenericSource):
     def __init__(self):
         super().__init__("Reshape")
@@ -156,6 +225,16 @@ class FuseReshape(FuseGemmConvGenericSource):
 class FuseFlatten(FuseGemmConvGenericSource):
     def __init__(self):
         super().__init__("Flatten")
+
+
+class FuseConvFactorSqueeze(FuseGemmConvGenericTarget):
+    def __init__(self):
+        super().__init__("Factor")
+
+
+class FuseConvDiv(FuseGemmConvGenericTarget):
+    def __init__(self):
+        super().__init__("Div")
 
 
 class FuseQuantizeDequantizeLinear(Optimizer):
@@ -199,49 +278,74 @@ class FuseQuantizeDequantizeLinear(Optimizer):
         return NodeTransformType.MODIFY
 
 
-class FuseClipQuantization(Optimizer):
-    """
-    Fuse clip quantization from the graph
-    """
+class FuseClipQuantization(FuseGemmConvGenericTarget):
+    def __init__(self):
+        super().__init__("Clip")
 
-    def match(self, node: Node) -> bool:
-        return node.op_type.startswith("Clip") and any(
-            self.target(node).op_type.startswith("Clip")
+
+class FuseAddClip(FuseAnyGenericTarget):
+    def __init__(self):
+        super().__init__(
+            node_optypes=["Add"],
+            node_optyes_inputsizes=[2],  # Add has usually 2
+            target_optype="Clip",
         )
 
-    def run_transformation(self, node: Node) -> NodeTransformType:
-        logger.debug(f"running transformation on node {node.op_type} {node.name}")
-        # we are targeting the first clip
-        # so we have one output guaranteed
-        assert len(node.output) == 1
-        # and we are guaranteed to have two or three inputs
-        assert len(node.input) in [2, 3]
-        # we need to find the second clip node
-        target_nodes = self.target(node)()
-        second_clip_node = next(
-            node for node in target_nodes if node.op_type.startswith("Clip")
+
+class FusePoolClip(FuseAnyGenericTarget):
+    """not sure if this is in the best ideas (is it collision free with other rules?)"""
+
+    def __init__(self):
+        super().__init__(
+            node_optypes=["AveragePool", "MaxPool"],
+            node_optyes_inputsizes=[1],  # pool has usually 1
+            target_optype="Clip",
         )
 
-        previous_nodes = self.source(node)()
-        previous_outputs: set[str] = {
-            output for node in previous_nodes for output in node.output
-        }
-        # we need to find which is the good input, which is one of the outputs of our
-        # previous node
-        good_input = next(input for input in node.input if input in previous_outputs)
-        assert good_input, f"good_input={good_input}"
-        good_output = list(second_clip_node.output)[0]
-        assert good_output, f"good_output={good_output}"
 
-        # now we change this node
-        node.op_type = "Pass"
-        node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Pass"])
-        node.input = [good_input]
-        node.output = [good_output]
+# class FuseClipQuantization(Optimizer):
+#     """
+#     Fuse clip quantization from the graph
+#     """
 
-        # we need to destroy the second clip node
-        second_clip_node.deleted = True
-        return NodeTransformType.MODIFY
+#     def match(self, node: Node) -> bool:
+#         return node.op_type.startswith("Clip") and any(
+#             self.target(node).op_type.startswith("Clip")
+#         )
+
+#     def run_transformation(self, node: Node) -> NodeTransformType:
+#         logger.debug(f"running transformation on node {node.op_type} {node.name}")
+#         # we are targeting the first clip
+#         # so we have one output guaranteed
+#         assert len(node.output) == 1
+#         # and we are guaranteed to have two or three inputs
+#         assert len(node.input) in [2, 3]
+#         # we need to find the second clip node
+#         target_nodes = self.target(node)()
+#         second_clip_node = next(
+#             node for node in target_nodes if node.op_type.startswith("Clip")
+#         )
+
+#         previous_nodes = self.source(node)()
+#         previous_outputs: set[str] = {
+#             output for node in previous_nodes for output in node.output
+#         }
+#         # we need to find which is the good input, which is one of the outputs of our
+#         # previous node
+#         good_input = next(input for input in node.input if input in previous_outputs)
+#         assert good_input, f"good_input={good_input}"
+#         good_output = list(second_clip_node.output)[0]
+#         assert good_output, f"good_output={good_output}"
+
+#         # now we change this node
+#         node.op_type = "Pass"
+#         node.name = "/".join(node.name.split("/")[:] + ["_"] + ["Pass"])
+#         node.input = [good_input]
+#         node.output = [good_output]
+
+#         # we need to destroy the second clip node
+#         second_clip_node.deleted = True
+#         return NodeTransformType.MODIFY
 
 
 class FuseSqueeze(Optimizer):
@@ -295,6 +399,50 @@ class FuseSqueeze(Optimizer):
         node.attributes["factor"] = [factor]
         # TODO: rename outputs?
         node.input = [list(div_node.input)[0]]
+
+        return NodeTransformType.MODIFY
+
+
+class FuseMulPowFactor(Optimizer):
+    MUL = "Mul"
+    POW = "Pow"
+
+    def match(self, node: Node) -> bool:
+        return node.op_type.startswith(self.MUL) and any(
+            self.source(node).op_type.startswith(self.POW)
+        )
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        logger.debug(f"FuseMulPowFactor on node {node.op_type} {node.name}")
+        # we are targeting MUL
+        # so we have one output guaranteed
+        assert len(node.output) == 1
+        # and we are guaranteed to have two inputs
+        assert len(node.input) == 2
+        # we need to find the div node
+        source_nodes = self.source(node)()
+        assert len(source_nodes) == 2, f"len={len(source_nodes)}"  # div and pow
+        # we need to find the pow node
+        pow_node = next(
+            node for node in source_nodes if node.op_type.startswith(self.POW)
+        )
+        pow_node_output_name = pow_node.output[0]
+        assert len(pow_node_output_name) > 0
+
+        # we need to destroy the div and pow nodes
+        pow_node.deleted = True
+
+        pow_base = node.graph.get_const_value(pow_node.input[0])
+        pow_expo = node.graph.get_const_value(pow_node.input[1])
+
+        # we need to modify this node
+        node.op_type = "Factor"
+        node.name = "/".join(node.name.split("/")[:]) + "_" + "/Factor"
+        # factor wieder drinne
+        factor = pow_base**pow_expo
+        node.attributes["factor"] = [factor]
+        # TODO: rename outputs?
+        node.input = [i for i in node.input if i != pow_node_output_name]
 
         return NodeTransformType.MODIFY
 

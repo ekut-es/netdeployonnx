@@ -311,7 +311,13 @@ def _process_channels(  # noqa: C901
     Remove kernel_shape attribute from Conv node when checking for bias
     """
     # remove kernel_shape attribute from Conv node
-    probable_nodes = [node for node in model.graph.node if _input in node.input]
+    probable_nodes = [
+        node
+        for node in model.graph.node
+        if node.op_type in ["Gemm", "Conv"] and _input in node.input
+    ]
+    # check if a bias has a kernel_shape and remove it
+    # or update the kernel_shape of a weight
     for node in probable_nodes:
         if node.op_type == "Conv":  # if it is a conv node
             if _input == node.input[2]:  # if the input is the bias
@@ -323,6 +329,17 @@ def _process_channels(  # noqa: C901
                     node.attribute.pop(removal_idx)
                     # remove kernel_shape so that we can use the function and do not add
                     # the kernel shape a second time
+            elif _input == node.input[1]:
+                # if its a weight, make sure its atleast of length 2
+                with contextlib.suppress(ValueError):
+                    kernel_shape_idx = [attr.name for attr in node.attribute].index(
+                        "kernel_shape"
+                    )
+                    if len(node.attribute[kernel_shape_idx].ints) == 1:
+                        # just check the weights of the node
+                        size = node.attribute[kernel_shape_idx].ints[0]
+                        node.attribute[kernel_shape_idx].ints[:] = [size, 1]
+
     # since hannah produces different models, where the initializers are empty,
     # but the weights are in the inputs, we need to check both
     if _input in [input.name for input in model.graph.input]:

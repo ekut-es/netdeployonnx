@@ -39,32 +39,38 @@ def transform_graph_onnx(onnx_filename: str):
     new_model = onnx.helper.make_model(model.graph, producer_name="onnx-edit")
     print(f"Saving to {new_filename}")
     res = onnx.save(new_model, new_filename)
-    print(res)
+    print(f"Saving result: {res}")
 
 
 def main():
     for filename in [
-        "ai8x_net_0.onnx",
-        "ai8x_net_1.onnx",
-        "ai8x_net_2.onnx",
-        "ai8x_net_3.onnx",
-        "ai8x_net_4.onnx",
-        "ai8x_net_5.onnx",
-        "ai8x_net_6.onnx",
-        "ai8x_net_7.onnx",
-        "ai8x_net_8.onnx",
-        "ai8x_net_9.onnx",
-        "ai8x_net_0_fixed.onnx",
-        "ai8x_net_1_fixed.onnx",
-        "ai8x_net_2_fixed.onnx",
-        "ai8x_net_3_fixed.onnx",
-        "ai8x_net_4_fixed.onnx",
-        "ai8x_net_5_fixed.onnx",
-        "ai8x_net_6_fixed.onnx",
-        "ai8x_net_7_fixed.onnx",
-        "ai8x_net_8_fixed.onnx",
-        "ai8x_net_9_fixed.onnx",
-        "cifar10_short.onnx",
+        # "ai8x_net_0.onnx",
+        # "ai8x_net_1.onnx",
+        # "ai8x_net_2.onnx",
+        # "ai8x_net_3.onnx",
+        # "ai8x_net_4.onnx",
+        # "ai8x_net_5.onnx",
+        # "ai8x_net_6.onnx",
+        # "ai8x_net_7.onnx",
+        # "ai8x_net_8.onnx",
+        # "ai8x_net_9.onnx",
+        # "ai8x_net_0_fixed.onnx",
+        # "ai8x_net_1_fixed.onnx",
+        # "ai8x_net_2_fixed.onnx",
+        # "ai8x_net_3_fixed.onnx",
+        # "ai8x_net_4_fixed.onnx",
+        # "ai8x_net_5_fixed.onnx",
+        # "ai8x_net_6_fixed.onnx",
+        # "ai8x_net_7_fixed.onnx",
+        # "ai8x_net_8_fixed.onnx",
+        # "ai8x_net_9_fixed.onnx",
+        # "cifar10_short.onnx",
+        # "cifar10.onnx",
+        "ai85-bayer2rgb-qat8-q.pth.onnx",
+        "ai85-cifar10-qat8-q.pth.onnx",
+        "ai85-cifar100-qat8-q.pth.onnx",
+        "ai85-faceid_112-qat-q.pth.onnx",
+        "ai85-kws20_v3-qat8-q.pth.onnx",
     ]:
         transform_graph_onnx(filename)
 

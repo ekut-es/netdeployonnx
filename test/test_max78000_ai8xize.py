@@ -11,6 +11,7 @@ import pydantic
 import pytest
 import torch
 import torch.nn as nn
+import yaml
 
 from netdeployonnx.devices.max78000 import MAX78000Metrics
 from netdeployonnx.devices.max78000.ai8xize import (
@@ -40,6 +41,11 @@ logging.basicConfig(
     style="{",
 )
 
+
+data_folder = Path(__file__).parent / "data"
+ai8x_synth_network = (
+    Path(__file__).parent.parent / "external" / "ai8x-synthesis" / "networks"
+)
 
 c10_layers = [
     AI8XizeConfigLayer(**layer)
@@ -537,7 +543,6 @@ def estimate_isclose_tolerances(a, b):
 async def test_backend_ai8xize_execute_called_cifar10():
     dev = MAX78000_ai8xize()
 
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10.onnx")
     with mock.patch(
         "netdeployonnx.devices.max78000.device.MAX78000.execute"
@@ -583,15 +588,14 @@ async def test_backend_ai8xize_run_onnx_cifar10_short():
     def handle_msg(self, msg):
         msgs.append(msg)
 
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10_short.onnx")
     # dev.commands.dataHandler.FullDevice.handle_msg
     with mock.patch(
         "netdeployonnx.devices.max78000.device_transport."
         "virtualdevices.FullDevice.handle_msg",
         handle_msg,
-    ) as p:
-        res = await dev.run_onnx(model, None)
+    ) as p:  # noqa: F841
+        res = await dev.run_onnx(model, None)  # noqa: F841
         # now what?
         # we need the write results
 
@@ -602,11 +606,51 @@ async def test_backend_ai8xize_run_onnx_cifar10_short():
     bytes_to_array(data)
 
 
+@pytest.mark.parametrize(
+    "net_name, ignore",
+    [
+        # ("cifar10_short.onnx",False),
+        # ("cifar10.onnx",False),
+        # ("ai85-bayer2rgb-qat8-q.pth.onnx",False),
+        # ("ai85-cifar10-qat8-q.pth.onnx",False),
+        # ("ai85-cifar100-qat8-q.pth.onnx",False),
+        # ("ai85-faceid_112-qat-q.pth.onnx",False),
+        ("ai85-kws20_v3-qat8-q.pth.onnx", False),
+    ],
+)
+@pytest.mark.asyncio
+async def test_backend_ai8xize_run_onnx_multinet(net_name: str, ignore: bool):
+    dev = MAX78000_ai8xize.create_device_from_name_and_ports(
+        model_name="test_device",
+        communication_port="/dev/virtualDevice",
+        energy_port="/dev/virtualMetrics",
+    )
+    msgs = []
+
+    def handle_msg(self, msg):
+        msgs.append(msg)
+
+    model = onnx.load(data_folder / net_name)
+    # dev.commands.dataHandler.FullDevice.handle_msg
+    with mock.patch(
+        "netdeployonnx.devices.max78000.device_transport."
+        "virtualdevices.FullDevice.handle_msg",
+        handle_msg,
+    ) as p:  # noqa: F841
+        res = await dev.run_onnx(model, None)
+        if "exception" in res:
+            print(res)
+            raise res["exception"]
+        # now what?
+        # we need the write results
+
+    assert len(msgs) > 0, "maybe it did not work!?"
+
+
 @pytest.mark.asyncio
 async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout):
     dev = MAX78000_ai8xize()
 
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10.onnx")
     with mock.patch(
         "netdeployonnx.devices.max78000.device.MAX78000.compile_instructions"
@@ -661,7 +705,6 @@ async def test_backend_ai8xize_layout_hannahsamples(
 ):
     dev = MAX78000_ai8xize()
 
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / onnx_filename)
     if expected_exception:
         try:
@@ -695,7 +738,6 @@ async def test_backend_ai8xize_layout_cifar10_short(  # noqa: F811
 ):
     dev = MAX78000_ai8xize()
 
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / onnx_filename)
     if expected_exception:
         with pytest.raises(expected_exception):
@@ -715,7 +757,6 @@ async def test_backend_ai8xize_layout_cifar10_short(  # noqa: F811
 async def test_backend_ai8xize_layout(cifar10_layout):
     dev = MAX78000_ai8xize()
 
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10.onnx")
     result = await dev.layout_transform(model)
     assert result
@@ -770,7 +811,6 @@ def test_ai8xconfig_missing_attribute():
 
 @pytest.mark.asyncio
 async def test_layout_transform_load():
-    data_folder = Path(__file__).parent / "data"
     model = onnx.load(data_folder / "cifar10.onnx")
 
     max78000 = MAX78000_ai8xize()
@@ -808,8 +848,135 @@ async def test_layout_transform_simple_model():
     assert result
 
 
-def test_layout_transform_generate_config_from_model():
-    data_folder = Path(__file__).parent / "data"
+def close_proc(x, y, distance=2):
+    "if processor count x and y are smaller or equal distance"
+    different_bits = x ^ y  # xor
+    different_bits_count = bin(different_bits).count("1")
+    return different_bits_count <= distance
+
+
+@pytest.mark.parametrize(
+    "net_name, comparable_config_file,transform_refdict_entries,skip_refdict_entries",
+    [
+        # ("cifar10_short.onnx", None),# we dont have a comparable config file
+        # (
+        #     "cifar10.onnx",
+        #     "cifar10-nas.yaml",
+        #     {
+        #         "operation": (lambda x, y: y if x.lower() == y.lower() else x),
+        #     },
+        #     {
+        #         1: ["output_shift"],
+        #     },
+        # ),
+        # (
+        #     # just to compare to above
+        #     "cifar10.onnx",
+        #     c10_layers,
+        #     {
+        #         "operation": (lambda x, y: y if x.lower() == y.lower() else x),
+        #     },
+        #     {
+        #         1: ["output_shift"],
+        #     },
+        # ),
+        ("ai85-bayer2rgb-qat8-q.pth.onnx", "ai85-bayer2rgb.yaml", {}, {}),
+        # ("ai85-cifar10-qat8-q.pth.onnx", "cifar10-nas.yaml", {}, {}),
+        # ("ai85-cifar100-qat8-q.pth.onnx", "cifar100-nas.yaml", {}, {}),
+        # (
+        #     "ai85-faceid_112-qat-q.pth.onnx",
+        #     "faceid.yaml",
+        #     {
+        #         "operation": (lambda x, y: y if x.lower() == y.lower() else x),
+        #         "out_offset": (lambda x, y: y if x in [0x2000,0x1000] else x),
+        #     },
+        #     {0: ["streaming"], 1: ["streaming"]},
+        # ),
+        (
+            "ai85-kws20_v3-qat8-q.pth.onnx",
+            "kws20-v3-hwc.yaml",
+            {
+                # transform the correct yaml vals to match the generated variant
+                "kernel_size": (lambda x, y: f"{x}x{x}"),
+                "out_offset": (lambda x, y: y if x == 0x2000 else x),
+                "processors": (lambda x, y: y if close_proc(x, y) else None),
+                "output_width": (lambda x, y: y if y == 32 else None),
+                "operation": (lambda x, y: y if x.lower() == y.lower() else x),
+            },
+            {8: ["activate", "output_width"]},
+        ),
+    ],
+)
+def test_layout_transform_generate_config_from_model_generic(
+    net_name,
+    comparable_config_file: str | dict,
+    transform_refdict_entries: dict[str, callable],
+    skip_refdict_entries: dict[int, list[str]],
+):
+    model = onnx.load(data_folder / net_name)
+
+    default_values = {
+        field_name: field.default
+        for field_name, field in AI8XizeConfigLayer.model_fields.items()
+    }
+    if isinstance(comparable_config_file, str):
+        with open(ai8x_synth_network / comparable_config_file) as compconfig_fx:
+            comparable_config = yaml.safe_load(compconfig_fx)
+    else:
+        comparable_config = {
+            "layers": [
+                ly.model_dump(exclude_unset=True) for ly in comparable_config_file
+            ]
+        }
+
+    dev = MAX78000_ai8xize.create_device_from_name_and_ports(
+        model_name="test_device",
+        communication_port="/dev/virtualDevice",
+        energy_port="/dev/virtualMetrics",
+    )
+    izer_config, locked_config, input_shape, transformed_model = (
+        dev.generate_config_from_model(model)
+    )
+    layers = izer_config.get("layers", [])
+    # ground truth
+    for layeridx, ref_layerdict in enumerate(comparable_config.get("layers")):
+        if "name" in layers[layeridx]:
+            layers[layeridx].pop("name")
+
+        if layeridx in skip_refdict_entries:
+            for entry in skip_refdict_entries[layeridx]:
+                if entry in ref_layerdict:
+                    del ref_layerdict[entry]
+
+        # check for missing keys
+        assert len(set(ref_layerdict.keys()) - set(layers[layeridx].keys())) == 0, (
+            f"missing keys ({set(ref_layerdict.keys())- set(layers[layeridx].keys())})"
+            f" in Layer {layeridx}"
+        )
+
+        # check for extra keys, but ignore extra keys that are default values
+        for extra_key in set(layers[layeridx].keys()) - set(ref_layerdict.keys()):
+            # check if the extra key is a default value
+            assert (
+                layers[layeridx][extra_key] == default_values[extra_key]
+            ), f"unexpected value in Layer {layeridx} for key {extra_key}"
+            # it is a default value, so remove it from the dict
+            layers[layeridx].pop(extra_key)
+
+        ref_mod_layerdict = dict(ref_layerdict)
+        for entry, transformer in transform_refdict_entries.items():
+            if entry in ref_mod_layerdict:
+                ref_mod_layerdict[entry] = transformer(
+                    ref_mod_layerdict[entry], layers[layeridx].get(entry, None)
+                )
+
+        # check for different values
+        assert (
+            ref_mod_layerdict == layers[layeridx]
+        ), f"different values in Layer {layeridx}"
+
+
+def test_layout_transform_generate_config_from_model_cifar10():
     model = onnx.load(data_folder / "cifar10.onnx")
 
     default_values = {
@@ -818,9 +985,11 @@ def test_layout_transform_generate_config_from_model():
     }
 
     max78000 = MAX78000_ai8xize()
-    result, input_shape, transformed_model = max78000.generate_config_from_model(model)
-    assert result
-    layers = result.pop("layers")
+    izer_config, locked_config, input_shape, transformed_model = (
+        max78000.generate_config_from_model(model)
+    )
+    assert izer_config
+    layers = izer_config.pop("layers")
     for layeridx, layer in enumerate(c10_layers):
         c10_layerdict = layer.model_dump(exclude_unset=True)
         if "name" in layers[layeridx]:

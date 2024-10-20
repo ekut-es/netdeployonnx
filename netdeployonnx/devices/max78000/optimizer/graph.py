@@ -251,18 +251,26 @@ class Graph:
     def resolve_input_name(  # noqa: C901
         onnxgraph: "onnx.GraphProto", input_name: str, visited_nodes: list[str] = []
     ) -> np.ndarray:
-        def fix_shape(weights_shape):
+        def fix_shape(weights_shape, arr_size_flattened=0):
             if len(weights_shape) == 1:
                 # assume 1D weights
-                return [1, weights_shape[0], 1, 1]
+                ret = [1, weights_shape[0], 1, 1]
             elif len(weights_shape) == 2:
                 # assume 2D weights, now we should have [out_channels, in_channels]
-                return list(weights_shape) + [1, 1]
+                ret = list(weights_shape) + [1, 1]
             elif len(weights_shape) == 3:
-                return list(weights_shape) + [weights_shape[-1]]
+                # this is either [out, in, shape] + [shape]
+                # or [1, out, in, shape]
+                if np.prod(weights_shape) == arr_size_flattened:
+                    ret = [1] + list(weights_shape)
+                else:
+                    ret = list(weights_shape) + [weights_shape[-1]]
             elif len(weights_shape) == 4:
-                return weights_shape
-            return [1, 1, 1, 1]
+                ret = weights_shape
+            else:
+                ret = [1, 1, 1, 1]
+            # logging.debug(f"fixing shape from {weights_shape} to {ret}")
+            return weights_shape
 
         if input_name is None:
             return None
@@ -271,7 +279,9 @@ class Graph:
             if initializer.name == input_name:
                 arr = onnx.numpy_helper.to_array(initializer)
                 weights_shape = arr.shape
-                new_shape = fix_shape(weights_shape)
+                # why do we even need to fix the shape? i think its because of spox (hannah)
+                # see 12e0537a588a327d0d9143090a09c56716732b6a
+                new_shape = fix_shape(weights_shape, np.prod(weights_shape))
                 # should only add 1,1 and therefore not change the shape
                 return np.reshape(arr, new_shape)
         for node in onnxgraph.input:
@@ -302,7 +312,7 @@ class Graph:
                     onnxgraph, node_input[1] if len(node_input) >= 2 else None
                 )
                 assert kwargs["weights"] is not None, "weights is none"
-                assert len(kwargs["weights"].shape) == 4, (
+                assert len(kwargs["weights"].shape) in [2, 3, 4], (
                     f"Invalid weights shape {kwargs['weights'].shape} "
                     f"for node {node.name}"
                 )
@@ -343,13 +353,16 @@ class Graph:
         if name in self.initializers:
             # return the value, which should be an extracted tensor
             tensortype, dims, data = self.initializers[name]
-            if not dims:  # means scalar
+            if not dims or len(dims) == 1:  # means scalar
                 extracted = np.frombuffer(data, dtype=np.float32)
                 if len(extracted) >= 1:
                     return extracted[0]
                 raise NotImplementedError(f"get_const_value {tensortype}")
             else:
-                raise NotImplementedError(f"get_const_value {tensortype}")
+                raise NotImplementedError(
+                    f"get_const_value('{name}') has found a "
+                    "bigger dimension than expected (bigger than 1)"
+                )
         elif name in self.output_map:
             # maybe some node outputs it
             node = self.output_map[name]

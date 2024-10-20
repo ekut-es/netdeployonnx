@@ -101,13 +101,16 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         for key in locked_config:
             if regaccess.match(key):
                 core.specialconfig[key] = locked_config.get(key)
+                continue
             if cheeky_variables.match(key):
                 core.specialconfig[key] = locked_config.get(key)
+                continue
             if not hasattr(core[0], key):
                 logging.warning(
                     f"Core / Quadrant does not have the option {key}"
                     " and is not in the format 'REGISTER.FIELD'"
                 )
+                continue
         # to modify sram fetch
         for quad in range(4):
             set_when_available(core[quad], locked_config, "lightsleep_bram")
@@ -170,10 +173,16 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         for node in trf_graph.onnx().node:
             nxnode: any = nx_graph.nodes[node.name]
             op_type: dict = nxnode.get("op_type", None)
-            if op_type.startswith("Conv") or op_type.startswith("Gemm"):
+            if (
+                op_type.startswith("Conv")
+                or op_type.startswith("Gemm")
+                or op_type.startswith("None")  # average pool standalone (faceid)
+            ):
                 weights_shape = nxnode.get("weights", np.zeros(shape=[0])).shape
-                assert len(weights_shape) == 4, (
-                    f"weights shape has to be 4D," f"but is {weights_shape}"
+                is_1d = len(weights_shape) == 3  # just guessing
+                assert len(weights_shape) in [2, 3, 4], (
+                    f"weights shape has to be in 2D, 3D or 4D,"
+                    f"but is {weights_shape}"
                 )
 
                 if nxnode.get("input") is not None and input_shape is None:
@@ -188,7 +197,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 if len(layers) == 0:
                     ly.data_format = "HWC"
-                    input_channels = input_shape[0]
+                    if is_1d:  # noqa: SIM108
+                        input_channels = input_shape[1]
+                    else:
+                        input_channels = input_shape[0]
                 ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
 
                 # reduce by input channels
@@ -228,31 +240,69 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 # i dont know when to shift the processors
                 # TODO: generalize this
+                # maybe with _factor_factor
                 # processor_shift = 32 if len(layers) == 4 else 0
                 processor_shift = 0  # TODO: disabled for now
                 processor_count = min(64, processor_count)
                 processor_shift = min(64 - processor_count, processor_shift)
 
                 ly.processors = (2 ** (processor_count) - 1) << processor_shift
-                ly.operation = "conv2d" if op_type.startswith("Conv") else "MLP"
+                if op_type.startswith("Conv"):
+                    if is_1d:
+                        ly.operation = "Conv1d"  # capitalization is needed for testing, .but can be lower()  # noqa: E501
+                    else:
+                        ly.operation = "Conv2d"  # capitalization is needed for testing
+                else:
+                    ly.operation = "MLP"
                 if "Relu" in node.name:
                     ly.activate = "ReLU"
-                # if "Reshape" in node.name:
-                #     ly.flatten = True
+                if "Reshape" in node.name:
+                    ly.flatten = True
                 if "Flatten" in node.name:
                     ly.flatten = True
                 if "MaxPool" in node.name:
                     ly.max_pool = nxnode.get("_maxpool_kernel_shape", [1, 1])
-                    if isinstance(ly.max_pool, list) and len(ly.max_pool) == 2:
-                        assert ly.max_pool[0] == ly.max_pool[1]
+                    if isinstance(ly.max_pool, list) and len(ly.max_pool) in [1, 2]:
+                        if len(ly.max_pool) == 2:
+                            assert ly.max_pool[0] == ly.max_pool[1]
                         ly.max_pool = ly.max_pool[0]
                     elif isinstance(ly.max_pool, int):
+                        # ly.max_pool = ly.max_pool[0] # why not this?
                         pass
                     else:
                         raise ValueError(f"unexpected max_pool value: {ly.max_pool}")
                     ly.pool_stride = nxnode.get("_maxpool_strides", [1, 1])
-                    if isinstance(ly.pool_stride, list) and len(ly.pool_stride) == 2:
-                        assert ly.pool_stride[0] == ly.pool_stride[1]
+                    if isinstance(ly.pool_stride, list) and len(ly.pool_stride) in [
+                        1,
+                        2,
+                    ]:
+                        if len(ly.pool_stride) == 2:
+                            assert ly.pool_stride[0] == ly.pool_stride[1]
+                        ly.pool_stride = ly.pool_stride[0]
+                    elif isinstance(ly.pool_stride, int):
+                        pass
+                    else:
+                        raise ValueError(
+                            f"unexpected pool_stride value: {ly.pool_stride}"
+                        )
+                if "AveragePool" in node.name:
+                    ly.avg_pool = nxnode.get("_averagepool_kernel_shape", [1, 1])
+                    if isinstance(ly.avg_pool, list) and len(ly.avg_pool) in [1, 2]:
+                        if len(ly.avg_pool) == 2:
+                            assert ly.avg_pool[0] == ly.avg_pool[1]
+                        ly.avg_pool = ly.avg_pool[0]
+                    elif isinstance(ly.avg_pool, int):
+                        # ly.avg_pool = ly.avg_pool[0] # why not this?
+                        pass
+                    else:
+                        raise ValueError(f"unexpected avg_pool value: {ly.avg_pool}")
+                    ly.pool_stride = nxnode.get("_averagepool_strides", [1, 1])
+                    if isinstance(ly.pool_stride, list) and len(ly.pool_stride) in [
+                        1,
+                        2,
+                    ]:
+                        if len(ly.pool_stride) == 2:
+                            assert ly.pool_stride[0] == ly.pool_stride[1]
                         ly.pool_stride = ly.pool_stride[0]
                     elif isinstance(ly.pool_stride, int):
                         pass
@@ -263,7 +313,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 if op_type.startswith("Conv"):
                     # invalid to set for MLP/Gemm
-                    ly.kernel_size = "3x3" if weights_shape[-2] == 3 else "1x1"
+                    kernel_size = nxnode.get("kernel_shape", [1])
+                    # we only have square kernels for 2d
+                    ly.kernel_size = f"{kernel_size[0]}x{kernel_size[0]}"
                 layer_input_shape = weights_shape  # noqa: F841
                 # assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
                 #     f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
@@ -271,22 +323,24 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # )
 
                 pads = nxnode.get("pads", [0, 0, 0, 0])
-                assert len(pads) == 4 and all(p == pads[0] for p in pads)
+                # 2 for 1d, 4 for OIWH/OIHW
+                assert len(pads) in [2, 4] and all(p == pads[0] for p in pads)
                 ly.pad = pads[0]
 
                 _squeeze_factor = nxnode.get("_squeeze_factor", [1])
                 assert isinstance(_squeeze_factor, list) and len(_squeeze_factor) == 1
-                ly.output_shift = int(math.log2(_squeeze_factor[0])) + 2
+                # ly.output_shift = int(math.log2(_squeeze_factor[0])) + 2
 
                 layers.append(ly)
 
+        # 2024-10-20 dont shift at all
         # try to use 32 if possible
-        if layers[-1].activation in [None] and layers[-1].activate in [
-            None
-        ]:  # TODO: or 'none',
-            # do we always want 32 bit? (yes, because of --softmax)
-            layers[-1].output_width = 32
-        layers[-1].output_shift -= 1  # TODO: check if this is correct
+        # if layers[-1].activation in [None] and layers[-1].activate in [
+        #     None
+        # ]:  # TODO: or 'none',
+        #     # do we always want 32 bit? (yes, because of --softmax)
+        #     layers[-1].output_width = 32
+        # layers[-1].output_shift -= 1  # TODO: check if this is correct
 
         transformed_model = onnx.helper.make_model(
             trf_graph.onnx(),
@@ -295,7 +349,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             f"{self.__class__.__module__}.{self.__class__.__name__}",
         )
 
-        cfg = AI8XizeConfig(arch="ai85nascifarnet", dataset="CIFAR10", layers=layers)
+        cfg = AI8XizeConfig(
+            arch="unknown-arch", dataset="unknown-dataset", layers=layers
+        )
         return (
             dict(cfg.model_dump(exclude_unset=True)),
             locked_config,
