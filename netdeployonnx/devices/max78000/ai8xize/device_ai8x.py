@@ -48,6 +48,19 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:  # noqa: C901
         DEBUG = True  # noqa: N806
+        SAVE_MODELS = False
+
+        if DEBUG and SAVE_MODELS:
+            # saving model
+            import os
+            from pathlib import Path
+
+            test = Path(__file__).parent.parent.parent.parent.parent / "test"
+            n = len(os.listdir(test / "data"))
+            filname = test / "data" / f"ai8x_test_{n}_possibly_notworking.onnx"
+            with open(filname, "wb") as fx:  # noqa: ASYNC230
+                fx.write(model.SerializeToString())
+            print(f"saved as {filname}")
 
         izer_config, locked_config, input_shape, transformed_model = (
             self.generate_config_from_model(model)
@@ -73,14 +86,14 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             izer_config, transformed_model, sample_input
         )
 
-        if DEBUG:
+        if DEBUG and SAVE_MODELS:
             # saving model
             import os
             from pathlib import Path
 
             test = Path(__file__).parent.parent.parent.parent.parent / "test"
             n = len(os.listdir(test / "data"))
-            filname = test / "data" / f"ai8x_test_{n}.onnx"
+            filname = test / "data" / f"ai8x_test_{n}_working.onnx"
             with open(filname, "wb") as fx:  # noqa: ASYNC230
                 fx.write(model.SerializeToString())
             print(f"saved as {filname}")
