@@ -10,9 +10,19 @@ from tqdm import tqdm
 from netdeployonnx.client.grpc_backend import (
     ClassifierModule,
     GRPCBackend,
-    LightningModel,
     ProfilingResult,
 )
+
+class LightningModel:
+    def __init__(self, onnx_model):
+        self.onnx_model = onnx_model
+
+    def cpu(self):
+        return self
+
+    def train(self, *args):
+        return self
+
 
 # use pyproject group: experiments_analysis
 

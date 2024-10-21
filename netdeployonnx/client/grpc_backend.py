@@ -32,22 +32,11 @@ try:
     from hannah.backends.base import (
         ClassifierModule,
         InferenceBackendBase,
-        LightningModel,
         ProfilingResult,
     )
     from hannah.nas.export.onnx import to_onnx
 except ImportError:
     # thats not a good thing to do, but works for now
-    class LightningModel:
-        def __init__(self, onnx_model):
-            self.onnx_model = onnx_model
-
-        def cpu(self):
-            return self
-
-        def train(self, *args):
-            return self
-
     class ClassifierModule:
         def __init__(self, model):
             self.model = model
