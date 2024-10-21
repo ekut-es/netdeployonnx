@@ -32,6 +32,7 @@ try:
     from hannah.backends.base import (
         ClassifierModule,
         InferenceBackendBase,
+        LightningModel,
         ProfilingResult,
     )
     from hannah.nas.export.onnx import to_onnx
