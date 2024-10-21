@@ -117,6 +117,7 @@ def main():
             trained_path / "ai85-bayer2rgb-qat8-q.pth.tar",
             onnx_path,
             (1, 4, 64, 64),
+            {},
         ],
         "faceid": [
             "ai85net-faceid_112",

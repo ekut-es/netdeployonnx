@@ -46,19 +46,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             energy_port,
         )
 
-    async def layout_transform(self, model: onnx.ModelProto) -> any:
+    async def layout_transform(self, model: onnx.ModelProto) -> any:  # noqa: C901
         DEBUG = True  # noqa: N806
-        if DEBUG and False:  # noqa: SIM223
-            # saving model
-            import os
-            from pathlib import Path
 
-            test = Path(__file__).parent.parent.parent.parent.parent / "test"
-            n = len(os.listdir(test / "data"))
-            filname = test / "data" / f"ai8x_test_{n}.onnx"
-            with open(filname, "wb") as fx:  # noqa: ASYNC230
-                fx.write(model.SerializeToString())
-            print(f"saved as {filname}")
         izer_config, locked_config, input_shape, transformed_model = (
             self.generate_config_from_model(model)
         )
@@ -82,6 +72,18 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         list_of_results: list[any] = wrap_ai8ize_layout_transform(
             izer_config, transformed_model, sample_input
         )
+
+        if DEBUG:
+            # saving model
+            import os
+            from pathlib import Path
+
+            test = Path(__file__).parent.parent.parent.parent.parent / "test"
+            n = len(os.listdir(test / "data"))
+            filname = test / "data" / f"ai8x_test_{n}.onnx"
+            with open(filname, "wb") as fx:  # noqa: ASYNC230
+                fx.write(model.SerializeToString())
+            print(f"saved as {filname}")
 
         core = CNNx16Core()
 
@@ -113,6 +115,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 continue
         # to modify sram fetch
         for quad in range(4):
+            # SRAM reg
             set_when_available(core[quad], locked_config, "lightsleep_bram")
             set_when_available(core[quad], locked_config, "lightsleep_tram")
             set_when_available(core[quad], locked_config, "lightsleep_mram")
@@ -126,6 +129,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             set_when_available(core[quad], locked_config, "read_margin_enable")
             set_when_available(core[quad], locked_config, "extended_access_time_enable")
 
+            # CTRL reg
             set_when_available(core[quad], locked_config, "pool_en")
             set_when_available(core[quad], locked_config, "maxpool_en")
 
@@ -156,6 +160,15 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 else:
                     last_pass = True
         return graph
+
+    @staticmethod
+    def processor_format_helper(amount_on: int, shift: int = 0) -> int:
+        assert amount_on >= 0, "proc amount less than 0 is not possible"
+        assert shift >= 0, "proc shift less than 0 is not possible"
+        processor_count = min(64, amount_on)
+        processor_shift = min(64 - processor_count, shift)
+
+        return (2 ** (processor_count) - 1) << processor_shift
 
     def generate_config_from_model(  # noqa: C901
         self, model: onnx.ModelProto
@@ -206,7 +219,8 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # reduce by input channels
                 passes_float = input_channels / 64
                 passes = math.ceil(passes_float)
-                assert passes_float != 0, "passes is 0"
+                assert passes_float > 0, "passes_float cant be 0 or smaller"
+                assert passes > 0, "passes cant be 0 or smaller (div by 0)"
                 # multipy by output channels
                 processor_count = (
                     input_channels // passes
@@ -220,33 +234,31 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # processor_count = int(maxbit - shift)
                     processor_count = weights_shape[1]
                 input_channels = weights_shape[0]
-                logging.warning(
-                    f"proc: {processor_count}, pass:{passes}, "
-                    f"inp_chan:{input_channels}, weights:{weights_shape}"
-                )
-                # assert (
-                #     input_channels <= 1024
-                # ), f"too many input channels={input_channels}"
-                # assert (
-                #     processor_count // 64 <= 2
-                # ), f"too many processors={processor_count}"
-                # assert (
-                #     weights_shape[0] <= 1024
-                # ), f"too many output channels={weights_shape[0]}"
-
-                # if op_type.startswith("Gemm"):
-                # input_channels = weights_shape[1]
-                # processor_count = weights_shape[1]
 
                 # i dont know when to shift the processors
                 # TODO: generalize this
                 # maybe with _factor_factor
                 # processor_shift = 32 if len(layers) == 4 else 0
-                processor_shift = 0  # TODO: disabled for now
-                processor_count = min(64, processor_count)
-                processor_shift = min(64 - processor_count, processor_shift)
-
-                ly.processors = (2 ** (processor_count) - 1) << processor_shift
+                _factor_factor = nxnode.get("_factor_factor", [1])
+                _full_factor = nxnode.get("_full_factor", _factor_factor)[0]
+                _resulting_shift = int(math.log2(_full_factor))
+                if _resulting_shift < 0:
+                    # output shift is barely used if not at all
+                    # ly.output_shift = _resulting_shift
+                    ly.output_processors = self.processor_format_helper(
+                        amount_on=processor_count,
+                        shift=-_resulting_shift,
+                    )
+                ly.processors = self.processor_format_helper(
+                    amount_on=processor_count, shift=_resulting_shift
+                )
+                logging.warning(
+                    f"proc: {processor_count}, pass:{passes}, "
+                    f"inp_chan:{input_channels}, weights:{weights_shape}"
+                    f"factor:{_factor_factor}, fullfactor:{_full_factor}"
+                    "results in proc count/shift:"
+                    f"{processor_count}/{int(math.log2(_full_factor))}"
+                )
                 if op_type.startswith("Conv"):
                     if is_1d:
                         ly.operation = "Conv1d"  # capitalization is needed for testing, .but can be lower()  # noqa: E501
@@ -329,6 +341,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 _squeeze_factor = nxnode.get("_squeeze_factor", [1])
                 assert isinstance(_squeeze_factor, list) and len(_squeeze_factor) == 1
+                # the thing is: output shift is solved via processor shifting
                 # ly.output_shift = int(math.log2(_squeeze_factor[0])) + 2
 
                 layers.append(ly)

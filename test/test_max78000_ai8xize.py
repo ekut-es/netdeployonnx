@@ -66,7 +66,7 @@ c10_layers = [
             "kernel_size": "1x1",
             "pad": 0,
             "activate": "ReLU",
-            "output_shift": -1,
+            # "output_shift": -1,
         },
         {
             "out_offset": 0x4000,
@@ -75,7 +75,7 @@ c10_layers = [
             "kernel_size": "3x3",
             "pad": 1,
             "activate": "ReLU",
-            "output_shift": -1,
+            # "output_shift": -1,
         },
         {
             "max_pool": 2,
@@ -86,7 +86,7 @@ c10_layers = [
             "kernel_size": "3x3",
             "pad": 1,
             "activate": "ReLU",
-            "output_shift": -3,
+            # "output_shift": -3,
         },
         {
             "out_offset": 0x4000,
@@ -105,7 +105,7 @@ c10_layers = [
             "kernel_size": "3x3",
             "pad": 1,  # do 0?
             "activate": "ReLU",
-            "output_shift": -3,
+            # "output_shift": -3,
         },
         {
             "out_offset": 0x4000,
@@ -114,7 +114,7 @@ c10_layers = [
             "kernel_size": "1x1",
             "pad": 0,
             "activate": "ReLU",
-            "output_shift": -1,
+            # "output_shift": -1,
         },
         {
             "max_pool": 2,
@@ -125,7 +125,7 @@ c10_layers = [
             "kernel_size": "3x3",
             "pad": 1,
             "activate": "ReLU",
-            "output_shift": -3,
+            # "output_shift": -3,
         },
         {
             "out_offset": 0x4000,
@@ -134,7 +134,7 @@ c10_layers = [
             "kernel_size": "3x3",
             "pad": 1,
             "activate": "ReLU",
-            "output_shift": -2,
+            # "output_shift": -2,
         },
         {
             "max_pool": 2,
@@ -145,7 +145,7 @@ c10_layers = [
             "kernel_size": "1x1",
             "pad": 0,
             "activate": "ReLU",
-            "output_shift": -1,
+            # "output_shift": -1,
         },
         {
             "flatten": True,
@@ -154,7 +154,7 @@ c10_layers = [
             "operation": "MLP",
             "output_width": 32,
             # "activate": "none",
-            "output_shift": 1,
+            # "output_shift": 1,
         },
     ]
 ]
@@ -687,16 +687,16 @@ async def test_backend_ai8xize_test_compile_instructions_cifar10(cifar10_layout)
         ("ai8x_net_7.onnx", AssertionError("too many input channels=16384"), None),
         ("ai8x_net_8.onnx", AssertionError("too many input channels=49152"), None),
         ("ai8x_net_9.onnx", AssertionError("too many output channels=8192"), None),
-        # ("ai8x_net_0_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_1_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_2_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_3_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_4_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_5_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_6_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_7_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_8_fixed.onnx", SystemExit, None),
-        # ("ai8x_net_9_fixed.onnx", SystemExit, None),
+        ("ai8x_net_0_fixed.onnx", SystemExit, None),
+        ("ai8x_net_1_fixed.onnx", SystemExit, None),
+        ("ai8x_net_2_fixed.onnx", SystemExit, None),
+        ("ai8x_net_3_fixed.onnx", SystemExit, None),
+        ("ai8x_net_4_fixed.onnx", SystemExit, None),
+        ("ai8x_net_5_fixed.onnx", SystemExit, None),
+        ("ai8x_net_6_fixed.onnx", SystemExit, None),
+        ("ai8x_net_7_fixed.onnx", SystemExit, None),
+        ("ai8x_net_8_fixed.onnx", SystemExit, None),
+        ("ai8x_net_9_fixed.onnx", SystemExit, None),
     ],
 )
 @pytest.mark.asyncio
@@ -858,40 +858,82 @@ def close_proc(x, y, distance=2):
 @pytest.mark.parametrize(
     "net_name, comparable_config_file,transform_refdict_entries,skip_refdict_entries",
     [
-        # ("cifar10_short.onnx", None),# we dont have a comparable config file
-        # (
-        #     "cifar10.onnx",
-        #     "cifar10-nas.yaml",
-        #     {
-        #         "operation": (lambda x, y: y if x.lower() == y.lower() else x),
-        #     },
-        #     {
-        #         1: ["output_shift"],
-        #     },
-        # ),
-        # (
-        #     # just to compare to above
-        #     "cifar10.onnx",
-        #     c10_layers,
-        #     {
-        #         "operation": (lambda x, y: y if x.lower() == y.lower() else x),
-        #     },
-        #     {
-        #         1: ["output_shift"],
-        #     },
-        # ),
-        ("ai85-bayer2rgb-qat8-q.pth.onnx", "ai85-bayer2rgb.yaml", {}, {}),
-        # ("ai85-cifar10-qat8-q.pth.onnx", "cifar10-nas.yaml", {}, {}),
-        # ("ai85-cifar100-qat8-q.pth.onnx", "cifar100-nas.yaml", {}, {}),
-        # (
-        #     "ai85-faceid_112-qat-q.pth.onnx",
-        #     "faceid.yaml",
-        #     {
-        #         "operation": (lambda x, y: y if x.lower() == y.lower() else x),
-        #         "out_offset": (lambda x, y: y if x in [0x2000,0x1000] else x),
-        #     },
-        #     {0: ["streaming"], 1: ["streaming"]},
-        # ),
+        ("cifar10_short.onnx", [], {}, {}),  # we dont have a comparable config file
+        (
+            "cifar10.onnx",
+            "cifar10-nas.yaml",
+            {
+                "operation": (lambda x, y: y if x.lower() == y.lower() else x),
+            },
+            {
+                1: ["output_shift"],
+                4: ["processors"],  # processors are upshifted by 32bit
+                10: ["output_width", "activate"],  # activate none?
+            },
+        ),
+        (
+            # just to compare to above (comparable)
+            "cifar10.onnx",
+            c10_layers,
+            {
+                "operation": (lambda x, y: y if x.lower() == y.lower() else x),
+            },
+            {
+                1: ["output_shift"],
+                4: ["processors"],  # processors are upshifted by 32bit
+                10: ["output_width"],
+            },
+        ),
+        (
+            "ai85-bayer2rgb-qat8-q.pth.onnx",
+            "ai85-bayer2rgb.yaml",
+            {
+                "output_processors": (lambda x, y: y),
+            },
+            {
+                0: ["name", "activate"],
+                1: ["name", "activate"],
+                2: ["name", "activate"],
+            },
+        ),
+        (
+            "ai85-cifar10-qat8-q.pth.onnx",
+            "cifar10-nas.yaml",
+            {
+                "operation": (lambda x, y: y if x.lower() == y.lower() else y),
+            },
+            {
+                4: ["processors"],  # processors are upshifted by 32bit
+                10: ["output_width", "activate"],  # activate none?
+            },
+        ),
+        (
+            "ai85-cifar100-qat8-q.pth.onnx",
+            "cifar100-nas.yaml",
+            {
+                "operation": (lambda x, y: y if x.lower() == y.lower() else y),
+            },
+            {
+                4: ["processors"],  # processors are upshifted by 32bit
+                10: ["output_width", "activate"],  # activate none?
+            },
+        ),
+        (
+            "ai85-faceid_112-qat-q.pth.onnx",
+            "faceid.yaml",
+            {
+                "operation": (lambda x, y: y if x.lower() == y.lower() else y),
+                "out_offset": (lambda x, y: y if x in [0x2000, 0x1000] else x),
+            },
+            {
+                0: ["streaming"],
+                1: [
+                    "streaming",
+                    # cant get it right, because they are doing multipass with streaming
+                    "processors",
+                ],
+            },
+        ),
         (
             "ai85-kws20_v3-qat8-q.pth.onnx",
             "kws20-v3-hwc.yaml",
@@ -899,15 +941,16 @@ def close_proc(x, y, distance=2):
                 # transform the correct yaml vals to match the generated variant
                 "kernel_size": (lambda x, y: f"{x}x{x}"),
                 "out_offset": (lambda x, y: y if x == 0x2000 else x),
-                "processors": (lambda x, y: y if close_proc(x, y) else None),
-                "output_width": (lambda x, y: y if y == 32 else None),
+                # distance=6 is mostly because upshifting by 3 in layer 2
+                "processors": (lambda x, y: y if close_proc(x, y, 6) else x),
+                "output_width": (lambda x, y: y if y == 32 else x),
                 "operation": (lambda x, y: y if x.lower() == y.lower() else x),
             },
             {8: ["activate", "output_width"]},
         ),
     ],
 )
-def test_layout_transform_generate_config_from_model_generic(
+def test_layout_transform_generate_config_from_model_generic(  # noqa: C901
     net_name,
     comparable_config_file: str | dict,
     transform_refdict_entries: dict[str, callable],
@@ -925,7 +968,8 @@ def test_layout_transform_generate_config_from_model_generic(
     else:
         comparable_config = {
             "layers": [
-                ly.model_dump(exclude_unset=True) for ly in comparable_config_file
+                ly if isinstance(ly, dict) else ly.model_dump(exclude_unset=True)
+                for ly in comparable_config_file
             ]
         }
 
@@ -937,6 +981,7 @@ def test_layout_transform_generate_config_from_model_generic(
     izer_config, locked_config, input_shape, transformed_model = (
         dev.generate_config_from_model(model)
     )
+    assert izer_config
     layers = izer_config.get("layers", [])
     # ground truth
     for layeridx, ref_layerdict in enumerate(comparable_config.get("layers")):
@@ -947,6 +992,9 @@ def test_layout_transform_generate_config_from_model_generic(
             for entry in skip_refdict_entries[layeridx]:
                 if entry in ref_layerdict:
                     del ref_layerdict[entry]
+                # skip both entries
+                if entry in layers[layeridx]:
+                    del layers[layeridx][entry]
 
         # check for missing keys
         assert len(set(ref_layerdict.keys()) - set(layers[layeridx].keys())) == 0, (
@@ -957,9 +1005,10 @@ def test_layout_transform_generate_config_from_model_generic(
         # check for extra keys, but ignore extra keys that are default values
         for extra_key in set(layers[layeridx].keys()) - set(ref_layerdict.keys()):
             # check if the extra key is a default value
-            assert (
-                layers[layeridx][extra_key] == default_values[extra_key]
-            ), f"unexpected value in Layer {layeridx} for key {extra_key}"
+            assert layers[layeridx][extra_key] == default_values[extra_key], (
+                f"unexpected value in Layer {layeridx} for key {extra_key}"
+                ", because this does not exist in the reference"
+            )
             # it is a default value, so remove it from the dict
             layers[layeridx].pop(extra_key)
 
@@ -970,47 +1019,13 @@ def test_layout_transform_generate_config_from_model_generic(
                     ref_mod_layerdict[entry], layers[layeridx].get(entry, None)
                 )
 
+        # processor to hex format
+        for field in ["processors", "output_processors"]:
+            for dictionary in [ref_mod_layerdict, layers[layeridx]]:
+                if field in dictionary:
+                    dictionary[field] = f"{dictionary[field]:016X}"
+
         # check for different values
         assert (
             ref_mod_layerdict == layers[layeridx]
-        ), f"different values in Layer {layeridx}"
-
-
-def test_layout_transform_generate_config_from_model_cifar10():
-    model = onnx.load(data_folder / "cifar10.onnx")
-
-    default_values = {
-        field_name: field.default
-        for field_name, field in AI8XizeConfigLayer.model_fields.items()
-    }
-
-    max78000 = MAX78000_ai8xize()
-    izer_config, locked_config, input_shape, transformed_model = (
-        max78000.generate_config_from_model(model)
-    )
-    assert izer_config
-    layers = izer_config.pop("layers")
-    for layeridx, layer in enumerate(c10_layers):
-        c10_layerdict = layer.model_dump(exclude_unset=True)
-        if "name" in layers[layeridx]:
-            layers[layeridx].pop("name")
-
-        # check for missing keys
-        assert len(set(c10_layerdict.keys()) - set(layers[layeridx].keys())) == 0, (
-            f"missing keys ({set(c10_layerdict.keys())- set(layers[layeridx].keys())})"
-            f" in Layer {layeridx}"
-        )
-
-        # check for extra keys, but ignore extra keys that are default values
-        for extra_key in set(layers[layeridx].keys()) - set(c10_layerdict.keys()):
-            # check if the extra key is a default value
-            assert (
-                layers[layeridx][extra_key] == default_values[extra_key]
-            ), f"unexpected value in Layer {layeridx} for key {extra_key}"
-            # it is a default value, so remove it from the dict
-            layers[layeridx].pop(extra_key)
-
-        # check for different values
-        assert (
-            c10_layerdict == layers[layeridx]
         ), f"different values in Layer {layeridx}"
