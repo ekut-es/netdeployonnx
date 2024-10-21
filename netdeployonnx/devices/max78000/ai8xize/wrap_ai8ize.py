@@ -4,6 +4,7 @@ import json
 import logging
 import warnings
 from dataclasses import dataclass
+from typing import Any
 from unittest import mock
 
 from netdeployonnx.devices.max78000.ai8xize.apb_writer import get_custom_writer
@@ -447,3 +448,91 @@ def layout_transform(
         izer_main()
 
     return refs
+
+
+def get_layer_information(
+    current_information: dict,
+    model: onnx.ModelProto,
+    layer_count: int,
+    input_dim: tuple,
+    **kwargs,
+) -> list[dict[str, Any]]:
+    """
+    Idea: we let ai8xize do the job
+    """
+
+    raise NotImplementedError("this method is not fully functional")
+
+    vscode_settings_defaults = {
+        "PROGRAM_FILE": "path/to/program",
+        "SYMBOL_FILE": "path/to/symbol",
+        "M4_OCD_INTERFACE_FILE": "path/to/m4_ocd_interface",
+        "M4_OCD_TARGET_FILE": "path/to/m4_ocd_target",
+        "RV_OCD_INTERFACE_FILE": "path/to/rv_ocd_interface",
+        "RV_OCD_TARGET_FILE": "path/to/rv_ocd_target",
+        "C_CPP.DEFAULT.DEFINES": ["define1", "define2"],
+        "C_CPP.DEFAULT.INCLUDEPATH": ["path/to/include"],
+        "C_CPP.DEFAULT.BROWSE.PATH": ["path/to/browse"],
+        "V_ARM_GCC": "version_arm_gcc",
+        "V_XPACK_GCC": "version_xpack_gcc",
+        "OCD_PATH": "path/to/ocd",
+        "ARM_GCC_PATH": "path/to/arm_gcc",
+        "XPACK_GCC_PATH": "path/to/xpack_gcc",
+        "MAKE_PATH": "path/to/make",
+        "MSYS_PATH": "path/to/msys",
+    }
+
+    respective_layer = current_information.get("layers", []) + [None] * layer_count
+
+    vfs = prepare_vfs(
+        {
+            "arch": "unknown",
+            "dataset": "unknown",
+            "layers": [
+                respective_layer[i]
+                if respective_layer[i]
+                # else dummy layer
+                else {
+                    "name": str(i),
+                    "processors": 1,
+                    "operator": "conv2d",  # just pretend
+                }
+                for i in range(layer_count)
+            ],
+        },
+        model,
+        np.zeros(input_dim, dtype=int),
+        vscode_settings_defaults,
+    )
+
+    state = None
+
+    # init the state
+    with (
+        mock.patch("izer.commandline.get_parser", get_parser),
+        mock.patch("os.path.exists", vfs.exists),
+        mock.patch("os.path.isdir", vfs.isdir),
+        mock.patch("os.makedirs", wrap_vfs_makedirs(vfs)),
+        mock.patch("builtins.open", wrap_vfs_open(vfs)),
+        mock.patch("izer.izer.locate", custom_locate),
+        mock.patch("izer.apbaccess.apbwriter", get_custom_writer([])),
+        mock.patch("izer.assets.makefile", no_makefile),
+        mock.patch("izer.assets.from_template", no_from_template),
+        mock.patch("izer.assets.vscode", no_vscode),
+        # functional
+        # mock.patch("izer.onnxcp.get_inouts", _get_inouts),
+        mock.patch("izer.onnxcp.process_channels", _process_channels),
+        mock.patch("izer.eprint.eprint", eprint_hooked),
+        mock.patch("izer.izer.eprint", eprint_hooked),
+        mock.patch("izer.backend.max7800x.eprint", eprint_hooked),
+        mock.patch("izer.izer.locate"),
+        mock.patch("izer.izer.state") as state_hooked,
+        # patch rich away as it may interfere with our threadrunners
+        # mock.patch("izer.console.Progress", mock.MagicMock()),
+    ):
+        state_hooked.layer_name = [""] * 1000  # until overwritten
+        # init state with state variables
+        izer_main()
+        # now quickly save the state
+        state = state_hooked
+    return state

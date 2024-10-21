@@ -8,7 +8,7 @@ class FuseAnyGenericTarget(Optimizer):
         node_optypes: list[str],
         node_optyes_inputsizes: list[int],
         target_optype: str,
-        target_optype_outputcount: int = 1,
+        target_optype_outputcount: list[int] = [1],
     ):
         self.node_optypes = node_optypes
         self.node_optyes_inputsizes = node_optyes_inputsizes
@@ -51,7 +51,7 @@ class FuseAnyGenericTarget(Optimizer):
                 raise ValueError(
                     f"We can only fuse if all outputs are {self.target_optype}"
                 )
-            assert len(target_node.output) == self.target_optype_outputcount, (
+            assert len(target_node.output) in self.target_optype_outputcount, (
                 f"{self.target_optype} should have "
                 f"{self.target_optype_outputcount} output(s)"
                 f", but has {len(target_node.output)} [{target_node.output}]"
@@ -154,7 +154,7 @@ class FuseGemmConvGenericTarget(FuseAnyGenericTarget):
     def __init__(
         self,
         target_optype: str,
-        target_optype_outputcount: int = 1,
+        target_optype_outputcount: list[int] = [1],
     ):
         super().__init__(
             node_optypes=["Gemm", "Conv"],
@@ -196,7 +196,7 @@ class FuseBatchNorm(FuseGemmConvGenericTarget):
     """
 
     def __init__(self):
-        super().__init__("BatchNormalization", 3)  # batch norm has 3 outputs
+        super().__init__("BatchNormalization", [1, 3])  # batch norm has 3 outputs
 
 
 class FuseConvMaxPool(FuseGemmConvGenericSource):

@@ -48,7 +48,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:  # noqa: C901
         DEBUG = True  # noqa: N806
-        SAVE_MODELS = False
+        SAVE_MODELS = False  # noqa: N806
 
         if DEBUG and SAVE_MODELS:
             # saving model
@@ -196,7 +196,11 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
         input_channels = 1
 
         nx_graph = trf_graph.nxgraph_for_ai8x()
-        for node in trf_graph.onnx().node:
+
+        onnx_graph = trf_graph.onnx()
+        layer_information = None
+        layerlevel = -1  # so we start at 0
+        for node in onnx_graph.node:
             nxnode: any = nx_graph.nodes[node.name]
             op_type: dict = nxnode.get("op_type", None)
             if (
@@ -204,6 +208,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 or op_type.startswith("Gemm")
                 or op_type.startswith("None")  # average pool standalone (faceid)
             ):
+                layerlevel += 1
                 weights_shape = nxnode.get("weights", np.zeros(shape=[0])).shape
                 is_1d = len(weights_shape) == 3  # just guessing
                 assert len(weights_shape) in [2, 3, 4], (
@@ -215,63 +220,36 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     input_shape = list(nxnode.get("input").shape)
                     if len(input_shape) == 4:
                         input_shape = input_shape[1:]
+                        input_dim = input_shape[-2:]
                     assert (
                         len(input_shape) == 3
                     ), f"unexpected input shape: {input_shape}"
+                    layer_information = get_layer_information(
+                        model=onnx.helper.make_model(graph=onnx_graph),
+                        layer_count=len(
+                            [
+                                1
+                                for node in onnx_graph.node
+                                if (
+                                    nx_graph.nodes[node.name]
+                                    .get("op_type", "")
+                                    .startswith("Conv")
+                                    or nx_graph.nodes[node.name]
+                                    .get("op_type", "")
+                                    .startswith("Gemm")
+                                    # average pool standalone (faceid)
+                                    or nx_graph.nodes[node.name]
+                                    .get("op_type", "")
+                                    .startswith("None")
+                                )
+                            ]
+                        ),
+                        input_dim=input_shape,
+                    )
                 ly = AI8XizeConfigLayer(processors=0, out_offset=0)
                 ly.name = node.name
 
-                if len(layers) == 0:
-                    ly.data_format = "HWC"
-                    if is_1d:  # noqa: SIM108
-                        input_channels = input_shape[1]
-                    else:
-                        input_channels = input_shape[0]
-                ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
-
-                # reduce by input channels
-                passes_float = input_channels / 64
-                passes = math.ceil(passes_float)
-                assert passes_float > 0, "passes_float cant be 0 or smaller"
-                assert passes > 0, "passes cant be 0 or smaller (div by 0)"
-                # multipy by output channels
-                processor_count = (
-                    input_channels // passes
-                )  # future input_channels are output_channels / passes
-
-                if op_type.startswith("Gemm") and "Flatten" in node.name:
-                    # we need to modify the proc count
-                    # maxbit = math.log2(layers[-1].processors+1)
-                    # diff = (2**maxbit) - layers[-1].processors
-                    # shift = math.log2(diff)
-                    # processor_count = int(maxbit - shift)
-                    processor_count = weights_shape[1]
-                input_channels = weights_shape[0]
-
-                # i dont know when to shift the processors
-                # TODO: generalize this
-                # maybe with _factor_factor
-                # processor_shift = 32 if len(layers) == 4 else 0
-                _factor_factor = nxnode.get("_factor_factor", [1])
-                _full_factor = nxnode.get("_full_factor", _factor_factor)[0]
-                _resulting_shift = int(math.log2(_full_factor))
-                if _resulting_shift < 0:
-                    # output shift is barely used if not at all
-                    # ly.output_shift = _resulting_shift
-                    ly.output_processors = self.processor_format_helper(
-                        amount_on=processor_count,
-                        shift=-_resulting_shift,
-                    )
-                ly.processors = self.processor_format_helper(
-                    amount_on=processor_count, shift=_resulting_shift
-                )
-                logging.warning(
-                    f"proc: {processor_count}, pass:{passes}, "
-                    f"inp_chan:{input_channels}, weights:{weights_shape}"
-                    f"factor:{_factor_factor}, fullfactor:{_full_factor}"
-                    "results in proc count/shift:"
-                    f"{processor_count}/{int(math.log2(_full_factor))}"
-                )
+                # extract all the rest
                 if op_type.startswith("Conv"):
                     if is_1d:
                         ly.operation = "Conv1d"  # capitalization is needed for testing, .but can be lower()  # noqa: E501
@@ -356,6 +334,65 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 assert isinstance(_squeeze_factor, list) and len(_squeeze_factor) == 1
                 # the thing is: output shift is solved via processor shifting
                 # ly.output_shift = int(math.log2(_squeeze_factor[0])) + 2
+
+                # now calc inputs
+
+                input_dim = [1, 1]
+
+                if len(layers) == 0:
+                    ly.data_format = "HWC"
+                    if is_1d:  # noqa: SIM108
+                        input_channels = input_shape[1]
+                    else:
+                        input_channels = input_shape[0]
+                ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
+
+                if not op_type.lower().startswith("conv1d") and "Flatten" in node.name:
+                    # basically, if this is not conv1d and its flatten
+                    # izer.py:555 does this:
+                    # input_channels[ll] //= pooled_dim[ll][0] * pooled_dim[ll][1]
+                    # and the pooled_dim is calculated by
+                    # [(input_dim[0] + pool_stride[0] - pool[0] - pool_dilation[0] + 1) // pool_stride[0], ...]  # noqa: E501
+                    pooled_dimensions = input_dim[0] * input_dim[1]
+                    input_channels //= pooled_dimensions
+
+                # reduce by input channels
+                passes_float = input_channels / 64
+                passes = math.ceil(passes_float)
+                assert passes_float > 0, "passes_float cant be 0 or smaller"
+                assert passes > 0, "passes cant be 0 or smaller (div by 0)"
+                # multipy by output channels
+                processor_count = (
+                    input_channels // passes
+                )  # future input_channels are output_channels / passes
+
+                input_channels = weights_shape[0]
+
+                # i dont know when to shift the processors
+                # TODO: generalize this
+                # maybe with _factor_factor
+                # processor_shift = 32 if len(layers) == 4 else 0
+                _factor_factor = nxnode.get("_factor_factor", [1])
+                _full_factor = nxnode.get("_full_factor", _factor_factor)[0]
+                _resulting_shift = int(math.log2(_full_factor))
+                if _resulting_shift < 0:
+                    # output shift is barely used if not at all
+                    # ly.output_shift = _resulting_shift
+                    # ly.output_processors = self.processor_format_helper(
+                    #     amount_on=processor_count,
+                    #     shift=-_resulting_shift,
+                    # )
+                    _resulting_shift = 0  # set it to 0 for the processors
+                ly.processors = self.processor_format_helper(
+                    amount_on=processor_count, shift=_resulting_shift
+                )
+                logging.warning(
+                    f"proc: {processor_count}, pass:{passes}, "
+                    f"inp_chan:{input_channels}, weights:{weights_shape}"
+                    f"factor:{_factor_factor}, fullfactor:{_full_factor}"
+                    "results in proc count/shift:"
+                    f"{processor_count}/{int(math.log2(_full_factor))}"
+                )
 
                 layers.append(ly)
 
@@ -519,3 +556,26 @@ def set_weights_to_core(weights: list[list[list[any]]], core: CNNx16Core):
                         raise ValueError(f"unexpected address: {phys_addr:08X}")
 
                 assign_collected_weights_to_processor(collected_weights, processor)
+
+
+class LayerInformation:
+    def __init__(self, layer_count: int):
+        self.input_dim = [] * layer_count
+
+
+def get_layer_information(
+    model: onnx.ModelProto,
+    layer_count: int,
+    input_dim: tuple,
+) -> LayerInformation:
+    layerinfo = LayerInformation(layer_count)
+    # weights = [
+    #     []
+    #     for layer in range(layer_count)
+    # ]
+
+    # for layeridx in range(layer_count):
+    #     layerinfo.input_dim[layeridx] = input_dim[:-2]
+    #     assert len(layerinfo.input_dim[layeridx]) == 2, "this dim is 2, even for 1D"
+
+    return layerinfo

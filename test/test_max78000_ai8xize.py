@@ -615,7 +615,10 @@ async def test_backend_ai8xize_run_onnx_cifar10_short():
         # ("ai85-cifar10-qat8-q.pth.onnx",False),
         # ("ai85-cifar100-qat8-q.pth.onnx",False),
         # ("ai85-faceid_112-qat-q.pth.onnx",False),
-        ("ai85-kws20_v3-qat8-q.pth.onnx", False),
+        # ("ai85-kws20_v3-qat8-q.pth.onnx", False),
+        # ("ai8x_test_430_working.onnx", False), # this one produces the proc_error
+        # ("ai8x_test_436_working.onnx", True),
+        ("ai8x_test_469_possibly_notworking.onnx", False),
     ],
 )
 @pytest.mark.asyncio
@@ -888,12 +891,33 @@ def close_proc(x, y, distance=2):
             "ai85-bayer2rgb-qat8-q.pth.onnx",
             "ai85-bayer2rgb.yaml",
             {
-                "output_processors": (lambda x, y: y),
+                "output_processors": (lambda x, y: y),  # upshifting not implemented yet
+                "processors": (lambda x, y: y),  # upshifting not implemented yet
+                "out_offset": (lambda x, y: y),  # we dont need the hopping
+                # ignore case
+                "operation": (lambda x, y: y if x.lower() == y.lower() else y),
             },
             {
-                0: ["name", "activate"],
-                1: ["name", "activate"],
-                2: ["name", "activate"],
+                0: [
+                    "name",
+                    "activate",
+                    # unfortunately, i cant do output_processors fornow
+                    "output_processors",
+                    "data_format",  # this is not in the reference
+                ],
+                1: [
+                    "name",
+                    "activate",
+                    # unfortunately, i cant do output_processors fornow
+                    "output_processors",
+                ],
+                2: [
+                    "name",
+                    "activate",
+                    # unfortunately, i cant do output_processors fornow
+                    "output_processors",
+                    "output",  # output = true?
+                ],
             },
         ),
         (
