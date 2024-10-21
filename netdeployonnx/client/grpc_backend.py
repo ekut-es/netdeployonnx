@@ -81,8 +81,13 @@ class GRPCBackend(InferenceBackendBase):
         self.device_filter: list[dict] = kwargs.pop(
             "device_filter", [{"model": "EVKit_V1"}]
         )
+        # make sure each is a dict
+        self.device_filter = [dict(f) for f in self.device_filter]
+
         self.keepalive_timeout: float = kwargs.pop("keepalive_timeout", 4)
         self.function_timeout: float = kwargs.pop("function_timeout", 4)
+
+        self.should_reraise: bool = kwargs.pop("should_reraise", False)
 
         self._client = None
         self.modelbytes = None
@@ -191,6 +196,7 @@ class GRPCBackend(InferenceBackendBase):
             self.client_connect,
             self.auth,
             keepalive_timeout=self.keepalive_timeout,
+            should_reraise=self.should_reraise,
         ) as client:
             async with client.connect(filters=self.device_filter) as device:
                 input_bytes: bytes = b""
