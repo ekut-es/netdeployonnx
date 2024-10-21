@@ -188,7 +188,11 @@ class RemoteDevice:
             elif result.payload.datatype == Payload_Datatype.dict:
                 return pickle.loads(result.payload.data)
             raise ValueError(f"Unknown datatype: {result.payload.datatype}")
-        raise ValueError("Unknown error")
+        return {
+            "result":[],
+            "metrics":[],
+            "deployment_execution_times":{},
+        }
 
 
 def get_netclient_from_connect(
