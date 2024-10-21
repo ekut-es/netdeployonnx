@@ -58,9 +58,15 @@ def check_transform_filter(filter_obj: dict | DeviceInfo) -> DeviceInfo:
 
 
 class NetClient:
-    def __init__(self, client: DeviceService, channel: "grpc.Channel"):
+    def __init__(
+        self,
+        client: DeviceService,
+        channel: "grpc.Channel",
+        should_reraise: bool = False,
+    ):
         self.client = client
         self.channel = channel
+        self.should_reraise = should_reraise
 
     @asynccontextmanager
     async def connect(self, model: str = None, **kwargs):
@@ -88,7 +94,9 @@ class NetClient:
                 f"Possible devices: [{device_list}]"
             )
 
-        yield RemoteDevice(client=self.client, handle=handle)
+        yield RemoteDevice(
+            client=self.client, handle=handle, should_reraise=self.should_reraise
+        )
 
         # free handle
         self.client.FreeDeviceHandle(
@@ -111,9 +119,12 @@ class NetClient:
 
 
 class RemoteDevice:
-    def __init__(self, client: DeviceService, handle: str):
+    def __init__(
+        self, client: DeviceService, handle: str, should_reraise: bool = False
+    ):
         self.client = client
         self.handle = handle
+        self.should_reraise = should_reraise
 
     async def deploy(  # noqa: C901
         self,
@@ -164,10 +175,11 @@ class RemoteDevice:
             logger.error(exc)
             for frame in traceback:
                 logger.info(frame)
-            if isinstance(exc, BaseException):
-                raise exc
-            else:
-                raise Exception(f"unknown base class {exc}")
+            if self.should_reraise:
+                if isinstance(exc, BaseException):
+                    raise exc
+                else:
+                    raise Exception(f"unknown base class {exc}")
         else:
             if result.payload.datatype == Payload_Datatype.none:
                 return None
@@ -180,7 +192,10 @@ class RemoteDevice:
 
 
 def get_netclient_from_connect(
-    connect: str, auth: Union[bytes, None], keepalive_timeout: float = 4
+    connect: str,
+    auth: Union[bytes, None],
+    keepalive_timeout: float = 4,
+    should_reraise: bool = False,
 ) -> NetClient:
     """
     Get a NetClient object from a connect string and password
@@ -210,7 +225,7 @@ def get_netclient_from_connect(
                 ],
             )
             stub = DeviceServiceStub(channel)
-            return NetClient(stub, channel)
+            return NetClient(stub, channel, should_reraise=should_reraise)
         except:
             import traceback
 
