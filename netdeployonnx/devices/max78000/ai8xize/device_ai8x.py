@@ -351,6 +351,18 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 input_dim = [1, 1]  # TODO: fix this input dim to be correct
 
                 if len(layers) == 0:
+                    input_size = np.prod(input_shape)
+                    logging.debug(f"input size is {input_shape} => {input_size}")
+                    while (
+                        input_size + PING_PONG_VALUE
+                    ) >= DEVICE_MEMORY_INSTANCE_SIZE and PING_PONG_VALUE > 0:
+                        PING_PONG_VALUE //= 2  # try what there is to save?
+
+                        # if we cannot enable PINGPONG we must be > 16k
+                        # and that times 4 with HWC / big => 4*16k =>65k which does not
+                        #  fit on device memory
+                    # else:
+                    #    ly.data_format = "HWC"
                     ly.data_format = "HWC"
                     if is_1d:  # noqa: SIM108
                         relevant_channels = input_shape[1]
