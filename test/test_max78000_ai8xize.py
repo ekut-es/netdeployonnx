@@ -617,8 +617,11 @@ async def test_backend_ai8xize_run_onnx_cifar10_short():
         # ("ai85-faceid_112-qat-q.pth.onnx",False),
         # ("ai85-kws20_v3-qat8-q.pth.onnx", False),
         # ("ai8x_test_430_working.onnx", False), # this one produces the proc_error
-        # ("ai8x_test_436_working.onnx", True),
-        ("ai8x_test_469_possibly_notworking.onnx", False),
+        ("ai8x_test_436_working.onnx", True),
+        ("ai8x_test_442_working.onnx", True),
+        ("ai8x_test_455_working.onnx", True),
+        ("ai8x_test_459_working.onnx", True),
+        # ("ai8x_test_469_possibly_notworking.onnx", False),
     ],
 )
 @pytest.mark.asyncio

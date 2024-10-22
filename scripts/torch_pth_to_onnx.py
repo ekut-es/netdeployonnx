@@ -119,7 +119,7 @@ def main():
             (1, 4, 64, 64),
             {},
         ],
-        "faceid": [
+        "faceid112": [
             "ai85net-faceid_112",
             "AI85FaceIDNet_112",
             trained_path / "ai85-faceid_112-qat-q.pth.tar",
@@ -139,6 +139,14 @@ def main():
                 "depthwise_bias": True,
                 "reduced_depthwise_bias": True,
             },
+        ],
+        "faceid": [
+            "ai85net-faceid",
+            "AI85FaceIDNet",
+            trained_path / "ai85-facedet-tinierssd-qat8-q.pth.tar",
+            onnx_path,
+            (1, 3, 160, 120),
+            {},
         ],
     }
 
