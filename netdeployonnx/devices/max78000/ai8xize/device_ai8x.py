@@ -202,17 +202,24 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
     ) -> tuple[dict, dict, list[int], onnx.ModelProto]:
         # the cfg is expected in the order of the nodes in the onnx model
         INSTANCE_WIDTH = 0x800  # noqa: N806 , F841    tc.dev.INSTANCE_WIDTH
+        DEVICE_MEMORY_INSTANCE_SIZE = (
+            INSTANCE_WIDTH * 16
+        )  # atleast for ai85 (tc.dev.INSTANCE_WIDTH*16)  # noqa: E501, N806
+        PING_PONG_VALUE = DEVICE_MEMORY_INSTANCE_SIZE // 2  # noqa: N806
+
         locked_config = {item.key: item.value for item in model.metadata_props}
         layers: list[AI8XizeConfigLayer] = []
         input_shape: list[int] = None
         trf_graph = self.transform_graph(model.graph)
 
-        input_channels = 1
+        relevant_channels = 1
 
         nx_graph = trf_graph.nxgraph_for_ai8x()
 
         onnx_graph = trf_graph.onnx()
-        layer_information = None
+        layer_information = get_layer_information(
+            model=onnx.helper.make_model(graph=onnx_graph),
+        )
         layerlevel = -1  # so we start at 0
         for node in onnx_graph.node:
             nxnode: any = nx_graph.nodes[node.name]
@@ -238,28 +245,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     assert (
                         len(input_shape) == 3
                     ), f"unexpected input shape: {input_shape}"
-                    layer_information = get_layer_information(
-                        model=onnx.helper.make_model(graph=onnx_graph),
-                        layer_count=len(
-                            [
-                                1
-                                for node in onnx_graph.node
-                                if (
-                                    nx_graph.nodes[node.name]
-                                    .get("op_type", "")
-                                    .startswith("Conv")
-                                    or nx_graph.nodes[node.name]
-                                    .get("op_type", "")
-                                    .startswith("Gemm")
-                                    # average pool standalone (faceid)
-                                    or nx_graph.nodes[node.name]
-                                    .get("op_type", "")
-                                    .startswith("None")
-                                )
-                            ]
-                        ),
-                        input_dim=input_shape,
-                    )
+
                 ly = AI8XizeConfigLayer(processors=0, out_offset=0)
                 ly.name = node.name
 
@@ -367,10 +353,10 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 if len(layers) == 0:
                     ly.data_format = "HWC"
                     if is_1d:  # noqa: SIM108
-                        input_channels = input_shape[1]
+                        relevant_channels = input_shape[1]
                     else:
-                        input_channels = input_shape[0]
-                ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
+                        relevant_channels = input_shape[0]
+                ly.out_offset = PING_PONG_VALUE if len(layers) % 2 == 0 else 0
 
                 if not op_type.lower().startswith("conv1d") and "Flatten" in node.name:
                     # basically, if this is not conv1d and its flatten
@@ -379,23 +365,26 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # and the pooled_dim is calculated by
                     # [(input_dim[0] + pool_stride[0] - pool[0] - pool_dilation[0] + 1) // pool_stride[0], ...]  # noqa: E501
                     pooled_dimensions = input_dim[0] * input_dim[1]
-                    input_channels //= pooled_dimensions
+                    relevant_channels //= pooled_dimensions
 
                 if op_type.startswith("Gemm") and "Flatten" in node.name:
                     # we need to modify the proc count
-                    input_channels = weights_shape[1]
+                    relevant_channels = weights_shape[1]
 
                 # reduce by input channels
-                passes_float = input_channels / 64
+                passes_float = relevant_channels / 64
                 passes = math.ceil(passes_float)
                 assert passes_float > 0, "passes_float cant be 0 or smaller"
                 assert passes > 0, "passes cant be 0 or smaller (div by 0)"
                 # multipy by output channels
                 processor_count = (
-                    input_channels // passes
-                )  # future input_channels are output_channels / passes
+                    relevant_channels // passes
+                )  # future relevant_channels are output_channels / passes
 
-                input_channels = weights_shape[0]
+                if is_1d:  # noqa: SIM108
+                    relevant_channels = weights_shape[0]
+                else:
+                    relevant_channels = weights_shape[0]
 
                 # i dont know when to shift the processors
                 # TODO: generalize this
@@ -403,7 +392,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # processor_shift = 32 if len(layers) == 4 else 0
                 _factor_factor = nxnode.get("_factor_factor", [1])
                 _full_factor = nxnode.get("_full_factor", _factor_factor)[0]
-                _resulting_shift = int(math.log2(_full_factor))
+                _resulting_shift = int(math.log2(1 if is_1d else _full_factor))
                 if _resulting_shift < 0:
                     # output shift is barely used if not at all
                     # ly.output_shift = _resulting_shift
@@ -417,7 +406,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 )
                 logging.warning(
                     f"proc: {processor_count}, pass:{passes}, "
-                    f"inp_chan:{input_channels}, weights:{weights_shape}"
+                    f"rel_chan:{relevant_channels}, weights:{weights_shape}"
                     f"factor:{_factor_factor}, fullfactor:{_full_factor}"
                     "results in proc count/shift:"
                     f"{processor_count}/{int(math.log2(_full_factor))}"
@@ -594,10 +583,8 @@ class LayerInformation:
 
 def get_layer_information(
     model: onnx.ModelProto,
-    layer_count: int,
-    input_dim: tuple,
 ) -> LayerInformation:
-    layerinfo = LayerInformation(layer_count)
+    layerinfo = LayerInformation(0)
     # weights = [
     #     []
     #     for layer in range(layer_count)

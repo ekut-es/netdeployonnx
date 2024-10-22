@@ -969,8 +969,7 @@ def close_proc(x, y, distance=2):
                 # "kernel_size": (lambda x, y: f"{x}x{x}"),
                 "out_offset": (lambda x, y: y if x == 0x2000 else x),
                 # distance=6 is mostly because upshifting by 3 in layer 2
-                "processors": (lambda x, y: y if close_proc(x, y, 6) else x),
-                "output_width": (lambda x, y: y if y == 32 else x),
+                # "processors": (lambda x, y: y if close_proc(x, y, 6) else x),
                 "operation": (lambda x, y: y if x.lower() == y.lower() else x),
             },
             {8: ["activate", "output_width"]},
