@@ -189,9 +189,9 @@ class RemoteDevice:
                 return pickle.loads(result.payload.data)
             raise ValueError(f"Unknown datatype: {result.payload.datatype}")
         return {
-            "result":[],
-            "metrics":[],
-            "deployment_execution_times":{},
+            "result": [],
+            "metrics": [],
+            "deployment_execution_times": {},
         }
 
 
