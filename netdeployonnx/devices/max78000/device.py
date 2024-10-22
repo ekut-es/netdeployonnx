@@ -434,6 +434,10 @@ class MAX78000(Device):
             pass
         return ret
 
+    def maximum_network_size_okay(self, bytecount: int):
+        # we assume 32?
+        return bytecount < 32 * self.FLASH_PAGE_SIZE
+
     def cnn_load_weights(self, layout: Any) -> Any:  # noqa: C901
         """
         Load the weights
@@ -483,6 +487,9 @@ class MAX78000(Device):
                 weight_pages.append(weight_page)
             # now write the bias as flash instr
             ret.append((main_pb2.Variable.WEIGHTS, weight_pages))
+            assert self.maximum_network_size_okay(
+                sum([len(p) for p in weight_pages])
+            ), "Weights too big"
         elif need_to_direct_write:
             for quad in range(4):
                 for proc in range(16):
@@ -506,6 +513,9 @@ class MAX78000(Device):
 
     def cnn_load_input(self, layout: Any) -> Any:
         ret = []
+        pages = []
+        if pages:
+            ret.append((main_pb2.Variable.INPUT, pages))
         return ret
 
     def cnn_fetch_results(self, layout: Any) -> Any:

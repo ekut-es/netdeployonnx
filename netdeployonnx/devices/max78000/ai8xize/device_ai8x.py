@@ -46,6 +46,20 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             energy_port,
         )
 
+    def maximum_network_size_okay(self, bytecount: int):
+        weights_start_addr = 0x10028000  # check max78000.map / customlinkerfile.ld
+        if weights_start_addr == 0x10028000:
+            return bytecount < 44 * self.FLASH_PAGE_SIZE
+        elif weights_start_addr == 0x10030000:
+            # when the weights start at 0x10030000 => 40 (see firmware)
+            return bytecount < 40 * self.FLASH_PAGE_SIZE
+        elif weights_start_addr == 0x10040000:
+            return bytecount < 32 * self.FLASH_PAGE_SIZE
+        else:
+            return False
+
+        return bytecount < 40 * self.FLASH_PAGE_SIZE
+
     async def layout_transform(self, model: onnx.ModelProto) -> any:  # noqa: C901
         DEBUG = True  # noqa: N806
         SAVE_MODELS = False  # noqa: N806
@@ -254,7 +268,13 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     if is_1d:
                         ly.operation = "Conv1d"  # capitalization is needed for testing, .but can be lower()  # noqa: E501
                     else:
-                        ly.operation = "Conv2d"  # capitalization is needed for testing
+                        if nxnode.get("transpose", None):
+                            ly.operation = "convtranspose2d"  # capitalization is needed for testing
+                        else:
+                            ly.operation = (
+                                "Conv2d"  # capitalization is needed for testing
+                            )
+
                 else:
                     ly.operation = "MLP"
                 if "Relu" in node.name:
@@ -318,7 +338,12 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # invalid to set for MLP/Gemm
                     kernel_size = nxnode.get("kernel_shape", [1])
                     # we only have square kernels for 2d
-                    ly.kernel_size = f"{kernel_size[0]}x{kernel_size[0]}"
+                    # Ackchyually, ERROR: Unsupported value `1x1` for `kernel_size` (found in layer sequence 0 in YAML configuration).
+                    if is_1d:
+                        ly.kernel_size = kernel_size[0]  # mental (int)
+                    else:
+                        ly.kernel_size = f"{kernel_size[0]}x{kernel_size[0]}"
+
                 layer_input_shape = weights_shape  # noqa: F841
                 # assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
                 #     f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "

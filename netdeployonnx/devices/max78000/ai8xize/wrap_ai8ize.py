@@ -321,7 +321,9 @@ def _process_channels(  # noqa: C901
     # or update the kernel_shape of a weight
     for node in probable_nodes:
         if node.op_type == "Conv":  # if it is a conv node
-            if _input == node.input[2]:  # if the input is the bias
+            if (
+                len(node.input) >= 3 and _input == node.input[2]
+            ):  # if the input is the bias
                 # remove kernel_shape from this bias
                 with contextlib.suppress(ValueError):
                     removal_idx = [attr.name for attr in node.attribute].index(
@@ -330,7 +332,7 @@ def _process_channels(  # noqa: C901
                     node.attribute.pop(removal_idx)
                     # remove kernel_shape so that we can use the function and do not add
                     # the kernel shape a second time
-            elif _input == node.input[1]:
+            elif len(node.input) >= 2 and _input == node.input[1]:
                 # if its a weight, make sure its atleast of length 2
                 with contextlib.suppress(ValueError):
                     kernel_shape_idx = [attr.name for attr in node.attribute].index(

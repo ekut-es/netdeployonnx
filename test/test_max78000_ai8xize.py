@@ -947,7 +947,7 @@ def close_proc(x, y, distance=2):
         ),
         (
             "ai85-faceid_112-qat-q.pth.onnx",
-            "faceid.yaml",
+            "ai85-faceid_112.yaml",
             {
                 "operation": (lambda x, y: y if x.lower() == y.lower() else y),
                 "out_offset": (lambda x, y: y if x in [0x2000, 0x1000] else x),
@@ -966,7 +966,7 @@ def close_proc(x, y, distance=2):
             "kws20-v3-hwc.yaml",
             {
                 # transform the correct yaml vals to match the generated variant
-                "kernel_size": (lambda x, y: f"{x}x{x}"),
+                # "kernel_size": (lambda x, y: f"{x}x{x}"),
                 "out_offset": (lambda x, y: y if x == 0x2000 else x),
                 # distance=6 is mostly because upshifting by 3 in layer 2
                 "processors": (lambda x, y: y if close_proc(x, y, 6) else x),
@@ -1009,6 +1009,7 @@ def test_layout_transform_generate_config_from_model_generic(  # noqa: C901
         dev.generate_config_from_model(model)
     )
     assert izer_config
+    print(yaml.dump(izer_config))
     layers = izer_config.get("layers", [])
     # ground truth
     for layeridx, ref_layerdict in enumerate(comparable_config.get("layers")):

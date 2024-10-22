@@ -13,6 +13,7 @@ from netdeployonnx.client.grpc_backend import (
     ProfilingResult,
 )
 
+
 class LightningModel:
     def __init__(self, onnx_model):
         self.onnx_model = onnx_model
@@ -121,7 +122,7 @@ def experiment_network_size(*args, **kwargs):
         "ai85-bayer2rgb-qat8-q.pth.onnx",
         "ai85-cifar10-qat8-q.pth.onnx",
         "ai85-cifar100-qat8-q.pth.onnx",
-        "ai85-faceid_112-qat-q.pth.onnx",
+        # "ai85-faceid_112-qat-q.pth.onnx", # unfortunately, this does not really work
         "ai85-kws20_v3-qat8-q.pth.onnx",
     ]
     configs = []
@@ -137,8 +138,10 @@ def experiment_network_size(*args, **kwargs):
                     }
                 ]
             )
-    for config in tqdm(configs, desc="network size"):
+    pbar = tqdm(configs, desc="network size")
+    for config in pbar:
         network = config.get("network_name")
+        pbar.set_description(desc=f"network size [{network}]")
         with open(data_folder / network, "rb") as fx:
             onnx_model = onnx.load(fx)
         del onnx_model.metadata_props[:]

@@ -3,6 +3,7 @@ import onnx
 from netdeployonnx.devices.max78000.optimizer import (
     Augment_Conv_Kernelshape,
     Augment_Conv_WeightsBias,
+    Conv2DTranspose,
     EliminateDanglingNodes,
     EliminatePassthrough,
     FuseAddClip,
@@ -32,6 +33,7 @@ def run_optimizer(graph: Graph, last_pass=False) -> int:
         [
             Augment_Conv_WeightsBias(),
             ReplaceMatMulWithGemm(),
+            Conv2DTranspose(),
             # FuseSqueeze(),
             FuseQuantizeDequantizeLinear(),
             FuseClipQuantization(),

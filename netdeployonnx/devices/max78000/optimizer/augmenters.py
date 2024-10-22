@@ -99,3 +99,20 @@ class Augment_Conv_Kernelshape(Optimizer):  # noqa: N801
 
         node.attributes["kernel_shape"] = kernel_shape
         return NodeTransformType.MODIFY
+
+
+class Conv2DTranspose(Optimizer):
+    """
+    Augment ConvTranspose nodes with additional information
+    """
+
+    def match(self, node: Node) -> bool:
+        return node.op_type.startswith("ConvTranspose")
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        # we need to find out the shape of the kernel
+        # we can do this by looking at the weight tensor
+        # and then infer the shape from that
+        node.op_type = "Conv"
+        node.attributes["transpose"] = 1
+        return NodeTransformType.MODIFY
