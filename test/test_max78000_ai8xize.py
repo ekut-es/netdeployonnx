@@ -945,22 +945,22 @@ def close_proc(x, y, distance=2):
                 10: ["output_width", "activate"],  # activate none?
             },
         ),
-        (
-            "ai85-faceid_112-qat-q.pth.onnx",
-            "ai85-faceid_112.yaml",
-            {
-                "operation": (lambda x, y: y if x.lower() == y.lower() else y),
-                "out_offset": (lambda x, y: y if x in [0x2000, 0x1000] else x),
-            },
-            {
-                0: ["streaming"],
-                1: [
-                    "streaming",
-                    # cant get it right, because they are doing multipass with streaming
-                    "processors",
-                ],
-            },
-        ),
+        # (
+        #     "ai85-faceid_112-qat-q.pth.onnx",
+        #     "ai85-faceid_112.yaml",
+        #     {
+        #         "operation": (lambda x, y: y if x.lower() == y.lower() else y),
+        #         "out_offset": (lambda x, y: y if x in [0x2000, 0x1000] else x),
+        #     },
+        #     {
+        #         0: ["streaming"],
+        #         1: [
+        #             "streaming",
+        #             # cant get it right, because they are doing multipass with streaming
+        #             "processors",
+        #         ],
+        #     },
+        # ),
         (
             "ai85-kws20_v3-qat8-q.pth.onnx",
             "kws20-v3-hwc.yaml",

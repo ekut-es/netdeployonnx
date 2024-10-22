@@ -348,7 +348,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 # now calc inputs
 
-                input_dim = [1, 1]
+                input_dim = [1, 1]  # TODO: fix this input dim to be correct
 
                 if len(layers) == 0:
                     ly.data_format = "HWC"
@@ -364,11 +364,20 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # input_channels[ll] //= pooled_dim[ll][0] * pooled_dim[ll][1]
                     # and the pooled_dim is calculated by
                     # [(input_dim[0] + pool_stride[0] - pool[0] - pool_dilation[0] + 1) // pool_stride[0], ...]  # noqa: E501
+
                     pooled_dimensions = input_dim[0] * input_dim[1]
                     relevant_channels //= pooled_dimensions
 
                 if op_type.startswith("Gemm") and "Flatten" in node.name:
                     # we need to modify the proc count
+                    relevant_channels = weights_shape[1]
+
+                if is_1d:  # noqa: SIM108
+                    relevant_channels = weights_shape[
+                        1
+                    ]  # maybe we can always use the input channels of the current layer?
+                else:
+                    # actually dont do anything?
                     relevant_channels = weights_shape[1]
 
                 # reduce by input channels
@@ -380,6 +389,12 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 processor_count = (
                     relevant_channels // passes
                 )  # future relevant_channels are output_channels / passes
+
+                if passes > 1:
+                    # on multipasses, we need to enable shared processors.
+                    if (processor_count % 4) != 0:
+                        # we have a partial activation, we cant let that happen
+                        processor_count += 4 - (processor_count % 4)
 
                 if is_1d:  # noqa: SIM108
                     relevant_channels = weights_shape[0]
