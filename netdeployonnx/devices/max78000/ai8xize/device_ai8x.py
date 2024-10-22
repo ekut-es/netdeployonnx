@@ -380,7 +380,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # [(input_dim[0] + pool_stride[0] - pool[0] - pool_dilation[0] + 1) // pool_stride[0], ...]  # noqa: E501
                     pooled_dimensions = input_dim[0] * input_dim[1]
                     input_channels //= pooled_dimensions
-                
 
                 if op_type.startswith("Gemm") and "Flatten" in node.name:
                     # we need to modify the proc count
@@ -395,7 +394,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 processor_count = (
                     input_channels // passes
                 )  # future input_channels are output_channels / passes
-                
+
                 input_channels = weights_shape[0]
 
                 # i dont know when to shift the processors
