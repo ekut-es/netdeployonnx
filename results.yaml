@@ -1,4 +1,4 @@
-date: '2024-10-20 18:14:09'
+date: '2024-10-22 11:25:13'
 experiments:
 - name: network_size
   results:
@@ -14,25 +14,25 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 160.46
-      uJ_per_inference: 162.35
+      uJ_per_all: 160.94
+      uJ_per_inference: 162.53
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 38032.0
-      uW_per_inference: 39300.7
+      uW_per_all: 38161.5
+      uW_per_inference: 39231.4
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7387.47
-      us_per_inference: 3939.52
+      us_per_all: 7388.42
+      us_per_inference: 3940.15
       us_per_input_loading: 265.14
-      us_per_weights_loading: 3182.81
+      us_per_weights_loading: 3183.13
     outputs: []
     profile:
-      _check_model: 0.0
+      _check_model: 0.05
       compile_instructions: 0.0
-      execute: 6.37
-      layout_transform: 1.87
-      total: 8.25
+      execute: 6.28
+      layout_transform: 1.99
+      total: 8.32
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -44,85 +44,55 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 160.29
-      uJ_per_inference: 162.21
+      uJ_per_all: 160.51
+      uJ_per_inference: 162.28
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 37986.7
-      uW_per_inference: 39265.7
+      uW_per_all: 38044.8
+      uW_per_inference: 39126.7
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7388.79
-      us_per_inference: 3939.94
+      us_per_all: 7389.6
+      us_per_inference: 3940.2
       us_per_input_loading: 265.14
-      us_per_weights_loading: 3183.71
+      us_per_weights_loading: 3184.26
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 3.03
+      layout_transform: 1.92
+      total: 4.96
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10_short.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 160.44
+      uJ_per_inference: 162.26
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38026.8
+      uW_per_inference: 39260.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7389.53
+      us_per_inference: 3940.28
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 3184.08
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
       execute: 3.05
-      layout_transform: 1.99
-      total: 5.05
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10_short.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 160.07
-      uJ_per_inference: 161.94
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 37943.4
-      uW_per_inference: 39277.8
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 7388.05
-      us_per_inference: 3939.65
-      us_per_input_loading: 265.09
-      us_per_weights_loading: 3183.31
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 3.06
-      layout_transform: 2.03
-      total: 5.1
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10_short.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 160.23
-      uJ_per_inference: 162.06
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 37978.8
-      uW_per_inference: 39220.0
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 7388.81
-      us_per_inference: 3939.86
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 3183.81
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 3.05
-      layout_transform: 1.99
-      total: 5.05
+      layout_transform: 1.89
+      total: 4.95
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -135,54 +105,24 @@ experiments:
       samplepoints: 25
     metrics:
       uJ_per_all: 160.59
-      uJ_per_inference: 162.35
+      uJ_per_inference: 162.43
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 38071.8
-      uW_per_inference: 39261.9
+      uW_per_all: 38058.7
+      uW_per_inference: 39324.0
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7387.99
-      us_per_inference: 3939.57
+      us_per_all: 7389.79
+      us_per_inference: 3940.36
       us_per_input_loading: 265.14
-      us_per_weights_loading: 3183.28
+      us_per_weights_loading: 3184.29
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
-      execute: 3.05
-      layout_transform: 1.95
-      total: 5.01
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10_short.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 160.72
-      uJ_per_inference: 162.56
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 38093.1
-      uW_per_inference: 39297.7
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 7388.98
-      us_per_inference: 3939.99
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 3183.87
-    outputs: []
-    profile:
-      _check_model: 0.0
-      compile_instructions: 0.0
-      execute: 3.05
-      layout_transform: 1.97
-      total: 5.03
+      execute: 3.02
+      layout_transform: 1.9
+      total: 4.93
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -195,24 +135,24 @@ experiments:
       samplepoints: 25
     metrics:
       uJ_per_all: 160.43
-      uJ_per_inference: 162.23
+      uJ_per_inference: 162.24
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 38041.2
-      uW_per_inference: 39210.8
+      uW_per_all: 38027.2
+      uW_per_inference: 39184.6
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7385.75
-      us_per_inference: 3938.4
-      us_per_input_loading: 265.04
-      us_per_weights_loading: 3182.31
+      us_per_all: 7388.68
+      us_per_inference: 3940.04
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 3183.5
     outputs: []
     profile:
-      _check_model: 0.0
+      _check_model: 0.01
       compile_instructions: 0.0
       execute: 3.04
-      layout_transform: 1.93
-      total: 4.98
+      layout_transform: 1.9
+      total: 4.95
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -224,24 +164,84 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 160.62
-      uJ_per_inference: 162.43
+      uJ_per_all: 160.27
+      uJ_per_inference: 162.16
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 38071.7
-      uW_per_inference: 39212.5
+      uW_per_all: 37982.4
+      uW_per_inference: 39191.4
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7388.87
-      us_per_inference: 3939.83
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 3183.92
+      us_per_all: 7389.26
+      us_per_inference: 3939.86
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 3184.26
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
-      execute: 3.04
-      layout_transform: 1.92
+      execute: 3.02
+      layout_transform: 1.89
+      total: 4.92
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10_short.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 160.02
+      uJ_per_inference: 161.94
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 37916.9
+      uW_per_inference: 39144.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7389.5
+      us_per_inference: 3940.28
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 3184.05
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 3.05
+      layout_transform: 1.94
+      total: 5.0
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10_short.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 160.53
+      uJ_per_inference: 162.44
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38037.7
+      uW_per_inference: 39278.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7390.16
+      us_per_inference: 3940.49
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 3184.5
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.02
+      layout_transform: 1.94
       total: 4.97
   - args: []
     kwargs:
@@ -254,25 +254,25 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 160.29
-      uJ_per_inference: 162.21
+      uJ_per_all: 160.35
+      uJ_per_inference: 162.23
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 37987.2
-      uW_per_inference: 39268.5
+      uW_per_all: 38004.8
+      uW_per_inference: 39239.6
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7388.55
-      us_per_inference: 3939.81
+      us_per_all: 7388.52
+      us_per_inference: 3939.83
       us_per_input_loading: 265.14
-      us_per_weights_loading: 3183.6
+      us_per_weights_loading: 3183.55
     outputs: []
     profile:
       _check_model: 0.0
       compile_instructions: 0.0
-      execute: 3.04
-      layout_transform: 1.93
-      total: 4.98
+      execute: 3.05
+      layout_transform: 1.9
+      total: 4.95
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -284,25 +284,25 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 160.48
-      uJ_per_inference: 162.34
+      uJ_per_all: 160.39
+      uJ_per_inference: 162.3
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 38030.9
-      uW_per_inference: 39323.7
+      uW_per_all: 38012.9
+      uW_per_inference: 39256.7
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 7389.58
-      us_per_inference: 3940.39
-      us_per_input_loading: 265.2
-      us_per_weights_loading: 3184.0
+      us_per_all: 7389.18
+      us_per_inference: 3939.88
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 3184.18
     outputs: []
     profile:
-      _check_model: 0.01
+      _check_model: 0.0
       compile_instructions: 0.0
-      execute: 3.04
-      layout_transform: 1.99
-      total: 5.04
+      execute: 3.05
+      layout_transform: 1.86
+      total: 4.91
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -314,25 +314,25 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 221.75
-      uJ_per_inference: 230.46
+      uJ_per_all: 222.3
+      uJ_per_inference: 230.58
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47353.8
-      uW_per_inference: 48511.5
+      uW_per_all: 47403.0
+      uW_per_inference: 48532.5
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25759.76
-      us_per_inference: 4555.99
+      us_per_all: 25759.84
+      us_per_inference: 4555.67
       us_per_input_loading: 265.17
-      us_per_weights_loading: 20938.6
+      us_per_weights_loading: 20939.0
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.01
-      execute: 28.68
+      execute: 24.7
       layout_transform: 7.96
-      total: 36.67
+      total: 32.68
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -344,25 +344,55 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 222.23
-      uJ_per_inference: 230.76
+      uJ_per_all: 221.56
+      uJ_per_inference: 230.53
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47432.6
-      uW_per_inference: 48604.5
+      uW_per_all: 47361.0
+      uW_per_inference: 48507.3
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25756.71
-      us_per_inference: 4555.17
+      us_per_all: 25759.21
+      us_per_inference: 4555.57
       us_per_input_loading: 265.14
-      us_per_weights_loading: 20936.4
+      us_per_weights_loading: 20938.5
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.8
+      total: 12.82
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.36
+      uJ_per_inference: 230.67
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47420.5
+      uW_per_inference: 48522.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.65
+      us_per_inference: 4555.81
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20937.7
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
       execute: 5.03
-      layout_transform: 8.17
-      total: 13.21
+      layout_transform: 7.71
+      total: 12.75
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -374,25 +404,25 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 221.84
-      uJ_per_inference: 230.38
+      uJ_per_all: 222.76
+      uJ_per_inference: 231.2
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47354.6
-      uW_per_inference: 48489.4
+      uW_per_all: 47516.9
+      uW_per_inference: 48625.5
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25755.94
-      us_per_inference: 4555.22
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 20935.6
+      us_per_all: 25763.61
+      us_per_inference: 4556.44
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20942.0
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
       execute: 5.02
-      layout_transform: 8.06
-      total: 13.09
+      layout_transform: 7.81
+      total: 12.84
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -404,575 +434,395 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 222.57
-      uJ_per_inference: 230.79
+      uJ_per_all: 221.99
+      uJ_per_inference: 230.41
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47450.3
-      uW_per_inference: 48509.7
+      uW_per_all: 47360.2
+      uW_per_inference: 48412.1
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25757.48
-      us_per_inference: 4555.84
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 20936.5
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.05
-      layout_transform: 8.15
-      total: 13.21
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.02
-      uJ_per_inference: 230.54
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47388.3
-      uW_per_inference: 48447.2
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25757.93
-      us_per_inference: 4555.49
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 20937.3
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.0
-      layout_transform: 8.16
-      total: 13.18
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.59
-      uJ_per_inference: 231.06
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47495.0
-      uW_per_inference: 48651.3
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25758.63
-      us_per_inference: 4555.49
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 20938.0
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.04
-      layout_transform: 8.09
-      total: 13.15
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 221.67
-      uJ_per_inference: 230.47
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47360.5
-      uW_per_inference: 48409.5
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25757.59
-      us_per_inference: 4555.67
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 20936.8
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.05
-      layout_transform: 8.24
-      total: 13.3
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.49
-      uJ_per_inference: 230.87
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47454.6
-      uW_per_inference: 48615.3
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25759.26
+      us_per_all: 25759.79
       us_per_inference: 4555.99
-      us_per_input_loading: 265.17
-      us_per_weights_loading: 20938.1
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.04
-      layout_transform: 8.12
-      total: 13.17
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 221.93
-      uJ_per_inference: 230.43
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47364.0
-      uW_per_inference: 48428.0
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25757.75
-      us_per_inference: 4555.78
-      us_per_input_loading: 265.17
-      us_per_weights_loading: 20936.8
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.02
-      layout_transform: 8.27
-      total: 13.3
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: cifar10.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.1
-      uJ_per_inference: 230.59
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47398.2
-      uW_per_inference: 48479.0
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25759.36
-      us_per_inference: 4555.59
-      us_per_input_loading: 265.17
+      us_per_input_loading: 265.2
       us_per_weights_loading: 20938.6
     outputs: []
     profile:
-      _check_model: 0.01
+      _check_model: 0.0
       compile_instructions: 0.0
       execute: 4.99
-      layout_transform: 8.34
-      total: 13.35
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: true
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    exception:
-      msg: 'SystemExit: Number of layers in the YAML configuration file (3) does not
-        match the checkpoint file (2).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Number of layers\
-        \ in the YAML configuration file (3) does not match the checkpoint file (2).\n"
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: true
-        network_name: ai85-cifar10-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.32
-      uJ_per_inference: 230.51
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47393.8
-      uW_per_inference: 48578.4
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25757.57
-      us_per_inference: 4555.23
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 20937.2
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.01
-      execute: 24.92
-      layout_transform: 8.35
-      total: 33.29
+      layout_transform: 7.82
+      total: 12.82
   - args: []
     kwargs:
       client_connect: localhost:28329
       config:
         __reflash: false
-        network_name: ai85-cifar10-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.4
-      uJ_per_inference: 230.64
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47421.9
-      uW_per_inference: 48507.8
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25757.07
-      us_per_inference: 4555.35
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 20936.6
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.02
-      layout_transform: 8.3
-      total: 13.33
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar10-qat8-q.pth.onnx
+        network_name: cifar10.onnx
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
       uJ_per_all: 222.79
-      uJ_per_inference: 230.73
+      uJ_per_inference: 230.85
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47459.5
-      uW_per_inference: 48539.5
+      uW_per_all: 47471.8
+      uW_per_inference: 48472.8
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25751.8
-      us_per_inference: 4555.01
-      us_per_input_loading: 265.09
-      us_per_weights_loading: 20931.7
+      us_per_all: 25760.23
+      us_per_inference: 4555.96
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20939.1
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 4.97
+      layout_transform: 8.16
+      total: 13.13
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 221.91
+      uJ_per_inference: 230.35
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47353.6
+      uW_per_inference: 48372.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.58
+      us_per_inference: 4555.54
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20937.9
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.79
+      total: 12.81
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.54
+      uJ_per_inference: 230.89
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47456.2
+      uW_per_inference: 48623.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.85
+      us_per_inference: 4556.28
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20937.4
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.94
+      total: 12.96
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.45
+      uJ_per_inference: 231.0
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47479.5
+      uW_per_inference: 48596.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.68
+      us_per_inference: 4555.54
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20938.0
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.9
+      total: 12.92
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: cifar10.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.08
+      uJ_per_inference: 230.76
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47421.3
+      uW_per_inference: 48557.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25756.0
+      us_per_inference: 4555.76
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20935.1
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.88
+      total: 12.91
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: true
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-bayer2rgb-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: true
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.5
+      uJ_per_inference: 230.62
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47420.3
+      uW_per_inference: 48498.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25760.27
+      us_per_inference: 4555.7
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20939.4
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.01
+      execute: 25.07
+      layout_transform: 7.78
+      total: 32.87
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.18
+      uJ_per_inference: 230.6
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47404.6
+      uW_per_inference: 48559.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25755.87
+      us_per_inference: 4555.23
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20935.5
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.0
+      layout_transform: 7.9
+      total: 12.9
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 223.36
+      uJ_per_inference: 230.84
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47497.3
+      uW_per_inference: 48527.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25759.5
+      us_per_inference: 4555.76
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20938.6
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
       execute: 5.02
-      layout_transform: 8.27
-      total: 13.31
+      layout_transform: 8.0
+      total: 13.04
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -985,24 +835,24 @@ experiments:
       samplepoints: 25
     metrics:
       uJ_per_all: 223.4
-      uJ_per_inference: 231.09
+      uJ_per_inference: 231.06
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47551.3
-      uW_per_inference: 48609.4
+      uW_per_all: 47530.7
+      uW_per_inference: 48528.3
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25753.2
-      us_per_inference: 4554.48
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 20933.6
+      us_per_all: 25762.33
+      us_per_inference: 4556.26
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20940.9
     outputs: []
     profile:
-      _check_model: 0.02
+      _check_model: 0.01
       compile_instructions: 0.0
       execute: 5.02
-      layout_transform: 8.33
-      total: 13.37
+      layout_transform: 7.96
+      total: 13.0
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -1014,25 +864,85 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 222.9
-      uJ_per_inference: 230.71
+      uJ_per_all: 222.35
+      uJ_per_inference: 230.3
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47462.3
-      uW_per_inference: 48626.0
+      uW_per_all: 47362.0
+      uW_per_inference: 48413.0
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25752.77
-      us_per_inference: 4554.51
-      us_per_input_loading: 265.06
-      us_per_weights_loading: 20933.2
+      us_per_all: 25759.83
+      us_per_inference: 4555.86
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20938.8
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.88
+      total: 12.89
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.84
+      uJ_per_inference: 230.82
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47461.7
+      uW_per_inference: 48503.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25760.96
+      us_per_inference: 4556.47
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 20939.3
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.02
+      layout_transform: 8.04
+      total: 13.07
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.31
+      uJ_per_inference: 230.51
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47392.2
+      uW_per_inference: 48486.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.0
+      us_per_inference: 4555.73
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20937.1
     outputs: []
     profile:
       _check_model: 0.01
       compile_instructions: 0.0
       execute: 5.0
-      layout_transform: 8.19
-      total: 13.2
+      layout_transform: 7.91
+      total: 12.92
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -1044,173 +954,113 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
     metrics:
-      uJ_per_all: 223.02
-      uJ_per_inference: 230.75
+      uJ_per_all: 222.7
+      uJ_per_inference: 230.84
       uJ_per_input_loading: 0
       uJ_per_weights_loading: 0
-      uW_per_all: 47488.0
-      uW_per_inference: 48487.1
+      uW_per_all: 47466.0
+      uW_per_inference: 48576.0
       uW_per_input_loading: 0
       uW_per_weights_loading: 0
-      us_per_all: 25748.41
-      us_per_inference: 4553.85
-      us_per_input_loading: 265.06
-      us_per_weights_loading: 20929.5
-    outputs: []
-    profile:
-      _check_model: 0.02
-      compile_instructions: 0.0
-      execute: 5.02
-      layout_transform: 8.18
-      total: 13.22
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar10-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 223.01
-      uJ_per_inference: 230.89
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47490.8
-      uW_per_inference: 48604.4
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25755.14
-      us_per_inference: 4555.22
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 20934.8
+      us_per_all: 25759.68
+      us_per_inference: 4555.44
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20939.1
     outputs: []
     profile:
       _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.04
-      layout_transform: 8.11
-      total: 13.16
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar10-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.62
-      uJ_per_inference: 230.77
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47451.4
-      uW_per_inference: 48522.2
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25756.86
-      us_per_inference: 4555.62
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 20936.1
-    outputs: []
-    profile:
-      _check_model: 0.01
-      compile_instructions: 0.0
-      execute: 5.02
-      layout_transform: 8.41
-      total: 13.44
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar10-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.2
-      uJ_per_inference: 230.37
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47376.0
-      uW_per_inference: 48445.8
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25754.14
-      us_per_inference: 4554.82
-      us_per_input_loading: 265.12
-      us_per_weights_loading: 20934.2
-    outputs: []
-    profile:
-      _check_model: 0.0
-      compile_instructions: 0.0
-      execute: 5.04
-      layout_transform: 8.37
-      total: 13.42
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar10-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics:
-      uJ_per_all: 222.83
-      uJ_per_inference: 230.9
-      uJ_per_input_loading: 0
-      uJ_per_weights_loading: 0
-      uW_per_all: 47485.9
-      uW_per_inference: 48575.3
-      uW_per_input_loading: 0
-      uW_per_weights_loading: 0
-      us_per_all: 25755.91
-      us_per_inference: 4555.17
-      us_per_input_loading: 265.14
-      us_per_weights_loading: 20935.6
-    outputs: []
-    profile:
-      _check_model: 0.0
       compile_instructions: 0.0
       execute: 5.01
-      layout_transform: 8.3
-      total: 13.31
+      layout_transform: 7.92
+      total: 12.95
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 222.58
+      uJ_per_inference: 230.73
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47446.6
+      uW_per_inference: 48477.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25757.31
+      us_per_inference: 4555.41
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 20936.7
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 4.99
+      layout_transform: 7.96
+      total: 12.96
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar10-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 223.21
+      uJ_per_inference: 231.07
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 47524.6
+      uW_per_inference: 48566.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.21
+      us_per_inference: 4555.97
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20937.1
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.0
+      layout_transform: 8.06
+      total: 13.08
   - args: []
     exception:
       msg: waiting for CheckPayloadResponse
       traceback: "Traceback (most recent call last):\n  File \"/usr/lib/python3.11/asyncio/tasks.py\"\
         , line 490, in wait_for\n    return fut.result()\n           ^^^^^^^^^^^^\n\
         \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 154, in wait_for_result\n    await asyncio.sleep(interval)\n  File\
+        , line 165, in wait_for_result\n    await asyncio.sleep(interval)\n  File\
         \ \"/usr/lib/python3.11/asyncio/tasks.py\", line 639, in sleep\n    return\
         \ await future\n           ^^^^^^^^^^^^\nasyncio.exceptions.CancelledError\n\
         \nThe above exception was the direct cause of the following exception:\n\n\
         Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 157, in deploy\n    result: CheckPayloadResponse = await asyncio.wait_for(\n\
+        , line 168, in deploy\n    result: CheckPayloadResponse = await asyncio.wait_for(\n\
         \                                   ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/tasks.py\"\
         , line 492, in wait_for\n    raise exceptions.TimeoutError() from exc\nTimeoutError\n\
         \nDuring handling of the above exception, another exception occurred:\n\n\
         Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
+        , line 57, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
         model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
         \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
+        , line 188, in profile\n    return self._run(*inputs, profiling=True)\n  \
         \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
+        , line 236, in _run\n    async_result = loop.run_until_complete(\n       \
         \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
         , line 653, in run_until_complete\n    return future.result()\n          \
         \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
+        , line 203, in _run_async\n    result_dict = await device.deploy(\n      \
         \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 161, in deploy\n    raise TimeoutError(\"waiting for CheckPayloadResponse\"\
+        , line 172, in deploy\n    raise TimeoutError(\"waiting for CheckPayloadResponse\"\
         )\nTimeoutError: waiting for CheckPayloadResponse\n"
     kwargs:
       client_connect: localhost:28329
@@ -1222,21 +1072,6 @@ experiments:
       keepalive_timeout: 15
       samplepoints: 25
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1246,22 +1081,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1271,22 +1094,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1296,22 +1107,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1321,22 +1120,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1346,22 +1133,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1371,22 +1146,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1396,22 +1159,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1421,22 +1172,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: ''
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nTimeoutError\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1446,27 +1185,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 0 (/pre_stage/Conv): 4 channels/word 112x112 input (size
-        50176) with input offset 0x0000 and expansion 1x exceeds data memory instance
-        size of 32768.'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 0 (/pre_stage/Conv):\
-        \ 4 channels/word 112x112 input (size 50176) with input offset 0x0000 and\
-        \ expansion 1x exceeds data memory instance size of 32768.\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1476,26 +1198,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool): Pooling or zero-padding
-        results in a zero data dimension (input [1, 1], result [0, 0]).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool):\
-        \ Pooling or zero-padding results in a zero data dimension (input [1, 1],\
-        \ result [0, 0]).\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1505,27 +1211,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 0 (/pre_stage/Conv): 4 channels/word 112x112 input (size
-        50176) with input offset 0x0000 and expansion 1x exceeds data memory instance
-        size of 32768.'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 0 (/pre_stage/Conv):\
-        \ 4 channels/word 112x112 input (size 50176) with input offset 0x0000 and\
-        \ expansion 1x exceeds data memory instance size of 32768.\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1535,26 +1224,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool): Pooling or zero-padding
-        results in a zero data dimension (input [1, 1], result [0, 0]).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool):\
-        \ Pooling or zero-padding results in a zero data dimension (input [1, 1],\
-        \ result [0, 0]).\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1564,26 +1237,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool): Pooling or zero-padding
-        results in a zero data dimension (input [1, 1], result [0, 0]).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool):\
-        \ Pooling or zero-padding results in a zero data dimension (input [1, 1],\
-        \ result [0, 0]).\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1593,27 +1250,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 0 (/pre_stage/Conv): 4 channels/word 112x112 input (size
-        50176) with input offset 0x0000 and expansion 1x exceeds data memory instance
-        size of 32768.'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 0 (/pre_stage/Conv):\
-        \ 4 channels/word 112x112 input (size 50176) with input offset 0x0000 and\
-        \ expansion 1x exceeds data memory instance size of 32768.\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1623,27 +1263,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 0 (/pre_stage/Conv): 4 channels/word 112x112 input (size
-        50176) with input offset 0x0000 and expansion 1x exceeds data memory instance
-        size of 32768.'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 0 (/pre_stage/Conv):\
-        \ 4 channels/word 112x112 input (size 50176) with input offset 0x0000 and\
-        \ expansion 1x exceeds data memory instance size of 32768.\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1653,26 +1276,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool): Pooling or zero-padding
-        results in a zero data dimension (input [1, 1], result [0, 0]).'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 3 (/pre_stage_2/Conv/_/MaxPool):\
-        \ Pooling or zero-padding results in a zero data dimension (input [1, 1],\
-        \ result [0, 0]).\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1682,27 +1289,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 0 (/pre_stage/Conv): 4 channels/word 112x112 input (size
-        50176) with input offset 0x0000 and expansion 1x exceeds data memory instance
-        size of 32768.'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 0 (/pre_stage/Conv):\
-        \ 4 channels/word 112x112 input (size 50176) with input offset 0x0000 and\
-        \ expansion 1x exceeds data memory instance size of 32768.\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1712,27 +1302,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: 'SystemExit: Layer 0 (/pre_stage/Conv): 4 channels/word 112x112 input (size
-        50176) with input offset 0x0000 and expansion 1x exceeds data memory instance
-        size of 32768.'
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 255, in _run\n    raise ex  # reraise\n    ^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nException: SystemExit: Layer 0 (/pre_stage/Conv):\
-        \ 4 channels/word 112x112 input (size 50176) with input offset 0x0000 and\
-        \ expansion 1x exceeds data memory instance size of 32768.\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1742,23 +1315,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1768,23 +1328,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1794,23 +1341,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1820,23 +1354,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1846,23 +1367,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1872,23 +1380,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1898,23 +1393,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1924,23 +1406,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1950,23 +1419,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -1976,23 +1432,10 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
   - args: []
-    exception:
-      msg: cannot reshape array of size 28800 into shape (96,100,3,3)
-      traceback: "Traceback (most recent call last):\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/experiment.py\"\
-        , line 47, in run_experiment\n    results: ProfilingResult = b.profile(kwargs.get(\"\
-        model_input\", []))\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-        \  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 193, in profile\n    return self._run(*inputs, profiling=True)\n  \
-        \         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 240, in _run\n    async_result = loop.run_until_complete(\n       \
-        \            ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.11/asyncio/base_events.py\"\
-        , line 653, in run_until_complete\n    return future.result()\n          \
-        \ ^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/client/grpc_backend.py\"\
-        , line 207, in _run_async\n    result_dict = await device.deploy(\n      \
-        \            ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/vscode/_Masterarbeit_SS24/hannah-env/service/netdeployonnx/common/netclient_remote.py\"\
-        , line 168, in deploy\n    raise exc\nValueError: cannot reshape array of\
-        \ size 28800 into shape (96,100,3,3)\n"
     kwargs:
       client_connect: localhost:28329
       config:
@@ -2002,3 +1445,6 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
+    metrics: {}
+    outputs: []
+    profile: {}
