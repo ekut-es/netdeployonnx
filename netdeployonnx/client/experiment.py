@@ -1,5 +1,6 @@
 import datetime
 import io
+import logging
 import traceback
 from pathlib import Path
 
@@ -63,7 +64,9 @@ def run_experiment(*args, **kwargs):
                 "profile": results.profile,
             }
         )
+        logging.info(f"ran experiment with results: {ret}")
     except Exception as ex:
+        logging.error("error during experiment")
         ret.update(
             {
                 "exception": {
@@ -72,6 +75,7 @@ def run_experiment(*args, **kwargs):
                 }
             }
         )
+
     return ret
 
 
@@ -286,6 +290,12 @@ def experiment_measure_per_layer(*args, **kwargs):
     return results
 
 
+def write_results(data_collector):
+    # save to yaml
+    with open("results.yaml", "w") as fx:
+        yaml.dump(data_collector, fx)
+
+
 def do_experiments(*args, **kwargs):
     experiments = {
         # "force_flash_cifar10_short": force_flash_cifar10_short,
@@ -301,17 +311,15 @@ def do_experiments(*args, **kwargs):
     }
 
     kwargs["samplepoints"] = 25
-
-    for experiment_name, experiment in experiments.items():
-        results = experiment(*args, **kwargs)
-        results = results if results else []
-        data_collector["experiments"].append(
-            {
-                "name": experiment_name,
-                "results": results,
-            }
-        )
-
-    # save to yaml
-    with open("results.yaml", "w") as fx:
-        yaml.dump(data_collector, fx)
+    try:
+        for experiment_name, experiment in experiments.items():
+            results = experiment(*args, **kwargs)
+            results = results if results else []
+            data_collector["experiments"].append(
+                {
+                    "name": experiment_name,
+                    "results": results,
+                }
+            )
+    finally:
+        write_results(data_collector)

@@ -83,9 +83,21 @@ def server(listen, configfile, log_level):
     required=False,
     # help="just a .onnx file",
 )
+@click.option(
+    "--log_level",
+    type=click.Choice(LOG_LEVELS.keys(), case_sensitive=False),
+    default="INFO",
+    required=False,
+)
 def client(
-    connect: str, configfile: str, experiments: bool, networkfile: Path, no_flash: bool
+    connect: str,
+    configfile: str,
+    experiments: bool,
+    networkfile: Path,
+    no_flash: bool,
+    log_level: str,
 ):
+    logging.basicConfig(level=LOG_LEVELS[log_level.upper()])
     if configfile is None:
         configfile = DEFAULT_CONFIG_FILE
     else:
@@ -99,7 +111,10 @@ def client(
         config.client.port = port
 
     netdeployonnx.client.connect(
-        config, networkfile, run_experiments=experiments, no_flash=no_flash
+        config,
+        networkfile,
+        run_experiments=experiments,
+        no_flash=no_flash,
     )
 
 
