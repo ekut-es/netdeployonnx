@@ -1,4 +1,4 @@
-date: '2024-10-22 21:38:19'
+date: '2024-10-23 09:52:26'
 experiments:
 - name: network_size
   results:
@@ -13,9 +13,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.06
+      uJ_per_inference: 163.04
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38177.3
+      uW_per_inference: 39514.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7385.8
+      us_per_inference: 3938.67
+      us_per_input_loading: 265.09
+      us_per_weights_loading: 3182.04
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.05
+      compile_instructions: 0.0
+      execute: 6.08
+      layout_transform: 2.01
+      total: 8.15
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -39,9 +56,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.14
+      uJ_per_inference: 163.07
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38187.4
+      uW_per_inference: 39574.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7389.4
+      us_per_inference: 3940.28
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 3183.95
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.03
+      layout_transform: 1.97
+      total: 5.01
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -52,9 +86,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.41
+      uJ_per_inference: 163.15
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38260.8
+      uW_per_inference: 39550.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7390.9
+      us_per_inference: 3940.7
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 3185.0
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 3.02
+      layout_transform: 1.95
+      total: 4.97
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -65,9 +116,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 160.93
+      uJ_per_inference: 162.8
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38141.4
+      uW_per_inference: 39339.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7388.74
+      us_per_inference: 3939.99
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 3183.63
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.05
+      layout_transform: 1.94
+      total: 4.99
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -78,9 +146,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.27
+      uJ_per_inference: 163.1
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38223.3
+      uW_per_inference: 39467.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7390.19
+      us_per_inference: 3940.23
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 3184.82
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.04
+      layout_transform: 2.0
+      total: 5.05
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -91,9 +176,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.17
+      uJ_per_inference: 162.96
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38205.0
+      uW_per_inference: 39480.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7389.32
+      us_per_inference: 3940.23
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 3183.95
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.05
+      layout_transform: 1.97
+      total: 5.02
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -104,9 +206,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.31
+      uJ_per_inference: 163.1
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38234.4
+      uW_per_inference: 39446.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7390.53
+      us_per_inference: 3940.25
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 3185.11
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.03
+      layout_transform: 2.0
+      total: 5.04
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -117,9 +236,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.35
+      uJ_per_inference: 163.16
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38252.0
+      uW_per_inference: 39575.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7388.62
+      us_per_inference: 3939.75
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 3183.73
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.05
+      layout_transform: 1.95
+      total: 5.01
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -130,9 +266,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 161.25
+      uJ_per_inference: 163.08
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 38222.4
+      uW_per_inference: 39474.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 7389.71
+      us_per_inference: 3940.02
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 3184.55
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.04
+      layout_transform: 1.94
+      total: 4.98
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -143,9 +296,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.62
+      uJ_per_inference: 215.24
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44217.9
+      uW_per_inference: 45410.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25750.32
+      us_per_inference: 4554.06
+      us_per_input_loading: 265.06
+      us_per_weights_loading: 20931.2
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.01
+      execute: 24.42
+      layout_transform: 8.1
+      total: 32.54
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -156,9 +326,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.71
+      uJ_per_inference: 215.44
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44257.5
+      uW_per_inference: 45362.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25750.4
+      us_per_inference: 4554.14
+      us_per_input_loading: 265.06
+      us_per_weights_loading: 20931.2
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.0
+      layout_transform: 8.13
+      total: 13.15
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -169,9 +356,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.24
+      uJ_per_inference: 215.37
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44270.4
+      uW_per_inference: 45456.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25749.19
+      us_per_inference: 4553.83
+      us_per_input_loading: 265.06
+      us_per_weights_loading: 20930.3
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.02
+      layout_transform: 8.04
+      total: 13.06
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -182,9 +386,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.31
+      uJ_per_inference: 215.48
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44293.4
+      uW_per_inference: 45472.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25751.68
+      us_per_inference: 4553.74
+      us_per_input_loading: 265.04
+      us_per_weights_loading: 20932.9
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.1
+      total: 13.11
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -195,9 +416,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.06
+      uJ_per_inference: 215.44
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44262.3
+      uW_per_inference: 45401.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25757.37
+      us_per_inference: 4555.25
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20937.0
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.0
+      layout_transform: 8.01
+      total: 13.02
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -208,9 +446,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.97
+      uJ_per_inference: 215.55
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44284.2
+      uW_per_inference: 45451.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25749.88
+      us_per_inference: 4554.12
+      us_per_input_loading: 265.06
+      us_per_weights_loading: 20930.7
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 4.99
+      layout_transform: 7.85
+      total: 12.85
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -221,9 +476,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.81
+      uJ_per_inference: 214.93
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44170.6
+      uW_per_inference: 45280.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25755.19
+      us_per_inference: 4555.15
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 20934.9
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 7.96
+      total: 12.98
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -234,9 +506,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.52
+      uJ_per_inference: 215.18
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44190.7
+      uW_per_inference: 45365.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25757.58
+      us_per_inference: 4555.46
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20937.0
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 4.99
+      layout_transform: 7.94
+      total: 12.94
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -247,9 +536,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.74
+      uJ_per_inference: 215.11
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44186.3
+      uW_per_inference: 45307.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25760.49
+      us_per_inference: 4556.09
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 20939.2
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.18
+      total: 13.2
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -260,9 +566,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 206.91
+      uJ_per_inference: 215.01
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44204.9
+      uW_per_inference: 45199.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25749.24
+      us_per_inference: 4553.9
+      us_per_input_loading: 265.04
+      us_per_weights_loading: 20930.3
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.02
+      layout_transform: 8.08
+      total: 13.11
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -273,9 +596,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.78
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2928.8
+      uW_per_inference: 5586.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.92
+      us_per_inference: 4.34
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 276.39
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.63
+      layout_transform: 0.42
+      total: 3.05
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -286,9 +626,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.75
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2836.6
+      uW_per_inference: 5562.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.0
+      us_per_inference: 4.39
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.42
+      total: 2.69
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -299,9 +656,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.74
+      uJ_per_inference: 1.49
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2803.2
+      uW_per_inference: 5542.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.97
+      us_per_inference: 4.31
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.26
+      layout_transform: 0.4
+      total: 2.66
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -312,9 +686,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.73
+      uJ_per_inference: 1.48
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2775.3
+      uW_per_inference: 5488.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.95
+      us_per_inference: 4.36
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 276.41
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.41
+      total: 2.68
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -325,9 +716,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.74
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2806.5
+      uW_per_inference: 5583.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.03
+      us_per_inference: 4.34
+      us_per_input_loading: 265.25
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.41
+      total: 2.69
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -338,9 +746,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.78
+      uJ_per_inference: 1.49
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2941.9
+      uW_per_inference: 5536.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.92
+      us_per_inference: 4.34
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 276.41
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.42
+      total: 2.69
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -351,9 +776,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.75
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2815.6
+      uW_per_inference: 5563.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.0
+      us_per_inference: 4.37
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.37
+      total: 2.64
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -364,9 +806,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.79
+      uJ_per_inference: 1.52
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2979.8
+      uW_per_inference: 5658.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.0
+      us_per_inference: 4.34
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.26
+      layout_transform: 0.38
+      total: 2.65
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -377,9 +836,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.74
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2807.4
+      uW_per_inference: 5559.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.97
+      us_per_inference: 4.34
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.37
+      total: 2.64
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -390,9 +866,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 0.75
+      uJ_per_inference: 1.48
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2815.0
+      uW_per_inference: 5492.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.05
+      us_per_inference: 4.37
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 276.47
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.26
+      layout_transform: 0.42
+      total: 2.68
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -403,9 +896,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.53
+      uJ_per_inference: 215.37
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44279.7
+      uW_per_inference: 45273.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25756.49
+      us_per_inference: 4555.17
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20936.2
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.01
+      execute: 24.85
+      layout_transform: 8.08
+      total: 32.95
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -416,9 +926,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.04
+      uJ_per_inference: 215.56
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44280.1
+      uW_per_inference: 45418.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25756.45
+      us_per_inference: 4555.33
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20936.0
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.07
+      total: 13.09
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -429,9 +956,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.75
+      uJ_per_inference: 215.65
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44330.0
+      uW_per_inference: 45483.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25754.95
+      us_per_inference: 4554.93
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20934.9
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.0
+      layout_transform: 8.07
+      total: 13.07
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -442,9 +986,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.8
+      uJ_per_inference: 215.67
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44330.8
+      uW_per_inference: 45478.8
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25756.61
+      us_per_inference: 4555.49
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20936.0
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 4.96
+      layout_transform: 8.08
+      total: 13.06
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -455,9 +1016,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.59
+      uJ_per_inference: 215.64
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44323.6
+      uW_per_inference: 45416.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25753.3
+      us_per_inference: 4554.98
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 20933.2
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.07
+      total: 13.1
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -468,9 +1046,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 208.33
+      uJ_per_inference: 216.13
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44446.7
+      uW_per_inference: 45537.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25747.76
+      us_per_inference: 4553.82
+      us_per_input_loading: 265.04
+      us_per_weights_loading: 20928.9
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.1
+      total: 13.12
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -481,9 +1076,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.77
+      uJ_per_inference: 215.71
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44340.6
+      uW_per_inference: 45464.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25749.91
+      us_per_inference: 4555.17
+      us_per_input_loading: 265.04
+      us_per_weights_loading: 20929.7
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.19
+      total: 13.21
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -494,9 +1106,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.63
+      uJ_per_inference: 215.31
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44268.5
+      uW_per_inference: 45390.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25755.29
+      us_per_inference: 4555.2
+      us_per_input_loading: 265.09
+      us_per_weights_loading: 20935.0
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.15
+      total: 13.16
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -507,9 +1136,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 207.68
+      uJ_per_inference: 215.71
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44344.8
+      uW_per_inference: 45393.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25755.38
+      us_per_inference: 4554.59
+      us_per_input_loading: 265.09
+      us_per_weights_loading: 20935.7
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.14
+      total: 13.15
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -520,9 +1166,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 208.02
+      uJ_per_inference: 215.67
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44337.5
+      uW_per_inference: 45531.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 25758.41
+      us_per_inference: 4555.54
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 20937.7
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.01
+      layout_transform: 8.16
+      total: 13.18
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -533,9 +1196,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 208.44
+      uJ_per_inference: 218.28
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44832.4
+      uW_per_inference: 46086.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28923.5
+      us_per_inference: 4555.73
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 24102.6
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.02
+      execute: 27.51
+      layout_transform: 9.07
+      total: 36.61
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -546,9 +1226,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 209.1
+      uJ_per_inference: 218.14
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44837.4
+      uW_per_inference: 45874.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28925.21
+      us_per_inference: 4556.41
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 24103.6
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.33
+      layout_transform: 8.98
+      total: 14.32
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -559,9 +1256,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 208.88
+      uJ_per_inference: 217.85
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44785.3
+      uW_per_inference: 45920.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28923.53
+      us_per_inference: 4555.46
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 24102.9
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 5.32
+      layout_transform: 9.05
+      total: 14.38
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -572,9 +1286,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 208.74
+      uJ_per_inference: 217.95
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44801.4
+      uW_per_inference: 45891.9
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28923.17
+      us_per_inference: 4555.25
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 24102.8
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.37
+      layout_transform: 9.11
+      total: 14.48
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -585,171 +1316,32 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 209.33
+      uJ_per_inference: 218.19
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44858.9
+      uW_per_inference: 45928.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28925.51
+      us_per_inference: 4555.94
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 24104.4
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.36
+      layout_transform: 9.05
+      total: 14.42
   - args: []
     kwargs:
       client_connect: localhost:28329
       config:
         __reflash: false
         network_name: ai85-cifar100-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar100-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar100-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar100-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-cifar100-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: true
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
-      device_filter: *id001
-      function_timeout: 30
-      keepalive_timeout: 15
-      samplepoints: 25
-    metrics: {}
-    outputs: []
-    profile: {}
-  - args: []
-    kwargs:
-      client_connect: localhost:28329
-      config:
-        __reflash: false
-        network_name: ai85-kws20_v3-qat8-q.pth.onnx
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
@@ -757,11 +1349,161 @@ experiments:
     metrics: {}
     outputs: []
     profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.37
+      layout_transform: 9.07
+      total: 14.45
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar100-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 209.15
+      uJ_per_inference: 218.12
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44836.6
+      uW_per_inference: 45961.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28927.21
+      us_per_inference: 4555.94
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 24106.1
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.33
+      layout_transform: 9.21
+      total: 14.55
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar100-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 209.09
+      uJ_per_inference: 218.32
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44886.5
+      uW_per_inference: 45985.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28915.36
+      us_per_inference: 4554.32
+      us_per_input_loading: 265.04
+      us_per_weights_loading: 24096.0
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.36
+      layout_transform: 9.21
+      total: 14.57
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar100-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 209.82
+      uJ_per_inference: 218.58
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44948.7
+      uW_per_inference: 46110.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28918.73
+      us_per_inference: 4555.01
+      us_per_input_loading: 265.12
+      us_per_weights_loading: 24098.6
+    outputs: []
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 5.35
+      layout_transform: 9.09
+      total: 14.45
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-cifar100-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 208.99
+      uJ_per_inference: 218.21
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 44842.0
+      uW_per_inference: 46015.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 28927.29
+      us_per_inference: 4556.02
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 24106.1
+    outputs: []
+    profile:
       _check_model: 0.0
       compile_instructions: 0.0
-      execute: 2.8
-      layout_transform: 4.9
-      total: 7.7
+      execute: 5.35
+      layout_transform: 8.97
+      total: 14.33
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: true
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 211.61
+      uJ_per_inference: 217.79
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60501.1
+      uW_per_inference: 61805.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15882.24
+      us_per_inference: 3302.44
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 12314.6
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.01
+      execute: 15.4
+      layout_transform: 5.04
+      total: 20.46
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -772,9 +1514,26 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 211.46
+      uJ_per_inference: 217.61
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60458.3
+      uW_per_inference: 61663.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15878.12
+      us_per_inference: 3302.45
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 12310.5
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.97
+      layout_transform: 4.83
+      total: 8.8
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -785,6 +1544,233 @@ experiments:
       function_timeout: 30
       keepalive_timeout: 15
       samplepoints: 25
-    metrics: {}
+    metrics:
+      uJ_per_all: 211.22
+      uJ_per_inference: 217.49
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60413.0
+      uW_per_inference: 61696.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15881.14
+      us_per_inference: 3302.37
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 12313.6
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.01
+      compile_instructions: 0.0
+      execute: 3.95
+      layout_transform: 4.95
+      total: 8.91
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 212.0
+      uJ_per_inference: 218.24
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60627.0
+      uW_per_inference: 61920.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15879.88
+      us_per_inference: 3302.24
+      us_per_input_loading: 265.14
+      us_per_weights_loading: 12312.5
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.97
+      layout_transform: 4.83
+      total: 8.81
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 211.21
+      uJ_per_inference: 217.6
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60449.2
+      uW_per_inference: 61744.3
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15876.09
+      us_per_inference: 3301.5
+      us_per_input_loading: 265.09
+      us_per_weights_loading: 12309.5
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.94
+      layout_transform: 4.97
+      total: 8.92
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 212.04
+      uJ_per_inference: 218.33
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60637.7
+      uW_per_inference: 61924.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15882.97
+      us_per_inference: 3302.85
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 12314.9
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.96
+      layout_transform: 4.91
+      total: 8.88
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 211.52
+      uJ_per_inference: 217.86
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60503.5
+      uW_per_inference: 61809.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15882.06
+      us_per_inference: 3302.76
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 12314.1
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.96
+      layout_transform: 4.89
+      total: 8.85
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 211.4
+      uJ_per_inference: 217.68
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60466.4
+      uW_per_inference: 61714.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15882.02
+      us_per_inference: 3302.42
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 12314.4
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.94
+      layout_transform: 4.91
+      total: 8.86
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 211.64
+      uJ_per_inference: 218.04
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60548.4
+      uW_per_inference: 61844.1
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15882.24
+      us_per_inference: 3302.72
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 12314.3
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.97
+      layout_transform: 4.92
+      total: 8.9
+  - args: []
+    kwargs:
+      client_connect: localhost:28329
+      config:
+        __reflash: false
+        network_name: ai85-kws20_v3-qat8-q.pth.onnx
+      device_filter: *id001
+      function_timeout: 30
+      keepalive_timeout: 15
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 211.8
+      uJ_per_inference: 218.11
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 60581.6
+      uW_per_inference: 61870.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 15881.94
+      us_per_inference: 3302.44
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 12314.3
+    outputs: []
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 3.94
+      layout_transform: 4.94
+      total: 8.89
