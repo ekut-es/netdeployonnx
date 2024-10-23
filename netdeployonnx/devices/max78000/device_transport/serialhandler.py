@@ -211,8 +211,8 @@ class PacketOrderSender:
 
     def __init__(self, data_handler: "DataHandler", one_message_timeout: float = 5.0):
         self.data_handler = data_handler
-        self.current_sequence = 1  # 0xFFFF_FFF0
-        self.sent_sequence = self.current_sequence
+        self.expected_sequence = 1  # 0xFFFF_FFF0
+        self.enqueued_sequence = self.expected_sequence
         self.one_message_timeout = one_message_timeout
         self.wait_queue = {}
         self.sequence_queue = {}
@@ -220,14 +220,15 @@ class PacketOrderSender:
         self.resend = False
 
     def enqueue(self, msg: main_pb2.ProtocolMessage) -> int:
-        msg.sequence = self.sent_sequence
-        self.sequence_queue[self.sent_sequence] = msg
-        self.sent_sequence += 1
+        msg.sequence = self.enqueued_sequence
+        logging.debug("enqueing {msg}")
+        self.sequence_queue[self.enqueued_sequence] = msg
+        self.enqueued_sequence += 1
         return msg.sequence
 
     def accept_acknowledge(self, sequence: int, success: bool) -> bool:
         "returns true if the sequence is ok, else returns false and requests a resend"
-        if self.current_sequence == sequence:
+        if self.expected_sequence == sequence:
             # accept it by removing it from the sendqueue
             if len(self.sendqueue) > 0:
                 self.sendqueue.pop(0)
@@ -240,7 +241,7 @@ class PacketOrderSender:
                     print(ise)
                     raise ise
 
-            self.current_sequence += 1
+            self.expected_sequence += 1
             return True
         else:
             self.resend = True
@@ -258,7 +259,7 @@ class PacketOrderSender:
         if len(self.sendqueue) == 0:
             # we need to fill it
             for local_seq_id in range(self.MAX_QUEUE_SIZE):
-                sequence_id = self.current_sequence + local_seq_id
+                sequence_id = self.expected_sequence + local_seq_id
                 if sequence_id in self.sequence_queue:
                     self.sendqueue.append(self.sequence_queue[sequence_id])
                 else:
@@ -288,8 +289,6 @@ class PacketOrderSender:
         return False
 
     async def wait_for_sequence(self, sequence) -> None:
-        do_resend = False
-
         def completed_future(result):
             fut = asyncio.Future()
             fut.set_result(result)
@@ -298,18 +297,8 @@ class PacketOrderSender:
         self.wait_queue[sequence] = asyncio.Future()
         logging.debug(f">>>start waiting for sequence {sequence}")
         if self.do_not_wait_for_sequence(sequence):
+            logging.debug(f"dont wait for sequence {sequence}, but sleep")
             await asyncio.sleep(0.5)  # wait half a second for a reboot
-        elif do_resend:
-            # TODO: does not work
-            while False:
-                try:
-                    result = await asyncio.wait_for(  # noqa: F841
-                        self.wait_queue[sequence], self.one_message_timeout
-                    )
-                    break
-                except TimeoutError:
-                    logging.warning(f"resending sequence {sequence}")
-                    # self.resend = True
         else:
             await self.wait_queue[sequence]
         logging.debug(f"<<<done  waiting for sequence {sequence}")
@@ -349,8 +338,8 @@ class DataHandler:
                 success = msg.ack.success
                 assert self.packet_order_sender.accept_acknowledge(seq, success), (
                     f"cannot accept seq {seq} (with: "
-                    f"{self.packet_order_sender.current_sequence}, "
-                    f"{self.packet_order_sender.sent_sequence})"
+                    f"expecting {self.packet_order_sender.expected_sequence}, "
+                    f"enqueued {self.packet_order_sender.enqueued_sequence})"
                 )
             except Exception:
                 import traceback
