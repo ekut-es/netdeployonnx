@@ -29,3 +29,8 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       # Formatter
       - id: ruff-format
+  - repo: https://github.com/johann-petrak/licenseheaders.git
+    rev: 'v0.8.8'
+    hooks:
+        - id: licenseheaders
+          args: ["-x", '*.yaml', "-t", ".copyright.tmpl", "-n", "netdeployonx", "-u", "https://github.com/ekut-es/netdeployonnx", "-o", "netdeployonnx contributors", "-cy", "-f"]
