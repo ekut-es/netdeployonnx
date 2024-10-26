@@ -19,6 +19,12 @@ repos:
       - id: check-case-conflict
       - id: check-docstring-first
       - id: detect-private-key
+  # License headers
+  - repo: https://github.com/johann-petrak/licenseheaders.git
+    rev: 'v0.8.8'
+    hooks:
+        - id: licenseheaders
+          args: ["-x", '*.yaml', "-t", ".copyright.tmpl", "-n", "netdeployonx", "-u", "https://github.com/ekut-es/netdeployonnx", "-o", "netdeployonnx contributors", "-cy", "-f"]
 
  # Run the Ruff linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -29,8 +35,3 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       # Formatter
       - id: ruff-format
-  - repo: https://github.com/johann-petrak/licenseheaders.git
-    rev: 'v0.8.8'
-    hooks:
-        - id: licenseheaders
-          args: ["-x", '*.yaml', "-t", ".copyright.tmpl", "-n", "netdeployonx", "-u", "https://github.com/ekut-es/netdeployonnx", "-o", "netdeployonnx contributors", "-cy", "-f"]
