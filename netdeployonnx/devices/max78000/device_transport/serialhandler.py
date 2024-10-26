@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import asyncio
 import contextlib
 import logging
@@ -216,12 +234,14 @@ class PacketOrderSender:
         self.one_message_timeout = one_message_timeout
         self.wait_queue = {}
         self.sequence_queue = {}
+        self.sequence_success = {}
         self.sendqueue = []
         self.resend = False
 
     def enqueue(self, msg: main_pb2.ProtocolMessage) -> int:
         msg.sequence = self.enqueued_sequence
-        logging.debug("enqueing {msg}")
+        msgstr = str(msg).replace("\n", " ")[:100]
+        logging.info(f"enqueing msg with seq {msg.sequence} {msgstr}")
         self.sequence_queue[self.enqueued_sequence] = msg
         self.enqueued_sequence += 1
         return msg.sequence
@@ -234,6 +254,7 @@ class PacketOrderSender:
                 self.sendqueue.pop(0)
             else:
                 raise Exception("when does this happen?")
+            self.sequence_success[sequence] = success  # save the success
             if sequence in self.wait_queue:
                 try:
                     self.wait_queue[sequence].set_result(success)
@@ -287,6 +308,16 @@ class PacketOrderSender:
                 self.accept_acknowledge(msg.sequence, True)
                 return True  # do not wait for resets
         return False
+
+    def get_success_for_sequence_list(self, sequence_list: list[int]) -> dict[bool]:
+        return {
+            sequence: (
+                False
+                if sequence not in self.sequence_queue
+                else self.sequence_success[sequence]
+            )
+            for sequence in sequence_list
+        }
 
     async def wait_for_sequence(self, sequence) -> None:
         def completed_future(result):
@@ -389,11 +420,30 @@ class DataHandler:
     async def send_msgs(
         self, msgs: list["main_pb2.ProtocolMessage"], group_timeout: int = 4.0
     ):
-        last_sequence = None
-        for msg in msgs:
-            last_sequence = self.packet_order_sender.enqueue(msg)
+        # send out the sequence, but only check the last message of the list,
+        # and only return true if all sequences returned success=True
+        sequences = [self.packet_order_sender.enqueue(msg) for msg in msgs]
+        last_sequence = sequences[-1]
         try:
-            return await self.packet_order_sender.wait_for_sequence(last_sequence)
+            futures = {
+                sequence: self.packet_order_sender.wait_for_sequence(sequence)
+                for sequence in [last_sequence]
+            }
+
+            last_future = futures[last_sequence]
+            await last_future
+            success_per_sequence = (
+                self.packet_order_sender.get_success_for_sequence_list(sequences)
+            )
+            all_success = all(
+                success_per_sequence.values()
+            )  # only true if all are successful
+            if not all_success:
+                unsuccessful_sequences = [
+                    seq for seq, success in success_per_sequence.items() if not success
+                ]
+                logging.info(f"sequences {unsuccessful_sequences} did not return true")
+            return all_success
         except TimeoutError:
             raise Exception("Timeout on wait for ack packet")
 
