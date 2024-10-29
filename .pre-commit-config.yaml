@@ -25,6 +25,7 @@ repos:
     hooks:
         - id: licenseheaders
           args: ["-x", '*.yaml', "-t", ".copyright.tmpl", "-n", "netdeployonx", "-u", "https://github.com/ekut-es/netdeployonnx", "-o", "netdeployonnx contributors", "-cy", "-f"]
+          exclude: (external/|README\.md)
 
  # Run the Ruff linter.
   - repo: https://github.com/astral-sh/ruff-pre-commit
