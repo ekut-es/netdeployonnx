@@ -532,6 +532,13 @@ class MAX78000(Device):
     def cnn_load_input(self, layout: Any) -> Any:
         ret = []
         pages = []
+        if 0:
+            input_data = b"\0" * 1000
+            page = b""
+            page += struct.pack("<I", 0x50400000)
+            page += struct.pack("<I", len(input_data) // 4)
+            pages.append(page)
+
         if pages:
             ret.append((main_pb2.Variable.INPUT, pages))
         return ret
@@ -540,9 +547,15 @@ class MAX78000(Device):
         # fetch results means get data via action
         ret = []
         # either RUN_CNN_UNLOAD (but this does not send a getmemory / readmemory)
-        ret.append(("READ", 0x50404000, 16)) # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x04000
-        ret.append(("READ", 0x5040c000, 16)) # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x0C000
-        ret.append(("READ", 0x50414000,  8)) # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x14000
+        ret.append(
+            ("READ", 0x50404000, 16)
+        )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x04000
+        ret.append(
+            ("READ", 0x5040C000, 16)
+        )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x0C000
+        ret.append(
+            ("READ", 0x50414000, 8)
+        )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x14000
         return ret
 
     async def compile_instructions(
@@ -672,7 +685,9 @@ class MAX78000(Device):
                         messages.append(msg)  # add previous message
                         msg = commands.new_message()
                         msg.payload.read.append(
-                            main_pb2.ReadMemoryContent(address=read_from_addr, len=read_amount)
+                            main_pb2.ReadMemoryContent(
+                                address=read_from_addr, len=read_amount
+                            )
                         )
                         messages.append(msg)  # add our msg
                         msg = commands.new_message()  # create new
@@ -775,15 +790,18 @@ class MAX78000(Device):
         return self.prepare_result_for_return(result)
 
     def prepare_result_for_return(self, result: Any) -> list[any]:
-        # as this always depends on the cnn_fetch_results, we should have a overwritable method that does that
+        # as this always depends on the cnn_fetch_results, we should have a overwritable method that does that  # noqa: E501
         # actually, we should get the output shape from the network
         all_bytes = b"".join(
-            entry.get("data",b"") if isinstance(entry, dict) else b"" 
-            for entry in sorted(result, key=lambda x: x["addr"] 
-            if isinstance(x, dict) and "addr" in x else x))
+            entry.get("data", b"") if isinstance(entry, dict) else b""
+            for entry in sorted(
+                result,
+                key=lambda x: x["addr"] if isinstance(x, dict) and "addr" in x else x,
+            )
+        )
         if (len(all_bytes) % 4) == 0:
             num_ints = len(all_bytes) // 4
-            result = list(struct.unpack(f'{num_ints}i', all_bytes))
+            result = list(struct.unpack(f"{num_ints}i", all_bytes))
             return result
         # should return json serializable
         return ["unknown byte format? expected 10 integers = 40 bytes"]
