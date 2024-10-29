@@ -539,7 +539,10 @@ class MAX78000(Device):
     def cnn_fetch_results(self, layout: Any) -> Any:
         # fetch results means get data via action
         ret = []
-
+        # either RUN_CNN_UNLOAD (but this does not send a getmemory / readmemory)
+        ret.append(("READ", 0x50404000, 16)) # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x04000
+        ret.append(("READ", 0x5040c000, 16)) # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x0C000
+        ret.append(("READ", 0x50414000,  8)) # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x14000
         return ret
 
     async def compile_instructions(
@@ -662,6 +665,18 @@ class MAX78000(Device):
                         setattr(msg.configuration, action_value, action_arg)
                         messages.append(msg)  # add our msg
                         msg = commands.new_message()  # create new
+                    elif MSG_TYPE == "READ":
+                        read_from_addr = action_value
+                        read_amount = action_arg
+
+                        messages.append(msg)  # add previous message
+                        msg = commands.new_message()
+                        msg.payload.read.append(
+                            main_pb2.ReadMemoryContent(address=read_from_addr, len=read_amount)
+                        )
+                        messages.append(msg)  # add our msg
+                        msg = commands.new_message()  # create new
+
                     else:
                         raise NotImplementedError(f"unknown MSG_TYPE {MSG_TYPE}")
                 else:
@@ -757,7 +772,21 @@ class MAX78000(Device):
         logging.debug(f"got {collected_data}")
         logging.debug(f"which is translated to {metrics.as_dict()}")
 
-        return result  # maybe we have a readback?
+        return self.prepare_result_for_return(result)
+
+    def prepare_result_for_return(self, result: Any) -> list[any]:
+        # as this always depends on the cnn_fetch_results, we should have a overwritable method that does that
+        # actually, we should get the output shape from the network
+        all_bytes = b"".join(
+            entry.get("data",b"") if isinstance(entry, dict) else b"" 
+            for entry in sorted(result, key=lambda x: x["addr"] 
+            if isinstance(x, dict) and "addr" in x else x))
+        if (len(all_bytes) % 4) == 0:
+            num_ints = len(all_bytes) // 4
+            result = list(struct.unpack(f'{num_ints}i', all_bytes))
+            return result
+        # should return json serializable
+        return ["unknown byte format? expected 10 integers = 40 bytes"]
 
     async def free(self):
         "free the device; this means close the handle_serial task"

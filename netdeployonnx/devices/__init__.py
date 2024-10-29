@@ -222,7 +222,7 @@ class Device(abc.ABC):
                 "result": None,
                 "exception": e,
             }
-            optionally_with_exception = " but with exception"
+            optionally_with_exception = f" but with exception (type={str(type(e).__name__)})"
         print(f"returning call successfully {optionally_with_exception}")
         return metrics
 

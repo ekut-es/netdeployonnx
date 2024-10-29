@@ -341,9 +341,10 @@ class DataHandler:
         self.reader = reader
         self.writer = writer
         self.debug = debug
-        self.handlers: list[MessageHandler] = [self.keepalive_handler, self.ack_handler]
+        self.handlers: list[MessageHandler] = [self.keepalive_handler, self.ack_handler, self.payload_handler]
 
         self.msgs = []
+        self.results = {}
         self.external_send_queue = []
         self.datastream = b""
         self.keepalive_answer = main_pb2.ProtocolMessage()
@@ -372,6 +373,23 @@ class DataHandler:
                     f"expecting {self.packet_order_sender.expected_sequence}, "
                     f"enqueued {self.packet_order_sender.enqueued_sequence})"
                 )
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+            finally:
+                return True
+        return False
+
+    async def payload_handler(self, msg, writer) -> bool:
+        if msg.WhichOneof("message_type") == "payload":
+            try:
+                # this may be a result
+                for setmem in msg.payload.memory:
+                    # device is delivering device read answers
+                    if msg.sequence not in self.results:
+                        self.results[msg.sequence] = []
+                    self.results[msg.sequence].append({"addr":setmem.address, "data":setmem.data})
             except Exception:
                 import traceback
 
@@ -443,6 +461,13 @@ class DataHandler:
                     seq for seq, success in success_per_sequence.items() if not success
                 ]
                 logging.info(f"sequences {unsuccessful_sequences} did not return true")
+            if all_success and len(self.results) > 0:
+                results = []
+                for sequence in sequences:
+                    if sequence in self.results:
+                        results.extend(self.results[sequence])
+                        del self.results[sequence]
+                return results
             return all_success
         except TimeoutError:
             raise Exception("Timeout on wait for ack packet")
@@ -692,6 +717,7 @@ async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     baudrate = kwargs.get("baudrate")
 
     # check if the URL is /dev/virtual..... else use the compatibility serial
+    # "VirtualDevice"
     if "virtual" in url:
         aioserial_instance = FullDevice(crc) if "Device" in url else MeasureDevice()
     else:

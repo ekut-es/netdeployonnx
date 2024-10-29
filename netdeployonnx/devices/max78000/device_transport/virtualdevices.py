@@ -135,7 +135,7 @@ class MeasureDevice(VirtualAIODevice):
         pass
 
 
-class FullDevice(VirtualAIODevice):
+class FullDevice(VirtualAIODevice): # "VirtualDevice"
     def __init__(self, crc_func: callable = lambda x: 0, *args, **kwargs):
         self.crc_func = crc_func
         self.data = []
@@ -164,7 +164,21 @@ class FullDevice(VirtualAIODevice):
     async def drain(self):
         self.work_on_data()
 
-    def handle_msg(self, msg: main_pb2.ProtocolMessage): ...
+    def handle_msg(self, msg: main_pb2.ProtocolMessage):
+        # we try to handle readmemory, so the device will "return" data
+        if msg.WhichOneof("message_type") == "payload":
+            # its a payload, check if the read_memory are available
+            for readmem in msg.payload.read:
+                # there is one, so we answer like the real device
+                ans_msg = main_pb2.ProtocolMessage(
+                    version=3,
+                    sequence=msg.sequence,
+                )
+                ans_msg.payload.memory.append(main_pb2.SetMemoryContent(
+                    address=readmem.address,
+                    data=bytes([x%256 for x in range(readmem.len)]),
+                ))
+                self.data.append(ans_msg)
 
     def work_on_data(self):
         "basically send ACKs"
@@ -179,8 +193,8 @@ class FullDevice(VirtualAIODevice):
             msg = main_pb2.ProtocolMessage.FromString(packet)
             self.handle_msg(msg)
             ans_msg = main_pb2.ProtocolMessage(
-                version=2,
-                ack=main_pb2.ACK(),
+                version=3,
+                ack=main_pb2.ACK(success=True),
                 sequence=msg.sequence,
             )
             assert ans_msg.WhichOneof("message_type") == "ack"
