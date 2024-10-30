@@ -306,7 +306,7 @@ class MAX78000(Device):
             energy_port,
         )
 
-    async def layout_transform(self, model: onnx.ModelProto) -> Any:
+    async def layout_transform(self, model: onnx.ModelProto) -> CNNx16Core:
         # now start the layout transformation to IR
 
         # first we need to retransform the graph so we have a workable graph
@@ -317,7 +317,7 @@ class MAX78000(Device):
 
         return core_ir
 
-    def cnn_enable(self, layout: Any) -> Any:
+    def cnn_enable(self, layout: CNNx16Core) -> Any:
         """ """
         if layout is None:
             return []
@@ -356,7 +356,7 @@ class MAX78000(Device):
         ret.append("")  # TODO: this is only required for the synth to c right now
         return ret
 
-    def cnn_configure(self, layout: Any) -> Any:
+    def cnn_configure(self, layout: CNNx16Core) -> Any:
         """
         Configure the CNN core
         """
@@ -371,7 +371,7 @@ class MAX78000(Device):
                 ret += layout[core, layer].instructions_configure()
         return ret
 
-    def cnn_start(self, layout: Any) -> Any:
+    def cnn_start(self, layout: CNNx16Core) -> Any:
         """
         Start the computation
         """
@@ -408,7 +408,7 @@ class MAX78000(Device):
         full_start.extend(default_start)
         return full_start
 
-    def cnn_load_bias(self, layout: Any) -> Any:
+    def cnn_load_bias(self, layout: CNNx16Core) -> Any:
         """
         Load the bias values
         """
@@ -456,7 +456,7 @@ class MAX78000(Device):
         # we assume 32?
         return bytecount < 32 * self.FLASH_PAGE_SIZE
 
-    def cnn_load_weights(self, layout: Any) -> Any:  # noqa: C901
+    def cnn_load_weights(self, layout: CNNx16Core) -> Any:  # noqa: C901
         """
         Load the weights
         """
@@ -529,11 +529,11 @@ class MAX78000(Device):
             pass
         return ret
 
-    def cnn_load_input(self, layout: Any) -> Any:
+    def cnn_load_input(self, layout: CNNx16Core) -> Any:
         ret = []
         pages = []
         if 0:
-            input_data = b"\0" * 1000
+            input_data = b"\0" * 1000  # is it always 1000?
             page = b""
             page += struct.pack("<I", 0x50400000)
             page += struct.pack("<I", len(input_data) // 4)
@@ -543,23 +543,23 @@ class MAX78000(Device):
             ret.append((main_pb2.Variable.INPUT, pages))
         return ret
 
-    def cnn_fetch_results(self, layout: Any) -> Any:
+    def cnn_fetch_results(self, layout: CNNx16Core) -> Any:
         # fetch results means get data via action
         ret = []
         # either RUN_CNN_UNLOAD (but this does not send a getmemory / readmemory)
-        ret.append(
-            ("READ", 0x50404000, 16)
-        )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x04000
-        ret.append(
-            ("READ", 0x5040C000, 16)
-        )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x0C000
-        ret.append(
-            ("READ", 0x50414000, 8)
-        )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x14000
+        # ret.append(
+        #     ("READ", 0x50404000, 16)
+        # )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x04000
+        # ret.append(
+        #     ("READ", 0x5040C000, 16)
+        # )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x0C000
+        # ret.append(
+        #     ("READ", 0x50414000, 8)
+        # )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x14000
         return ret
 
     async def compile_instructions(
-        self, layout: Any
+        self, layout: CNNx16Core
     ) -> list[dict[str, list["RegisterAccess | MemoryAccess"]]]:  # noqa: F821
         """
         Compile the instructions for the given layout

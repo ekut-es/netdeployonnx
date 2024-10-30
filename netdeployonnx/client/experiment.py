@@ -316,12 +316,12 @@ def write_results(data_collector):
 
 def do_experiments(*args, **kwargs):
     experiments = {
-        # "force_flash_cifar10_short": force_flash_cifar10_short,
-        # "sram_clockspeed": experiment_sram_clockspeed,
-        # "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
-        # "experiment_pooling": experiment_pooling,
-        # "experiment_measure_per_layer":experiment_measure_per_layer,
-        "network_size": experiment_network_size,
+        "force_flash_cifar10_short": force_flash_cifar10_short,
+        "sram_clockspeed": experiment_sram_clockspeed,
+        "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
+        "experiment_pooling": experiment_pooling,
+        "experiment_measure_per_layer": experiment_measure_per_layer,
+        # "network_size": experiment_network_size,
     }
     data_collector = {
         "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
