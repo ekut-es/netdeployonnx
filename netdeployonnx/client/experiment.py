@@ -226,6 +226,7 @@ def experiment_cnn_clockdividers(*args, **kwargs):
         kwargs["config"] = config
         # copy on call
         results.append(run_experiment(*list(args), **dict(kwargs)))
+        break
 
     return results
 
@@ -302,8 +303,39 @@ def force_flash_cifar10_short(*args, **kwargs):
 
 
 def experiment_measure_per_layer(*args, **kwargs):
-    results = []
     # per layer (just reduce max layer?!)
+    results = []
+    data_folder = Path(__file__).parent.parent.parent / "test" / "data"
+    with open(data_folder / "cifar10_short.onnx", "rb") as fx:
+        onnx_model = onnx.load(fx)
+
+    configs = []
+    for layers in range(0, 5 + 1):
+        # repeat x times
+        configs.extend(
+            [
+                {
+                    "layer_count": layers,
+                    "network_name": "cifar10_short.onnx",
+                    "__reflash": False,
+                }
+            ]
+            # scale by sample_points
+            * kwargs.get("sample_points", 10)
+        )
+
+    for config in tqdm(configs, desc="layercnt"):
+        # execute each config, for that prepare metadata
+        del onnx_model.metadata_props[:]
+        for key, value in config.items():
+            onnx_model.metadata_props.append(
+                onnx.StringStringEntryProto(key=key, value=str(value))
+            )
+        # overwrite model
+        kwargs["onnx_model"] = onnx_model
+        kwargs["config"] = config
+        # copy on call
+        results.append(run_experiment(*list(args), **dict(kwargs)))
 
     return results
 
@@ -319,7 +351,7 @@ def do_experiments(*args, **kwargs):
         "force_flash_cifar10_short": force_flash_cifar10_short,
         "sram_clockspeed": experiment_sram_clockspeed,
         "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
-        "experiment_pooling": experiment_pooling,
+        # "experiment_pooling": experiment_pooling,
         "experiment_measure_per_layer": experiment_measure_per_layer,
         # "network_size": experiment_network_size,
     }

@@ -324,6 +324,8 @@ class MAX78000(Device):
         # then to Immediate Representation
         core_ir: CNNx16Core = synth_to_core_ir(transformed_graph)
 
+        for quadrant in range(4):
+            core_ir[quadrant].layer_count = core_ir[quadrant].max_used_layer
         return core_ir
 
     def cnn_enable(self, layout: CNNx16Core) -> Any:

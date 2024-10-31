@@ -137,6 +137,15 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             set_bias_to_core(apb._bias, core)
             set_weights_to_core(apb.kernel_mem, core)
 
+        for quadrant in range(4):
+            core[quadrant].layer_count = core[quadrant].max_used_layer
+
+        # now the cheeky layout modifications
+        self.apply_layout_modifications(core, locked_config)
+
+        return core
+
+    def apply_layout_modifications(self, core: CNNx16Core, locked_config: dict):
         def set_when_available(
             quadrant: CNNx16_Quadrant, locked_config: dict, setting_name: str
         ):
@@ -177,8 +186,6 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             # CTRL reg
             set_when_available(core[quad], locked_config, "pool_en")
             set_when_available(core[quad], locked_config, "maxpool_en")
-
-        return core
 
     @staticmethod
     def following_node(graph: any, node: any, op_type: str, max_depth: int) -> bool:
