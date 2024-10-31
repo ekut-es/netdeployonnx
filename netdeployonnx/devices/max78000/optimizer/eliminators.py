@@ -86,7 +86,7 @@ class EliminateDanglingNodes(Optimizer):
     def run_transformation(
         self, node: Node, do_delete_convs: bool = False
     ) -> NodeTransformType:
-        logger.debug(f"deleting dangling node {node.name}")
+        # logger.debug(f"deleting dangling node {node.name}")
         assert not do_delete_convs and node.op_type != "Conv", (
             "Are we sure we want" " to delete Convs?"
         )

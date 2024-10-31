@@ -41,7 +41,6 @@ from netdeployonnx.devices.max78000.optimizer import (
     FuseReshape,
     Graph,
     ReplaceMatMulWithGemm,
-    logger,
 )
 
 
@@ -78,7 +77,7 @@ def run_optimizer(graph: Graph, last_pass=False) -> int:
     num_changes = 0
 
     for optimizer in optimizers:
-        logger.debug(f"Running optimizer {optimizer.__class__.__name__}")
+        # logger.debug(f"Running optimizer {optimizer.__class__.__name__}")
         num_changes += optimizer.run_on_graph(graph)
 
     # iterate over all nodes in the graph

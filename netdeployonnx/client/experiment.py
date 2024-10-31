@@ -117,7 +117,7 @@ def experiment_sram_clockspeed(*args, **kwargs):
                 }
             ]
             # scale by sample_points
-            * kwargs.get("sample_points", 25)
+            * kwargs.get("sample_points", 10)
         )
     for config in tqdm(configs, desc="sram clockspeed"):
         # execute each config, for that prepare metadata
@@ -211,7 +211,7 @@ def experiment_cnn_clockdividers(*args, **kwargs):
                     }
                 ]
                 # scale by sample_points
-                * kwargs.get("sample_points", 25)
+                * kwargs.get("sample_points", 10)
             )
 
     for config in tqdm(configs, desc="clockselectors"):
@@ -251,7 +251,7 @@ def experiment_pooling(*args, **kwargs):
                     }
                 ]
                 # scale by sample_points
-                * kwargs.get("sample_points", 25)
+                * kwargs.get("sample_points", 10)
             )
 
     for config in tqdm(configs, desc="pooling"):
@@ -347,19 +347,19 @@ def write_results(data_collector):
 
 def do_experiments(*args, **kwargs):
     experiments = {
-        "force_flash_cifar10_short": force_flash_cifar10_short,
-        "sram_clockspeed": experiment_sram_clockspeed,
-        "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
-        # "experiment_pooling": experiment_pooling,
-        "experiment_measure_per_layer": experiment_measure_per_layer,
-        # "network_size": experiment_network_size,
+        # "force_flash_cifar10_short": force_flash_cifar10_short,
+        # "sram_clockspeed": experiment_sram_clockspeed,
+        # "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
+        # # "experiment_pooling": experiment_pooling,
+        # "experiment_measure_per_layer": experiment_measure_per_layer,
+        "network_size": experiment_network_size,
     }
     data_collector = {
         "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "experiments": [],
     }
 
-    kwargs["samplepoints"] = 25
+    kwargs["samplepoints"] = 10
     try:
         for experiment_name, experiment in experiments.items():
             results = experiment(*args, **kwargs)
