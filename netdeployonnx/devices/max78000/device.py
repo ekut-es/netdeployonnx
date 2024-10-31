@@ -98,6 +98,14 @@ class MAX78000Metrics(Metrics):
                     active_power = float(stage[3])
                     diff_power = active_power - idle_power
 
+                    # energy, time and power cannot be negative, but we dont abs,
+                    # so we dont remove information
+
+                    # used_energy = abs(used_energy)
+                    # used_time = abs(used_time)
+                    # idle_power = abs(idle_power)
+                    # active_power = abs(active_power)
+
                     return used_energy, used_time, idle_power, active_power, diff_power
 
                 # TIMES_OPERATION = 100
@@ -161,12 +169,13 @@ class MAX78000Metrics(Metrics):
                     micro_s,
                     micro_joules,
                 ) in measurements.items():
-                    stats[f"uW_per_{measurement_name}"] = round(max(0, micro_watt), 2)
-                    stats[f"us_per_{measurement_name}"] = round(max(0, micro_s), 2)
+                    # disable clipping, so no information is removed
+                    stats[f"uW_per_{measurement_name}"] = round((micro_watt), 2)
+                    stats[f"us_per_{measurement_name}"] = round((micro_s), 2)
                     # stats[f"uJ_per_{measurement_name}"] = (
                     #     round(micro_s * micro_watt, 2) * 1e-6
                     # )
-                    stats[f"uJ_per_{measurement_name}"] = round(max(0, micro_joules), 2)
+                    stats[f"uJ_per_{measurement_name}"] = round((micro_joules), 2)
                 results.append(stats)
             else:
                 print("we found size of res=", len(res))
