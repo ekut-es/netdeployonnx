@@ -226,7 +226,6 @@ def experiment_cnn_clockdividers(*args, **kwargs):
         kwargs["config"] = config
         # copy on call
         results.append(run_experiment(*list(args), **dict(kwargs)))
-        break
 
     return results
 
