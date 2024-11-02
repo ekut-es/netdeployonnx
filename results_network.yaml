@@ -712,10 +712,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.78
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2928.8
+      uW_per_inference: 5586.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.92
+      us_per_inference: 4.34
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 276.39
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.63
+      layout_transform: 0.42
+      total: 3.05
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -725,10 +742,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.75
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2836.6
+      uW_per_inference: 5562.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.0
+      us_per_inference: 4.39
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.42
+      total: 2.69
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -738,10 +772,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.74
+      uJ_per_inference: 1.49
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2803.2
+      uW_per_inference: 5542.7
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.97
+      us_per_inference: 4.31
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.26
+      layout_transform: 0.4
+      total: 2.66
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -751,10 +802,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.73
+      uJ_per_inference: 1.48
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2775.3
+      uW_per_inference: 5488.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.95
+      us_per_inference: 4.36
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 276.41
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.41
+      total: 2.68
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -764,10 +832,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.74
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2806.5
+      uW_per_inference: 5583.6
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.03
+      us_per_inference: 4.34
+      us_per_input_loading: 265.25
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.41
+      total: 2.69
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -777,10 +862,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.78
+      uJ_per_inference: 1.49
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2941.9
+      uW_per_inference: 5536.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.92
+      us_per_inference: 4.34
+      us_per_input_loading: 265.17
+      us_per_weights_loading: 276.41
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.42
+      total: 2.69
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -790,10 +892,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.75
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2815.6
+      uW_per_inference: 5563.0
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.0
+      us_per_inference: 4.37
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.37
+      total: 2.64
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -803,10 +922,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.79
+      uJ_per_inference: 1.52
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2979.8
+      uW_per_inference: 5658.4
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.0
+      us_per_inference: 4.34
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.26
+      layout_transform: 0.38
+      total: 2.65
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -816,10 +952,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.74
+      uJ_per_inference: 1.5
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2807.4
+      uW_per_inference: 5559.5
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 545.97
+      us_per_inference: 4.34
+      us_per_input_loading: 265.2
+      us_per_weights_loading: 276.44
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.27
+      layout_transform: 0.37
+      total: 2.64
   - args: []
     kwargs:
       client_connect: localhost:28329
@@ -829,10 +982,27 @@ experiments:
       device_filter: *id001
       function_timeout: 30
       keepalive_timeout: 15
-      samplepoints: 10
-    metrics: {}
+      samplepoints: 25
+    metrics:
+      uJ_per_all: 0.75
+      uJ_per_inference: 1.48
+      uJ_per_input_loading: 0
+      uJ_per_weights_loading: 0
+      uW_per_all: 2815.0
+      uW_per_inference: 5492.2
+      uW_per_input_loading: 0
+      uW_per_weights_loading: 0
+      us_per_all: 546.05
+      us_per_inference: 4.37
+      us_per_input_loading: 265.22
+      us_per_weights_loading: 276.47
     outputs: []
-    profile: {}
+    profile:
+      _check_model: 0.0
+      compile_instructions: 0.0
+      execute: 2.26
+      layout_transform: 0.42
+      total: 2.68
   - args: []
     kwargs:
       client_connect: localhost:28329
