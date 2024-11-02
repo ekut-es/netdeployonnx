@@ -126,24 +126,40 @@ class MAX78000Metrics(Metrics):
                 measurements = {
                     "weights_loading": (
                         measure_kernels[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_kernels[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
                         measure_kernels[IDX_TIME] * X_TO_MICRO_SECONDS,
                         measure_kernels[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "input_loading": (
                         measure_input[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_input[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
                         measure_input[IDX_TIME] * X_TO_MICRO_SECONDS,
                         measure_input[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "inference": (
                         calculated_inferences[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        calculated_inferences[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
                         calculated_inferences[IDX_TIME] * X_TO_MICRO_SECONDS,
                         calculated_inferences[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
+                    ),
+                    "load_and_inference": (
+                        measure_input_inference[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_input_inference[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
+                        measure_input_inference[IDX_TIME] * X_TO_MICRO_SECONDS,
+                        measure_input_inference[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "all": (
                         sum(
                             [
                                 measure_kernels[IDX_USED_POWER],
                                 measure_input_inference[IDX_USED_POWER],
+                            ]
+                        )
+                        * X_TO_MICRO_WATTS,
+                        sum(
+                            [
+                                measure_kernels[IDX_ACTIVE_POWER],
+                                measure_input_inference[IDX_ACTIVE_POWER],
                             ]
                         )
                         * X_TO_MICRO_WATTS,
@@ -166,12 +182,14 @@ class MAX78000Metrics(Metrics):
 
                 for measurement_name, (
                     micro_watt,
+                    micro_watt_abs,
                     micro_s,
                     micro_joules,
                 ) in measurements.items():
                     # disable clipping, so no information is removed
                     stats[f"uW_per_{measurement_name}"] = round((micro_watt), 2)
                     stats[f"us_per_{measurement_name}"] = round((micro_s), 2)
+                    stats[f"uW_abs_per_{measurement_name}"] = round((micro_watt_abs), 2)
                     # stats[f"uJ_per_{measurement_name}"] = (
                     #     round(micro_s * micro_watt, 2) * 1e-6
                     # )

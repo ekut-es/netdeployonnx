@@ -168,24 +168,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 )
                 continue
         # to modify sram fetch
-        for quad in range(4):
-            # SRAM reg
-            set_when_available(core[quad], locked_config, "lightsleep_bram")
-            set_when_available(core[quad], locked_config, "lightsleep_tram")
-            set_when_available(core[quad], locked_config, "lightsleep_mram")
-            set_when_available(core[quad], locked_config, "lightsleep_dram")
-            set_when_available(core[quad], locked_config, "memory_deep_sleep")
-            set_when_available(core[quad], locked_config, "write_pulse_width")
-            set_when_available(core[quad], locked_config, "write_neg_voltage_enable")
-            set_when_available(core[quad], locked_config, "write_neg_voltage")
-            set_when_available(core[quad], locked_config, "read_assist_voltage")
-            set_when_available(core[quad], locked_config, "read_margin")
-            set_when_available(core[quad], locked_config, "read_margin_enable")
-            set_when_available(core[quad], locked_config, "extended_access_time_enable")
-
-            # CTRL reg
-            set_when_available(core[quad], locked_config, "pool_en")
-            set_when_available(core[quad], locked_config, "maxpool_en")
+        for option_name, fieldinfo in core[0].model_fields.items():
+            for quad in range(4):
+                set_when_available(core[quad], locked_config, option_name)
 
     @staticmethod
     def following_node(graph: any, node: any, op_type: str, max_depth: int) -> bool:

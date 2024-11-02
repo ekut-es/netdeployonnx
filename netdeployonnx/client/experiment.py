@@ -191,8 +191,8 @@ def experiment_cnn_clockdividers(*args, **kwargs):
     configs = []
     for cnnclksel in range(0, 1 + 1):
         # CNN Peripheral Clock Select = cnnclksel
-        # 0 is PCLK
-        # 1 is ISO
+        # 0 is PCLK (100MHz)
+        # 1 is ISO (60MHz)
         for cnnclkdiv in range(0, 4 + 1):
             # 0 is cnn_clock/2
             # 1 is cnn_clock/4
@@ -204,8 +204,8 @@ def experiment_cnn_clockdividers(*args, **kwargs):
             configs.extend(
                 [
                     {
-                        "GCR_pclkdiv.cnnclksel": cnnclksel,
-                        "GCR.pclkdiv.cnnclkdiv": cnnclkdiv,
+                        "GCR_pclkdiv.cnnclksel": cnnclksel,  # layout.specialconfig
+                        "GCR_pclkdiv.cnnclkdiv": cnnclkdiv,  # layout.specialconfig
                         "network_name": "cifar10_short.onnx",
                         "__reflash": False,
                     }
@@ -350,7 +350,6 @@ def do_experiments(*args, **kwargs):
         # "force_flash_cifar10_short": force_flash_cifar10_short,
         # "sram_clockspeed": experiment_sram_clockspeed,
         # "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
-        # # "experiment_pooling": experiment_pooling,
         # "experiment_measure_per_layer": experiment_measure_per_layer,
         "network_size": experiment_network_size,
     }
