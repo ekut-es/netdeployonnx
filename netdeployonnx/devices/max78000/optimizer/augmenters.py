@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import numpy
 import onnx
 
@@ -98,4 +116,21 @@ class Augment_Conv_Kernelshape(Optimizer):  # noqa: N801
         assert kernel_shape in [[1, 1], [3, 3]], "kernel shape must be 1x1 or 3x3"
 
         node.attributes["kernel_shape"] = kernel_shape
+        return NodeTransformType.MODIFY
+
+
+class Conv2DTranspose(Optimizer):
+    """
+    Augment ConvTranspose nodes with additional information
+    """
+
+    def match(self, node: Node) -> bool:
+        return node.op_type.startswith("ConvTranspose")
+
+    def run_transformation(self, node: Node) -> NodeTransformType:
+        # we need to find out the shape of the kernel
+        # we can do this by looking at the weight tensor
+        # and then infer the shape from that
+        node.op_type = "Conv"
+        node.attributes["transpose"] = 1
         return NodeTransformType.MODIFY

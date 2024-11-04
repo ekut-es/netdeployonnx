@@ -1,8 +1,8 @@
 #
-# Copyright (c) 2024 Hannah contributors.
+# Copyright (c) 2024 netdeployonnx contributors.
 #
-# This file is part of hannah.
-# See https://github.com/ekut-es/hannah for further info.
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

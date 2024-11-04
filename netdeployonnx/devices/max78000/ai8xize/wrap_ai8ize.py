@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import contextlib
 import io
 import json
@@ -321,7 +339,9 @@ def _process_channels(  # noqa: C901
     # or update the kernel_shape of a weight
     for node in probable_nodes:
         if node.op_type == "Conv":  # if it is a conv node
-            if _input == node.input[2]:  # if the input is the bias
+            if (
+                len(node.input) >= 3 and _input == node.input[2]
+            ):  # if the input is the bias
                 # remove kernel_shape from this bias
                 with contextlib.suppress(ValueError):
                     removal_idx = [attr.name for attr in node.attribute].index(
@@ -330,7 +350,7 @@ def _process_channels(  # noqa: C901
                     node.attribute.pop(removal_idx)
                     # remove kernel_shape so that we can use the function and do not add
                     # the kernel shape a second time
-            elif _input == node.input[1]:
+            elif len(node.input) >= 2 and _input == node.input[1]:
                 # if its a weight, make sure its atleast of length 2
                 with contextlib.suppress(ValueError):
                     kernel_shape_idx = [attr.name for attr in node.attribute].index(

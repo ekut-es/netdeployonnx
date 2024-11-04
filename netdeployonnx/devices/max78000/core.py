@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """
 This file contains the Core, Quadrant and Layer for the MAX78000
 
@@ -19,6 +37,7 @@ import netdeployonnx.devices.max78000.cnn_constants as cnn_constants
 from netdeployonnx.devices.max78000.cnn_constants import (
     CNNx16_n_CTRL_RDY_SEL_VALUEMASK,
     CNNx16_n_IFRM_IFRM_REG_VALUEMASK,
+    CNNx16_n_LCNT_MAX_LCNT_VALUEMASK,
     CNNx16_n_Ly_CCNT_CCNT_MAX_VALUEMASK,
     CNNx16_n_Ly_CCNT_CCNT_PAD_VALUEMASK,
     CNNx16_n_Ly_EN_MASK_EN_VALUEMASK,
@@ -758,6 +777,10 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
     )
 
     # LCNT_MAX
+    layer_count: conint(ge=0, le=CNNx16_n_LCNT_MAX_LCNT_VALUEMASK) = Field(
+        default=0,
+        json_schema_extra={"register": "LCNT_MAX", "field": "LCNT"},
+    )
 
     # TEST
 
@@ -868,7 +891,12 @@ class CNNx16_Quadrant(BaseModel):  # noqa: N801
                 },
             )
         if 1:
-            ret += self.write_register("LCNT_MAX", self.max_used_layer)
+            ret += self.write_register(
+                "LCNT_MAX",
+                {
+                    "LCNT": self.layer_count,
+                },
+            )
         return ret
 
     def instructions_configure(self):

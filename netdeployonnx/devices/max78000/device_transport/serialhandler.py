@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import asyncio
 import contextlib
 import logging
@@ -211,28 +229,32 @@ class PacketOrderSender:
 
     def __init__(self, data_handler: "DataHandler", one_message_timeout: float = 5.0):
         self.data_handler = data_handler
-        self.current_sequence = 1  # 0xFFFF_FFF0
-        self.sent_sequence = self.current_sequence
+        self.expected_sequence = 1  # 0xFFFF_FFF0
+        self.enqueued_sequence = self.expected_sequence
         self.one_message_timeout = one_message_timeout
         self.wait_queue = {}
         self.sequence_queue = {}
+        self.sequence_success = {}
         self.sendqueue = []
         self.resend = False
 
     def enqueue(self, msg: main_pb2.ProtocolMessage) -> int:
-        msg.sequence = self.sent_sequence
-        self.sequence_queue[self.sent_sequence] = msg
-        self.sent_sequence += 1
+        msg.sequence = self.enqueued_sequence
+        msgstr = str(msg).replace("\n", " ")[:100]
+        logging.info(f"enqueing msg with seq {msg.sequence} {msgstr}")
+        self.sequence_queue[self.enqueued_sequence] = msg
+        self.enqueued_sequence += 1
         return msg.sequence
 
     def accept_acknowledge(self, sequence: int, success: bool) -> bool:
         "returns true if the sequence is ok, else returns false and requests a resend"
-        if self.current_sequence == sequence:
+        if self.expected_sequence == sequence:
             # accept it by removing it from the sendqueue
             if len(self.sendqueue) > 0:
                 self.sendqueue.pop(0)
             else:
                 raise Exception("when does this happen?")
+            self.sequence_success[sequence] = success  # save the success
             if sequence in self.wait_queue:
                 try:
                     self.wait_queue[sequence].set_result(success)
@@ -240,7 +262,7 @@ class PacketOrderSender:
                     print(ise)
                     raise ise
 
-            self.current_sequence += 1
+            self.expected_sequence += 1
             return True
         else:
             self.resend = True
@@ -258,7 +280,7 @@ class PacketOrderSender:
         if len(self.sendqueue) == 0:
             # we need to fill it
             for local_seq_id in range(self.MAX_QUEUE_SIZE):
-                sequence_id = self.current_sequence + local_seq_id
+                sequence_id = self.expected_sequence + local_seq_id
                 if sequence_id in self.sequence_queue:
                     self.sendqueue.append(self.sequence_queue[sequence_id])
                 else:
@@ -287,9 +309,17 @@ class PacketOrderSender:
                 return True  # do not wait for resets
         return False
 
-    async def wait_for_sequence(self, sequence) -> None:
-        do_resend = False
+    def get_success_for_sequence_list(self, sequence_list: list[int]) -> dict[bool]:
+        return {
+            sequence: (
+                False
+                if sequence not in self.sequence_queue
+                else self.sequence_success[sequence]
+            )
+            for sequence in sequence_list
+        }
 
+    async def wait_for_sequence(self, sequence) -> None:
         def completed_future(result):
             fut = asyncio.Future()
             fut.set_result(result)
@@ -298,18 +328,8 @@ class PacketOrderSender:
         self.wait_queue[sequence] = asyncio.Future()
         logging.debug(f">>>start waiting for sequence {sequence}")
         if self.do_not_wait_for_sequence(sequence):
+            logging.debug(f"dont wait for sequence {sequence}, but sleep")
             await asyncio.sleep(0.5)  # wait half a second for a reboot
-        elif do_resend:
-            # TODO: does not work
-            while False:
-                try:
-                    result = await asyncio.wait_for(  # noqa: F841
-                        self.wait_queue[sequence], self.one_message_timeout
-                    )
-                    break
-                except TimeoutError:
-                    logging.warning(f"resending sequence {sequence}")
-                    # self.resend = True
         else:
             await self.wait_queue[sequence]
         logging.debug(f"<<<done  waiting for sequence {sequence}")
@@ -321,9 +341,10 @@ class DataHandler:
         self.reader = reader
         self.writer = writer
         self.debug = debug
-        self.handlers: list[MessageHandler] = [self.keepalive_handler, self.ack_handler]
+        self.handlers: list[MessageHandler] = [self.keepalive_handler, self.ack_handler, self.payload_handler]
 
         self.msgs = []
+        self.results = {}
         self.external_send_queue = []
         self.datastream = b""
         self.keepalive_answer = main_pb2.ProtocolMessage()
@@ -349,9 +370,26 @@ class DataHandler:
                 success = msg.ack.success
                 assert self.packet_order_sender.accept_acknowledge(seq, success), (
                     f"cannot accept seq {seq} (with: "
-                    f"{self.packet_order_sender.current_sequence}, "
-                    f"{self.packet_order_sender.sent_sequence})"
+                    f"expecting {self.packet_order_sender.expected_sequence}, "
+                    f"enqueued {self.packet_order_sender.enqueued_sequence})"
                 )
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+            finally:
+                return True
+        return False
+
+    async def payload_handler(self, msg, writer) -> bool:
+        if msg.WhichOneof("message_type") == "payload":
+            try:
+                # this may be a result
+                for setmem in msg.payload.memory:
+                    # device is delivering device read answers
+                    if msg.sequence not in self.results:
+                        self.results[msg.sequence] = []
+                    self.results[msg.sequence].append({"addr":setmem.address, "data":setmem.data})
             except Exception:
                 import traceback
 
@@ -400,11 +438,37 @@ class DataHandler:
     async def send_msgs(
         self, msgs: list["main_pb2.ProtocolMessage"], group_timeout: int = 4.0
     ):
-        last_sequence = None
-        for msg in msgs:
-            last_sequence = self.packet_order_sender.enqueue(msg)
+        # send out the sequence, but only check the last message of the list,
+        # and only return true if all sequences returned success=True
+        sequences = [self.packet_order_sender.enqueue(msg) for msg in msgs]
+        last_sequence = sequences[-1]
         try:
-            return await self.packet_order_sender.wait_for_sequence(last_sequence)
+            futures = {
+                sequence: self.packet_order_sender.wait_for_sequence(sequence)
+                for sequence in [last_sequence]
+            }
+
+            last_future = futures[last_sequence]
+            await last_future
+            success_per_sequence = (
+                self.packet_order_sender.get_success_for_sequence_list(sequences)
+            )
+            all_success = all(
+                success_per_sequence.values()
+            )  # only true if all are successful
+            if not all_success:
+                unsuccessful_sequences = [
+                    seq for seq, success in success_per_sequence.items() if not success
+                ]
+                logging.info(f"sequences {unsuccessful_sequences} did not return true")
+            if all_success and len(self.results) > 0:
+                results = []
+                for sequence in sequences:
+                    if sequence in self.results:
+                        results.extend(self.results[sequence])
+                        del self.results[sequence]
+                return results
+            return all_success
         except TimeoutError:
             raise Exception("Timeout on wait for ack packet")
 
@@ -653,6 +717,7 @@ async def open_serial_connection(*, loop=None, limit=None, **kwargs):
     baudrate = kwargs.get("baudrate")
 
     # check if the URL is /dev/virtual..... else use the compatibility serial
+    # "VirtualDevice"
     if "virtual" in url:
         aioserial_instance = FullDevice(crc) if "Device" in url else MeasureDevice()
     else:

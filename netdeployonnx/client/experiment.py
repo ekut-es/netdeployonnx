@@ -1,5 +1,24 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import datetime
 import io
+import logging
 import traceback
 from pathlib import Path
 
@@ -12,6 +31,7 @@ from netdeployonnx.client.grpc_backend import (
     GRPCBackend,
     ProfilingResult,
 )
+
 
 class LightningModel:
     def __init__(self, onnx_model):
@@ -62,7 +82,9 @@ def run_experiment(*args, **kwargs):
                 "profile": results.profile,
             }
         )
+        logging.info(f"ran experiment with results: {ret}")
     except Exception as ex:
+        logging.error("error during experiment")
         ret.update(
             {
                 "exception": {
@@ -71,6 +93,7 @@ def run_experiment(*args, **kwargs):
                 }
             }
         )
+
     return ret
 
 
@@ -94,7 +117,7 @@ def experiment_sram_clockspeed(*args, **kwargs):
                 }
             ]
             # scale by sample_points
-            * kwargs.get("sample_points", 25)
+            * kwargs.get("sample_points", 10)
         )
     for config in tqdm(configs, desc="sram clockspeed"):
         # execute each config, for that prepare metadata
@@ -121,7 +144,7 @@ def experiment_network_size(*args, **kwargs):
         "ai85-bayer2rgb-qat8-q.pth.onnx",
         "ai85-cifar10-qat8-q.pth.onnx",
         "ai85-cifar100-qat8-q.pth.onnx",
-        "ai85-faceid_112-qat-q.pth.onnx",
+        # "ai85-faceid_112-qat-q.pth.onnx", # unfortunately, this does not really work
         "ai85-kws20_v3-qat8-q.pth.onnx",
     ]
     configs = []
@@ -137,8 +160,10 @@ def experiment_network_size(*args, **kwargs):
                     }
                 ]
             )
-    for config in tqdm(configs, desc="network size"):
+    pbar = tqdm(configs, desc="network size")
+    for config in pbar:
         network = config.get("network_name")
+        pbar.set_description(desc=f"network size [{network}]")
         with open(data_folder / network, "rb") as fx:
             onnx_model = onnx.load(fx)
         del onnx_model.metadata_props[:]
@@ -166,8 +191,8 @@ def experiment_cnn_clockdividers(*args, **kwargs):
     configs = []
     for cnnclksel in range(0, 1 + 1):
         # CNN Peripheral Clock Select = cnnclksel
-        # 0 is PCLK
-        # 1 is ISO
+        # 0 is PCLK (100MHz)
+        # 1 is ISO (60MHz)
         for cnnclkdiv in range(0, 4 + 1):
             # 0 is cnn_clock/2
             # 1 is cnn_clock/4
@@ -179,14 +204,14 @@ def experiment_cnn_clockdividers(*args, **kwargs):
             configs.extend(
                 [
                     {
-                        "GCR_pclkdiv.cnnclksel": cnnclksel,
-                        "GCR.pclkdiv.cnnclkdiv": cnnclkdiv,
+                        "GCR_pclkdiv.cnnclksel": cnnclksel,  # layout.specialconfig
+                        "GCR_pclkdiv.cnnclkdiv": cnnclkdiv,  # layout.specialconfig
                         "network_name": "cifar10_short.onnx",
                         "__reflash": False,
                     }
                 ]
                 # scale by sample_points
-                * kwargs.get("sample_points", 25)
+                * kwargs.get("sample_points", 10)
             )
 
     for config in tqdm(configs, desc="clockselectors"):
@@ -226,7 +251,7 @@ def experiment_pooling(*args, **kwargs):
                     }
                 ]
                 # scale by sample_points
-                * kwargs.get("sample_points", 25)
+                * kwargs.get("sample_points", 10)
             )
 
     for config in tqdm(configs, desc="pooling"):
@@ -277,10 +302,47 @@ def force_flash_cifar10_short(*args, **kwargs):
 
 
 def experiment_measure_per_layer(*args, **kwargs):
-    results = []
     # per layer (just reduce max layer?!)
+    results = []
+    data_folder = Path(__file__).parent.parent.parent / "test" / "data"
+    with open(data_folder / "cifar10_short.onnx", "rb") as fx:
+        onnx_model = onnx.load(fx)
+
+    configs = []
+    for layers in range(0, 5 + 1):
+        # repeat x times
+        configs.extend(
+            [
+                {
+                    "layer_count": layers,
+                    "network_name": "cifar10_short.onnx",
+                    "__reflash": False,
+                }
+            ]
+            # scale by sample_points
+            * kwargs.get("sample_points", 10)
+        )
+
+    for config in tqdm(configs, desc="layercnt"):
+        # execute each config, for that prepare metadata
+        del onnx_model.metadata_props[:]
+        for key, value in config.items():
+            onnx_model.metadata_props.append(
+                onnx.StringStringEntryProto(key=key, value=str(value))
+            )
+        # overwrite model
+        kwargs["onnx_model"] = onnx_model
+        kwargs["config"] = config
+        # copy on call
+        results.append(run_experiment(*list(args), **dict(kwargs)))
 
     return results
+
+
+def write_results(data_collector):
+    # save to yaml
+    with open("results.yaml", "w") as fx:
+        yaml.dump(data_collector, fx)
 
 
 def do_experiments(*args, **kwargs):
@@ -288,8 +350,7 @@ def do_experiments(*args, **kwargs):
         # "force_flash_cifar10_short": force_flash_cifar10_short,
         # "sram_clockspeed": experiment_sram_clockspeed,
         # "experiment_cnn_clockdividers": experiment_cnn_clockdividers,
-        # "experiment_pooling": experiment_pooling,
-        # "experiment_measure_per_layer":experiment_measure_per_layer,
+        # "experiment_measure_per_layer": experiment_measure_per_layer,
         "network_size": experiment_network_size,
     }
     data_collector = {
@@ -297,18 +358,16 @@ def do_experiments(*args, **kwargs):
         "experiments": [],
     }
 
-    kwargs["samplepoints"] = 25
-
-    for experiment_name, experiment in experiments.items():
-        results = experiment(*args, **kwargs)
-        results = results if results else []
-        data_collector["experiments"].append(
-            {
-                "name": experiment_name,
-                "results": results,
-            }
-        )
-
-    # save to yaml
-    with open("results.yaml", "w") as fx:
-        yaml.dump(data_collector, fx)
+    kwargs["samplepoints"] = 10
+    try:
+        for experiment_name, experiment in experiments.items():
+            results = experiment(*args, **kwargs)
+            results = results if results else []
+            data_collector["experiments"].append(
+                {
+                    "name": experiment_name,
+                    "results": results,
+                }
+            )
+    finally:
+        write_results(data_collector)

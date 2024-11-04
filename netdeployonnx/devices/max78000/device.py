@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import asyncio
 import logging
 import struct
@@ -80,6 +98,14 @@ class MAX78000Metrics(Metrics):
                     active_power = float(stage[3])
                     diff_power = active_power - idle_power
 
+                    # energy, time and power cannot be negative, but we dont abs,
+                    # so we dont remove information
+
+                    # used_energy = abs(used_energy)
+                    # used_time = abs(used_time)
+                    # idle_power = abs(idle_power)
+                    # active_power = abs(active_power)
+
                     return used_energy, used_time, idle_power, active_power, diff_power
 
                 # TIMES_OPERATION = 100
@@ -100,24 +126,40 @@ class MAX78000Metrics(Metrics):
                 measurements = {
                     "weights_loading": (
                         measure_kernels[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_kernels[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
                         measure_kernels[IDX_TIME] * X_TO_MICRO_SECONDS,
                         measure_kernels[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "input_loading": (
                         measure_input[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_input[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
                         measure_input[IDX_TIME] * X_TO_MICRO_SECONDS,
                         measure_input[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "inference": (
                         calculated_inferences[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        calculated_inferences[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
                         calculated_inferences[IDX_TIME] * X_TO_MICRO_SECONDS,
                         calculated_inferences[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
+                    ),
+                    "load_and_inference": (
+                        measure_input_inference[IDX_USED_POWER] * X_TO_MICRO_WATTS,
+                        measure_input_inference[IDX_ACTIVE_POWER] * X_TO_MICRO_WATTS,
+                        measure_input_inference[IDX_TIME] * X_TO_MICRO_SECONDS,
+                        measure_input_inference[IDX_ENERGY_USED] * X_TO_MICRO_JOULES,
                     ),
                     "all": (
                         sum(
                             [
                                 measure_kernels[IDX_USED_POWER],
                                 measure_input_inference[IDX_USED_POWER],
+                            ]
+                        )
+                        * X_TO_MICRO_WATTS,
+                        sum(
+                            [
+                                measure_kernels[IDX_ACTIVE_POWER],
+                                measure_input_inference[IDX_ACTIVE_POWER],
                             ]
                         )
                         * X_TO_MICRO_WATTS,
@@ -140,15 +182,18 @@ class MAX78000Metrics(Metrics):
 
                 for measurement_name, (
                     micro_watt,
+                    micro_watt_abs,
                     micro_s,
                     micro_joules,
                 ) in measurements.items():
-                    stats[f"uW_per_{measurement_name}"] = round(max(0, micro_watt), 2)
-                    stats[f"us_per_{measurement_name}"] = round(max(0, micro_s), 2)
+                    # disable clipping, so no information is removed
+                    stats[f"uW_per_{measurement_name}"] = round((micro_watt), 2)
+                    stats[f"us_per_{measurement_name}"] = round((micro_s), 2)
+                    stats[f"uW_abs_per_{measurement_name}"] = round((micro_watt_abs), 2)
                     # stats[f"uJ_per_{measurement_name}"] = (
                     #     round(micro_s * micro_watt, 2) * 1e-6
                     # )
-                    stats[f"uJ_per_{measurement_name}"] = round(max(0, micro_joules), 2)
+                    stats[f"uJ_per_{measurement_name}"] = round((micro_joules), 2)
                 results.append(stats)
             else:
                 print("we found size of res=", len(res))
@@ -288,7 +333,7 @@ class MAX78000(Device):
             energy_port,
         )
 
-    async def layout_transform(self, model: onnx.ModelProto) -> Any:
+    async def layout_transform(self, model: onnx.ModelProto) -> CNNx16Core:
         # now start the layout transformation to IR
 
         # first we need to retransform the graph so we have a workable graph
@@ -297,9 +342,11 @@ class MAX78000(Device):
         # then to Immediate Representation
         core_ir: CNNx16Core = synth_to_core_ir(transformed_graph)
 
+        for quadrant in range(4):
+            core_ir[quadrant].layer_count = core_ir[quadrant].max_used_layer
         return core_ir
 
-    def cnn_enable(self, layout: Any) -> Any:
+    def cnn_enable(self, layout: CNNx16Core) -> Any:
         """ """
         if layout is None:
             return []
@@ -338,7 +385,7 @@ class MAX78000(Device):
         ret.append("")  # TODO: this is only required for the synth to c right now
         return ret
 
-    def cnn_configure(self, layout: Any) -> Any:
+    def cnn_configure(self, layout: CNNx16Core) -> Any:
         """
         Configure the CNN core
         """
@@ -353,7 +400,7 @@ class MAX78000(Device):
                 ret += layout[core, layer].instructions_configure()
         return ret
 
-    def cnn_start(self, layout: Any) -> Any:
+    def cnn_start(self, layout: CNNx16Core) -> Any:
         """
         Start the computation
         """
@@ -390,7 +437,7 @@ class MAX78000(Device):
         full_start.extend(default_start)
         return full_start
 
-    def cnn_load_bias(self, layout: Any) -> Any:
+    def cnn_load_bias(self, layout: CNNx16Core) -> Any:
         """
         Load the bias values
         """
@@ -434,7 +481,11 @@ class MAX78000(Device):
             pass
         return ret
 
-    def cnn_load_weights(self, layout: Any) -> Any:  # noqa: C901
+    def maximum_network_size_okay(self, bytecount: int):
+        # we assume 32?
+        return bytecount < 32 * self.FLASH_PAGE_SIZE
+
+    def cnn_load_weights(self, layout: CNNx16Core) -> Any:  # noqa: C901
         """
         Load the weights
         """
@@ -483,6 +534,9 @@ class MAX78000(Device):
                 weight_pages.append(weight_page)
             # now write the bias as flash instr
             ret.append((main_pb2.Variable.WEIGHTS, weight_pages))
+            assert self.maximum_network_size_okay(
+                sum([len(p) for p in weight_pages])
+            ), "Weights too big"
         elif need_to_direct_write:
             for quad in range(4):
                 for proc in range(16):
@@ -504,18 +558,37 @@ class MAX78000(Device):
             pass
         return ret
 
-    def cnn_load_input(self, layout: Any) -> Any:
+    def cnn_load_input(self, layout: CNNx16Core) -> Any:
         ret = []
+        pages = []
+        if 0:
+            input_data = b"\0" * 1000  # is it always 1000?
+            page = b""
+            page += struct.pack("<I", 0x50400000)
+            page += struct.pack("<I", len(input_data) // 4)
+            pages.append(page)
+
+        if pages:
+            ret.append((main_pb2.Variable.INPUT, pages))
         return ret
 
-    def cnn_fetch_results(self, layout: Any) -> Any:
+    def cnn_fetch_results(self, layout: CNNx16Core) -> Any:
         # fetch results means get data via action
         ret = []
-
+        # either RUN_CNN_UNLOAD (but this does not send a getmemory / readmemory)
+        # ret.append(
+        #     ("READ", 0x50404000, 16)
+        # )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x04000
+        # ret.append(
+        #     ("READ", 0x5040C000, 16)
+        # )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x0C000
+        # ret.append(
+        #     ("READ", 0x50414000, 8)
+        # )  # CNN-memory: CNNx16_0_SRAM = 0x5040_0000 + 0x14000
         return ret
 
     async def compile_instructions(
-        self, layout: Any
+        self, layout: CNNx16Core
     ) -> list[dict[str, list["RegisterAccess | MemoryAccess"]]]:  # noqa: F821
         """
         Compile the instructions for the given layout
@@ -634,6 +707,20 @@ class MAX78000(Device):
                         setattr(msg.configuration, action_value, action_arg)
                         messages.append(msg)  # add our msg
                         msg = commands.new_message()  # create new
+                    elif MSG_TYPE == "READ":
+                        read_from_addr = action_value
+                        read_amount = action_arg
+
+                        messages.append(msg)  # add previous message
+                        msg = commands.new_message()
+                        msg.payload.read.append(
+                            main_pb2.ReadMemoryContent(
+                                address=read_from_addr, len=read_amount
+                            )
+                        )
+                        messages.append(msg)  # add our msg
+                        msg = commands.new_message()  # create new
+
                     else:
                         raise NotImplementedError(f"unknown MSG_TYPE {MSG_TYPE}")
                 else:
@@ -694,11 +781,28 @@ class MAX78000(Device):
                             timeout_batch = 2 * batch_size
                             batch = messages[i : i + batch_size]
                             try:
-                                readback = await asyncio.wait_for(
-                                    commands.send_batch(batch), timeout=timeout_batch
-                                )
-                                if isinstance(readback, Iterable):
-                                    result.extend(readback)
+                                for resend_attempts in range(3):
+                                    if resend_attempts > 1:
+                                        logging.warning(
+                                            f"resending batch index {i} for stage "
+                                            f"{stagename}"
+                                        )
+                                    readback = await asyncio.wait_for(
+                                        commands.send_batch(batch),
+                                        timeout=timeout_batch,
+                                    )
+                                    if isinstance(readback, Iterable):
+                                        result.extend(readback)
+                                    elif isinstance(readback, bool):
+                                        # check if the batch was a success?
+                                        if not readback:
+                                            # we have a problem, we may need to resend
+                                            logging.info(
+                                                "batch result is False, send again."
+                                            )
+                                        else:
+                                            logging.info("batch returned all good")
+                                            break
                             except asyncio.CancelledError:
                                 pass
                             pbar.update(batch_size)
@@ -712,7 +816,24 @@ class MAX78000(Device):
         logging.debug(f"got {collected_data}")
         logging.debug(f"which is translated to {metrics.as_dict()}")
 
-        return result  # maybe we have a readback?
+        return self.prepare_result_for_return(result)
+
+    def prepare_result_for_return(self, result: Any) -> list[any]:
+        # as this always depends on the cnn_fetch_results, we should have a overwritable method that does that  # noqa: E501
+        # actually, we should get the output shape from the network
+        all_bytes = b"".join(
+            entry.get("data", b"") if isinstance(entry, dict) else b""
+            for entry in sorted(
+                result,
+                key=lambda x: x["addr"] if isinstance(x, dict) and "addr" in x else x,
+            )
+        )
+        if (len(all_bytes) % 4) == 0:
+            num_ints = len(all_bytes) // 4
+            result = list(struct.unpack(f"{num_ints}i", all_bytes))
+            return result
+        # should return json serializable
+        return ["unknown byte format? expected 10 integers = 40 bytes"]
 
     async def free(self):
         "free the device; this means close the handle_serial task"

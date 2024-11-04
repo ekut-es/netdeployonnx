@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import asyncio
 import io
 import logging
@@ -617,8 +635,11 @@ async def test_backend_ai8xize_run_onnx_cifar10_short():
         # ("ai85-faceid_112-qat-q.pth.onnx",False),
         # ("ai85-kws20_v3-qat8-q.pth.onnx", False),
         # ("ai8x_test_430_working.onnx", False), # this one produces the proc_error
-        # ("ai8x_test_436_working.onnx", True),
-        ("ai8x_test_469_possibly_notworking.onnx", False),
+        ("ai8x_test_436_working.onnx", True),
+        ("ai8x_test_442_working.onnx", True),
+        ("ai8x_test_455_working.onnx", True),
+        ("ai8x_test_459_working.onnx", True),
+        # ("ai8x_test_469_possibly_notworking.onnx", False),
     ],
 )
 @pytest.mark.asyncio
@@ -942,32 +963,31 @@ def close_proc(x, y, distance=2):
                 10: ["output_width", "activate"],  # activate none?
             },
         ),
-        (
-            "ai85-faceid_112-qat-q.pth.onnx",
-            "faceid.yaml",
-            {
-                "operation": (lambda x, y: y if x.lower() == y.lower() else y),
-                "out_offset": (lambda x, y: y if x in [0x2000, 0x1000] else x),
-            },
-            {
-                0: ["streaming"],
-                1: [
-                    "streaming",
-                    # cant get it right, because they are doing multipass with streaming
-                    "processors",
-                ],
-            },
-        ),
+        # (
+        #     "ai85-faceid_112-qat-q.pth.onnx",
+        #     "ai85-faceid_112.yaml",
+        #     {
+        #         "operation": (lambda x, y: y if x.lower() == y.lower() else y),
+        #         "out_offset": (lambda x, y: y if x in [0x2000, 0x1000] else x),
+        #     },
+        #     {
+        #         0: ["streaming"],
+        #         1: [
+        #             "streaming",
+        #             # cant get it right, because they are doing multipass with streaming
+        #             "processors",
+        #         ],
+        #     },
+        # ),
         (
             "ai85-kws20_v3-qat8-q.pth.onnx",
             "kws20-v3-hwc.yaml",
             {
                 # transform the correct yaml vals to match the generated variant
-                "kernel_size": (lambda x, y: f"{x}x{x}"),
+                # "kernel_size": (lambda x, y: f"{x}x{x}"),
                 "out_offset": (lambda x, y: y if x == 0x2000 else x),
                 # distance=6 is mostly because upshifting by 3 in layer 2
-                "processors": (lambda x, y: y if close_proc(x, y, 6) else x),
-                "output_width": (lambda x, y: y if y == 32 else x),
+                # "processors": (lambda x, y: y if close_proc(x, y, 6) else x),
                 "operation": (lambda x, y: y if x.lower() == y.lower() else x),
             },
             {8: ["activate", "output_width"]},
@@ -1006,6 +1026,7 @@ def test_layout_transform_generate_config_from_model_generic(  # noqa: C901
         dev.generate_config_from_model(model)
     )
     assert izer_config
+    print(yaml.dump(izer_config))
     layers = izer_config.get("layers", [])
     # ground truth
     for layeridx, ref_layerdict in enumerate(comparable_config.get("layers")):

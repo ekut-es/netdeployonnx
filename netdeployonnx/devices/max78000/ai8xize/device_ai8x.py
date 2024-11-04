@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import logging
 import math
 import re
@@ -45,6 +63,20 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             communication_port,
             energy_port,
         )
+
+    def maximum_network_size_okay(self, bytecount: int):
+        weights_start_addr = 0x10028000  # check max78000.map / customlinkerfile.ld
+        if weights_start_addr == 0x10028000:
+            return bytecount < 44 * self.FLASH_PAGE_SIZE
+        elif weights_start_addr == 0x10030000:
+            # when the weights start at 0x10030000 => 40 (see firmware)
+            return bytecount < 40 * self.FLASH_PAGE_SIZE
+        elif weights_start_addr == 0x10040000:
+            return bytecount < 32 * self.FLASH_PAGE_SIZE
+        else:
+            return False
+
+        return bytecount < 40 * self.FLASH_PAGE_SIZE
 
     async def layout_transform(self, model: onnx.ModelProto) -> any:  # noqa: C901
         DEBUG = True  # noqa: N806
@@ -105,6 +137,15 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
             set_bias_to_core(apb._bias, core)
             set_weights_to_core(apb.kernel_mem, core)
 
+        for quadrant in range(4):
+            core[quadrant].layer_count = core[quadrant].max_used_layer
+
+        # now the cheeky layout modifications
+        self.apply_layout_modifications(core, locked_config)
+
+        return core
+
+    def apply_layout_modifications(self, core: CNNx16Core, locked_config: dict):
         def set_when_available(
             quadrant: CNNx16_Quadrant, locked_config: dict, setting_name: str
         ):
@@ -127,26 +168,9 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 )
                 continue
         # to modify sram fetch
-        for quad in range(4):
-            # SRAM reg
-            set_when_available(core[quad], locked_config, "lightsleep_bram")
-            set_when_available(core[quad], locked_config, "lightsleep_tram")
-            set_when_available(core[quad], locked_config, "lightsleep_mram")
-            set_when_available(core[quad], locked_config, "lightsleep_dram")
-            set_when_available(core[quad], locked_config, "memory_deep_sleep")
-            set_when_available(core[quad], locked_config, "write_pulse_width")
-            set_when_available(core[quad], locked_config, "write_neg_voltage_enable")
-            set_when_available(core[quad], locked_config, "write_neg_voltage")
-            set_when_available(core[quad], locked_config, "read_assist_voltage")
-            set_when_available(core[quad], locked_config, "read_margin")
-            set_when_available(core[quad], locked_config, "read_margin_enable")
-            set_when_available(core[quad], locked_config, "extended_access_time_enable")
-
-            # CTRL reg
-            set_when_available(core[quad], locked_config, "pool_en")
-            set_when_available(core[quad], locked_config, "maxpool_en")
-
-        return core
+        for option_name, fieldinfo in core[0].model_fields.items():
+            for quad in range(4):
+                set_when_available(core[quad], locked_config, option_name)
 
     @staticmethod
     def following_node(graph: any, node: any, op_type: str, max_depth: int) -> bool:
@@ -188,17 +212,24 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
     ) -> tuple[dict, dict, list[int], onnx.ModelProto]:
         # the cfg is expected in the order of the nodes in the onnx model
         INSTANCE_WIDTH = 0x800  # noqa: N806 , F841    tc.dev.INSTANCE_WIDTH
+        DEVICE_MEMORY_INSTANCE_SIZE = (
+            INSTANCE_WIDTH * 16
+        )  # atleast for ai85 (tc.dev.INSTANCE_WIDTH*16)  # noqa: E501, N806
+        PING_PONG_VALUE = DEVICE_MEMORY_INSTANCE_SIZE // 2  # noqa: N806
+
         locked_config = {item.key: item.value for item in model.metadata_props}
         layers: list[AI8XizeConfigLayer] = []
         input_shape: list[int] = None
         trf_graph = self.transform_graph(model.graph)
 
-        input_channels = 1
+        relevant_channels = 1
 
         nx_graph = trf_graph.nxgraph_for_ai8x()
 
         onnx_graph = trf_graph.onnx()
-        layer_information = None
+        layer_information = get_layer_information(
+            model=onnx.helper.make_model(graph=onnx_graph),
+        )
         layerlevel = -1  # so we start at 0
         for node in onnx_graph.node:
             nxnode: any = nx_graph.nodes[node.name]
@@ -224,28 +255,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     assert (
                         len(input_shape) == 3
                     ), f"unexpected input shape: {input_shape}"
-                    layer_information = get_layer_information(
-                        model=onnx.helper.make_model(graph=onnx_graph),
-                        layer_count=len(
-                            [
-                                1
-                                for node in onnx_graph.node
-                                if (
-                                    nx_graph.nodes[node.name]
-                                    .get("op_type", "")
-                                    .startswith("Conv")
-                                    or nx_graph.nodes[node.name]
-                                    .get("op_type", "")
-                                    .startswith("Gemm")
-                                    # average pool standalone (faceid)
-                                    or nx_graph.nodes[node.name]
-                                    .get("op_type", "")
-                                    .startswith("None")
-                                )
-                            ]
-                        ),
-                        input_dim=input_shape,
-                    )
+
                 ly = AI8XizeConfigLayer(processors=0, out_offset=0)
                 ly.name = node.name
 
@@ -254,7 +264,13 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     if is_1d:
                         ly.operation = "Conv1d"  # capitalization is needed for testing, .but can be lower()  # noqa: E501
                     else:
-                        ly.operation = "Conv2d"  # capitalization is needed for testing
+                        if nxnode.get("transpose", None):
+                            ly.operation = "convtranspose2d"  # capitalization is needed for testing
+                        else:
+                            ly.operation = (
+                                "Conv2d"  # capitalization is needed for testing
+                            )
+
                 else:
                     ly.operation = "MLP"
                 if "Relu" in node.name:
@@ -318,7 +334,12 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # invalid to set for MLP/Gemm
                     kernel_size = nxnode.get("kernel_shape", [1])
                     # we only have square kernels for 2d
-                    ly.kernel_size = f"{kernel_size[0]}x{kernel_size[0]}"
+                    # Ackchyually, ERROR: Unsupported value `1x1` for `kernel_size` (found in layer sequence 0 in YAML configuration).
+                    if is_1d:
+                        ly.kernel_size = kernel_size[0]  # mental (int)
+                    else:
+                        ly.kernel_size = f"{kernel_size[0]}x{kernel_size[0]}"
+
                 layer_input_shape = weights_shape  # noqa: F841
                 # assert np.prod(layer_input_shape) < INSTANCE_WIDTH * 16 * 9, (
                 #     f"input shape {layer_input_shape}={np.prod(layer_input_shape)} "
@@ -337,15 +358,27 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
 
                 # now calc inputs
 
-                input_dim = [1, 1]
+                input_dim = [1, 1]  # TODO: fix this input dim to be correct
 
                 if len(layers) == 0:
+                    input_size = np.prod(input_shape)
+                    logging.debug(f"input size is {input_shape} => {input_size}")
+                    while (
+                        input_size + PING_PONG_VALUE
+                    ) >= DEVICE_MEMORY_INSTANCE_SIZE and PING_PONG_VALUE > 0:
+                        PING_PONG_VALUE //= 2  # try what there is to save?
+
+                        # if we cannot enable PINGPONG we must be > 16k
+                        # and that times 4 with HWC / big => 4*16k =>65k which does not
+                        #  fit on device memory
+                    # else:
+                    #    ly.data_format = "HWC"
                     ly.data_format = "HWC"
                     if is_1d:  # noqa: SIM108
-                        input_channels = input_shape[1]
+                        relevant_channels = input_shape[1]
                     else:
-                        input_channels = input_shape[0]
-                ly.out_offset = 0x4000 if len(layers) % 2 == 0 else 0
+                        relevant_channels = input_shape[0]
+                ly.out_offset = PING_PONG_VALUE if len(layers) % 2 == 0 else 0
 
                 if not op_type.lower().startswith("conv1d") and "Flatten" in node.name:
                     # basically, if this is not conv1d and its flatten
@@ -353,25 +386,42 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                     # input_channels[ll] //= pooled_dim[ll][0] * pooled_dim[ll][1]
                     # and the pooled_dim is calculated by
                     # [(input_dim[0] + pool_stride[0] - pool[0] - pool_dilation[0] + 1) // pool_stride[0], ...]  # noqa: E501
+
                     pooled_dimensions = input_dim[0] * input_dim[1]
-                    input_channels //= pooled_dimensions
-                
+                    relevant_channels //= pooled_dimensions
 
                 if op_type.startswith("Gemm") and "Flatten" in node.name:
                     # we need to modify the proc count
-                    input_channels = weights_shape[1]
+                    relevant_channels = weights_shape[1]
+
+                if is_1d:  # noqa: SIM108
+                    relevant_channels = weights_shape[
+                        1
+                    ]  # maybe we can always use the input channels of the current layer?
+                else:
+                    # actually dont do anything?
+                    relevant_channels = weights_shape[1]
 
                 # reduce by input channels
-                passes_float = input_channels / 64
+                passes_float = relevant_channels / 64
                 passes = math.ceil(passes_float)
                 assert passes_float > 0, "passes_float cant be 0 or smaller"
                 assert passes > 0, "passes cant be 0 or smaller (div by 0)"
                 # multipy by output channels
                 processor_count = (
-                    input_channels // passes
-                )  # future input_channels are output_channels / passes
-                
-                input_channels = weights_shape[0]
+                    relevant_channels // passes
+                )  # future relevant_channels are output_channels / passes
+
+                if passes > 1:
+                    # on multipasses, we need to enable shared processors.
+                    if (processor_count % 4) != 0:
+                        # we have a partial activation, we cant let that happen
+                        processor_count += 4 - (processor_count % 4)
+
+                if is_1d:  # noqa: SIM108
+                    relevant_channels = weights_shape[0]
+                else:
+                    relevant_channels = weights_shape[0]
 
                 # i dont know when to shift the processors
                 # TODO: generalize this
@@ -379,7 +429,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 # processor_shift = 32 if len(layers) == 4 else 0
                 _factor_factor = nxnode.get("_factor_factor", [1])
                 _full_factor = nxnode.get("_full_factor", _factor_factor)[0]
-                _resulting_shift = int(math.log2(_full_factor))
+                _resulting_shift = int(math.log2(1 if is_1d else _full_factor))
                 if _resulting_shift < 0:
                     # output shift is barely used if not at all
                     # ly.output_shift = _resulting_shift
@@ -393,7 +443,7 @@ class MAX78000_ai8xize(MAX78000):  # noqa: N801
                 )
                 logging.warning(
                     f"proc: {processor_count}, pass:{passes}, "
-                    f"inp_chan:{input_channels}, weights:{weights_shape}"
+                    f"rel_chan:{relevant_channels}, weights:{weights_shape}"
                     f"factor:{_factor_factor}, fullfactor:{_full_factor}"
                     "results in proc count/shift:"
                     f"{processor_count}/{int(math.log2(_full_factor))}"
@@ -570,10 +620,8 @@ class LayerInformation:
 
 def get_layer_information(
     model: onnx.ModelProto,
-    layer_count: int,
-    input_dim: tuple,
 ) -> LayerInformation:
-    layerinfo = LayerInformation(layer_count)
+    layerinfo = LayerInformation(0)
     # weights = [
     #     []
     #     for layer in range(layer_count)

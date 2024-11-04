@@ -1,3 +1,21 @@
+#
+# Copyright (c) 2024 netdeployonnx contributors.
+#
+# This file is part of netdeployonx.
+# See https://github.com/ekut-es/netdeployonnx for further info.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import asyncio
 import logging
 import os
@@ -83,9 +101,21 @@ def server(listen, configfile, log_level):
     required=False,
     # help="just a .onnx file",
 )
+@click.option(
+    "--log_level",
+    type=click.Choice(LOG_LEVELS.keys(), case_sensitive=False),
+    default="INFO",
+    required=False,
+)
 def client(
-    connect: str, configfile: str, experiments: bool, networkfile: Path, no_flash: bool
+    connect: str,
+    configfile: str,
+    experiments: bool,
+    networkfile: Path,
+    no_flash: bool,
+    log_level: str,
 ):
+    logging.basicConfig(level=LOG_LEVELS[log_level.upper()])
     if configfile is None:
         configfile = DEFAULT_CONFIG_FILE
     else:
@@ -99,7 +129,10 @@ def client(
         config.client.port = port
 
     netdeployonnx.client.connect(
-        config, networkfile, run_experiments=experiments, no_flash=no_flash
+        config,
+        networkfile,
+        run_experiments=experiments,
+        no_flash=no_flash,
     )
 
 
