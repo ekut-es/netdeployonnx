@@ -18,7 +18,7 @@
 #
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 from pydantic import AliasChoices, BaseModel, Field
@@ -47,7 +47,7 @@ class DeviceConfig(BaseModel):
         validation_alias=AliasChoices("name", "model"),
     )
     class_name: str = Field(default="DummyDevice")
-    communication_port: str | None = Field(
+    communication_port: Optional[str]  = Field(
         default="/dev/ttyACM0", description="Communication port"
     )
     energy_port: str | None = Field(
